@@ -1,6 +1,7 @@
 import { OrderRepository } from '../database/repositories/order.repository'
 import CustomError from '../utils/customError'
 import { UtilService } from './util.service'
+import fs from 'fs'
 
 export class OrderService {
   private orderRepository: OrderRepository
@@ -31,6 +32,8 @@ export class OrderService {
       }
 
       const orders = await this.orderRepository.findByFilter(page, limit, filter)
+
+      fs.writeFileSync('orders.json', JSON.stringify(orders, null, 2))
 
       return orders
     } catch (error) {

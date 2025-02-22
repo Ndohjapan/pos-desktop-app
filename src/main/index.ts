@@ -6,10 +6,29 @@ import icon from '../../resources/icon.png?asset'
 import { ExpressServer } from '../main/services/express-server'
 import { Bonjour } from 'bonjour-service'
 import { categoriesApi, foodsApi, ordersApi, utilsApi } from './client'
+import { generateReceiptHTML } from './receipt-formatting'
 
 let expressServer: ExpressServer | null = null
 
 const bonjourBrowser = new Bonjour()
+
+const options = {
+  silent: true,
+  printBackground: true,
+  color: false,
+  margin: {
+    marginType: 'custom',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0
+  },
+  landscape: false,
+  pagesPerSheet: 1,
+  collate: false,
+  copies: 1,
+  preview: true
+}
 
 function createWindow(): void {
   // Create the browser window.
@@ -203,4 +222,34 @@ ipcMain.handle('sync-data', async (event, baseUrl) => {
   } catch (error) {
     return { success: false, error: error.message }
   }
+})
+
+ipcMain.handle('print-receipt', async (event, orderData) => {
+  const printWindow = BrowserWindow.getFocusedWindow()
+  await printWindow.webContents.getPrintersAsync()
+
+  const printContentsWindow = new BrowserWindow({
+    show: true,
+    webPreferences: {
+      nodeIntegration: true
+    }
+  })
+
+  const htmlContent = generateReceiptHTML(orderData)
+
+  await printContentsWindow.loadURL(
+    `data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`
+  )
+
+  return new Promise((resolve, reject) => {
+    printContentsWindow.webContents.print(options, (success, failureReason) => {
+      if (!success) {
+        console.log(failureReason)
+        reject(new Error(failureReason))
+      } else {
+        resolve({ success: true, message: 'Print completed successfully' })
+      }
+      printContentsWindow.close()
+    })
+  })
 })

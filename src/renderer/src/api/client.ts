@@ -84,5 +84,19 @@ export const utilsApi = {
     } catch (error) {
       handleApiError(error)
     }
+  },
+
+  printReceipt: async (orderData: object) => {
+    try {
+      const response = await window.api.printReceipt(orderData)
+
+      if (!response.success) {
+        throw new Error(response.error)
+      }
+
+      return response
+    } catch (error) {
+      handleApiError(error)
+    }
   }
 }

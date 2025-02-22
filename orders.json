@@ -1,0 +1,50 @@
+{
+  "rows": [
+    {
+      "id": 1,
+      "paymentMethod": "Transfer",
+      "total": 2500,
+      "backupStatus": 1,
+      "createdAt": "2025-02-22 02:09:50Z",
+      "updatedAt": "2025-02-22 02:09:51Z",
+      "groups": [
+        {
+          "id": 1,
+          "orderId": 1,
+          "total": 2500,
+          "items": [
+            {
+              "id": 1,
+              "foodName": "Amala",
+              "quantity": 2,
+              "price": 500,
+              "amount": 1000,
+              "foodId": 1,
+              "foodCloudId": "67b403c622e9f8bb4cfb458f",
+              "groupId": 1
+            },
+            {
+              "id": 2,
+              "foodName": "Turkey",
+              "quantity": 1,
+              "price": 1500,
+              "amount": 1500,
+              "foodId": 2,
+              "foodCloudId": "67b4b8f2357952812c3e9193",
+              "groupId": 1
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "totalRows": 1,
+  "limit": 10,
+  "totalPages": 1,
+  "page": 1,
+  "pagingCounter": 1,
+  "hasPrevPage": false,
+  "hasNextPage": false,
+  "prevPage": null,
+  "nextPage": null
+}

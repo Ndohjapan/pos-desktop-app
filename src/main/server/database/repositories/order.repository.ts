@@ -11,9 +11,16 @@ export class OrderRepository {
       const orders = db
         .prepare(
           `
-        SELECT * FROM "Order"
-        ORDER BY createdAt DESC
-        LIMIT ? OFFSET ?
+          SELECT 
+            id,
+            paymentMethod,
+            total,
+            backupStatus,
+            datetime(createdAt) || 'Z' as createdAt,
+            datetime(updatedAt) || 'Z' as updatedAt
+          FROM "Order"
+          ORDER BY createdAt DESC
+          LIMIT ? OFFSET ?
       `
         )
         .all(limit, offset)
@@ -86,15 +93,21 @@ export class OrderRepository {
         whereClause = 'WHERE ' + conditions.join(' AND ')
       }
 
-
       // Fetch filtered orders with pagination
       const orders = db
         .prepare(
           `
-        SELECT * FROM "Order"
-        ${whereClause}
-        ORDER BY createdAt DESC
-        LIMIT ? OFFSET ?
+          SELECT 
+            id,
+            paymentMethod,
+            total,
+            backupStatus,
+            datetime(createdAt) || 'Z' as createdAt,
+            datetime(updatedAt) || 'Z' as updatedAt
+          FROM "Order"
+          ${whereClause}
+          ORDER BY createdAt DESC
+          LIMIT ? OFFSET ?
       `
         )
         .all(...values, limit, offset)
@@ -155,7 +168,7 @@ export class OrderRepository {
     try {
       const insertOrder = db.prepare(`
       INSERT INTO "Order" (paymentMethod, total, backupStatus, createdAt, updatedAt)
-      VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      VALUES (?, ?, ?, datetime('now'), datetime('now'))
     `)
 
       const orderResult = insertOrder.run(

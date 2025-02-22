@@ -1,3 +1,4 @@
+/* eslint-disable react/display-name */
 //@ts-nocheck
 import { CgSpinner } from 'react-icons/cg'
 import { useState } from 'react'
@@ -8,8 +9,7 @@ import { HiOutlineCash } from 'react-icons/hi'
 import { FaCreditCard } from 'react-icons/fa'
 import { forwardRef, useImperativeHandle } from 'react'
 import ShoppingBag from '@renderer/assets/images/shopping-bags.svg'
-import PrintReceipt from './PrintReceipt'
-import { ordersApi } from '@renderer/api/client'
+import { ordersApi, utilsApi } from '@renderer/api/client'
 import { useConnectionStore } from '@renderer/store/connection'
 
 interface OrderItem {
@@ -31,9 +31,11 @@ const CreateOrder = forwardRef(({ onOrderUpdate }, ref) => {
   const [activeGroupIndex, setActiveGroupIndex] = useState(0)
   const [openGroups, setOpenGroups] = useState(new Set([0]))
   const [paymentMethod, setPaymentMethod] = useState('cash')
+  const [createdOrder, setCreatedOrder] = useState(null)
 
   const [isPaid, setIsPaid] = useState(false)
   const [isCreatingOrder, setIsCreatingOrder] = useState(false)
+  const [isPrintingReceipt, setIsPrintingReceipt] = useState(false)
 
   const host = useConnectionStore((state) => state.host)
   const port = useConnectionStore((state) => state.port)
@@ -73,32 +75,6 @@ const CreateOrder = forwardRef(({ onOrderUpdate }, ref) => {
 
       return newGroups
     })
-  }
-
-  const handlePrintReceipt = () => {
-    const printWindow = window.open('', '_blank')
-    const printContent = (
-      <PrintReceipt
-        order={groups}
-        paymentMethod={paymentMethod}
-        totalAmount={getTotalOrderAmount()}
-      />
-    )
-
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Order Receipt</title>
-          <link rel="stylesheet" href="your-styles.css">
-        </head>
-        <body>
-          ${ReactDOMServer.renderToString(printContent)}
-        </body>
-      </html>
-    `)
-
-    printWindow.document.close()
-    printWindow.print()
   }
 
   const updateItemQuantity = (groupIndex, itemId, newQuantity) => {
@@ -173,12 +149,27 @@ const CreateOrder = forwardRef(({ onOrderUpdate }, ref) => {
       setIsCreatingOrder(true)
 
       const baseUrl = `http://${host}:${port}/api`
-      await ordersApi.create(baseUrl, orderData);
+      const response = await ordersApi.create(baseUrl, orderData)
+
+      response.data.createdAt = response.data.createdAt + 'Z'
+
+      setCreatedOrder(response.data)
       setIsPaid(true)
     } catch (error) {
-      console.error("Error Creating Order", error);
+      console.error('Error Creating Order', error)
     } finally {
       setIsCreatingOrder(false)
+    }
+  }
+
+  const handlePrintReceipt = async () => {
+    setIsPrintingReceipt(true)
+    try {
+      await utilsApi.printReceipt(createdOrder)
+    } catch (error) {
+      console.error('Error Creating Order', error)
+    } finally {
+      setIsPrintingReceipt(false)
     }
   }
 
@@ -223,7 +214,7 @@ const CreateOrder = forwardRef(({ onOrderUpdate }, ref) => {
                   className="w-full flex justify-between items-center px-4 py-3 bg-gray-200 rounded-lg"
                   onClick={() => handleAccordionClick(index)}
                 >
-                  <span className='font-bold'>
+                  <span className="font-bold">
                     {group.items.length} items - ₦{group.total.toLocaleString()}
                   </span>
                   {openGroups.has(index) ? <FaChevronUp /> : <FaChevronDown />}
@@ -242,10 +233,8 @@ const CreateOrder = forwardRef(({ onOrderUpdate }, ref) => {
                             <span className="font-normal">- ₦{item.price.toLocaleString()}</span>
                           </p>
                           <p className="text-xs text-gray-900 font-bold">
-                            <span className='font-normal'>
-                              Total:
-                            </span>
-                            ₦{item.amount.toLocaleString()}
+                            <span className="font-normal">Total:</span>₦
+                            {item.amount.toLocaleString()}
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
@@ -313,26 +302,28 @@ const CreateOrder = forwardRef(({ onOrderUpdate }, ref) => {
                     onClick={handleCreateOrder}
                     disabled={isCreatingOrder}
                   >
-                    {isCreatingOrder ? (
-                      <CgSpinner className="animate-spin text-2xl" />
-                    ) : (
-                      'Paid'
-                    )}
+                    {isCreatingOrder ? <CgSpinner className="animate-spin text-2xl" /> : 'Paid'}
                   </button>
                 </div>
               )}
               {isPaid && (
                 <div className="mt-4 flex items-center justify-between space-x-3">
-                  <button className="group relative w-full flex justify-center p-2 text-sm font-medium rounded-lg text-primary-700 border-2 border-primary-700 hover:border-primary-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 cursor-pointer" 
-                  onClick={clearOrder}
+                  <button
+                    className="group relative w-full flex justify-center p-2 text-sm font-medium rounded-lg text-primary-700 border-2 border-primary-700 hover:border-primary-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 cursor-pointer"
+                    onClick={clearOrder}
                   >
                     New Order
                   </button>
                   <button
-                    className="group relative w-full flex justify-center p-2 border border-transparent text-sm font-medium rounded-lg text-white bg-primary-700 hover:bg-primary-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 cursor-pointer"
+                    className={`group relative w-full flex justify-center p-2 border border-transparent text-sm font-medium rounded-lg text-white ${isPrintingReceipt ? 'bg-primary-500' : 'bg-primary-700'} hover:bg-primary-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 cursor-pointer`}
                     onClick={handlePrintReceipt}
+                    disabled={isPrintingReceipt}
                   >
-                    Print Receipt
+                    {isPrintingReceipt ? (
+                      <CgSpinner className="animate-spin text-2xl" />
+                    ) : (
+                      'Print Receipt'
+                    )}
                   </button>
                 </div>
               )}

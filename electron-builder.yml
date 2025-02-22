@@ -1,5 +1,5 @@
 appId: com.electron.app
-productName: pos-application
+productName: amala-oluyole-pos
 directories:
   buildResources: build
 files:
@@ -12,7 +12,7 @@ files:
 asarUnpack:
   - resources/**
 win:
-  executableName: pos-application
+  executableName: amala-oluyole
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
@@ -40,4 +40,4 @@ appImage:
 npmRebuild: false
 publish:
   provider: generic
-  url: https://example.com/auto-updates
+  url: https://springbokco.com/auto-updates
