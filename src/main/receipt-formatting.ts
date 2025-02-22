@@ -13,13 +13,18 @@ export function generateReceiptHTML(order): string {
         }
         body {
           font-family: 'Courier New', monospace;
-          width: 72mm;
+          width: 70mm;
           margin: 0;
           padding: 2mm;
         }
         .header {
           text-align: center;
           margin-bottom: 10px;
+        }
+        .address {
+          font-size: 10px;
+          margin-top: 4px;
+          white-space: pre-wrap;
         }
         .header h2 {
           margin: 5px 0;
@@ -69,6 +74,7 @@ export function generateReceiptHTML(order): string {
     <body>
       <div class="header">
         <h2>Amala Oluyole</h2>
+        <div class="address">Plot 4 Block 1, Opposite SUmal Industry,<br>oluyole-Town Planning Area,<br>ring Road, Ibadan</div>
         <div>Order #${order.id}</div>
         <div>${date}</div>
         <div>Payment: ${order.paymentMethod}</div>
@@ -87,12 +93,12 @@ export function generateReceiptHTML(order): string {
             <div class="item">
               <span class="item-name">${item.foodName}</span>
               <span class="item-quantity">x${item.quantity}</span>
-              <span class="item-amount">₦${item.amount}</span>
+              <span class="item-amount">₦${item.amount.toLocaleString()}</span>
             </div>
           `
             )
             .join('')}
-          <div class="total">Group Total: ₦${group.total}</div>
+          <div class="total">Group Total: ₦${group.total.toLocaleString()}</div>
         </div>
         <div class="divider"></div>
       `
@@ -100,7 +106,7 @@ export function generateReceiptHTML(order): string {
         .join('')}
 
       <div class="total">
-        Grand Total: ₦${order.total}
+        Grand Total: ₦${order.total.toLocaleString()}
       </div>
 
       <div class="footer">
