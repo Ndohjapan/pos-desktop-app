@@ -1,6 +1,5 @@
 interface Category {
   id: string
-  cloudId: string
   name: string
   createdAt: string
   updatedAt: string
@@ -8,7 +7,6 @@ interface Category {
 
 export interface Food {
   id: string
-  cloudId: string
   name: string
   price: number
   quantity: number

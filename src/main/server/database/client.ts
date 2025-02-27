@@ -61,7 +61,6 @@ export const initializeDatabase = () => {
       price REAL,
       amount REAL,
       foodId INTEGER,
-      foodCloudId TEXT,
       groupId INTEGER,
       FOREIGN KEY (foodId) REFERENCES Food(id),
       FOREIGN KEY (groupId) REFERENCES OrderGroup(id)

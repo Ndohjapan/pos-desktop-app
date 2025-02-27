@@ -321,8 +321,8 @@ export class OrderRepository {
       `)
 
       const insertItem = db.prepare(`
-        INSERT INTO OrderItem (foodName, quantity, price, amount, foodId, foodCloudId, groupId)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO OrderItem (foodName, quantity, price, amount, foodId, groupId)
+        VALUES (?, ?, ?, ?, ?, ?)
       `)
 
       for (const group of orderData.groups) {
@@ -335,7 +335,6 @@ export class OrderRepository {
             item.price,
             item.amount,
             item.id,
-            item.cloudId,
             groupId
           )
         }

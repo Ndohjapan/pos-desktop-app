@@ -15,7 +15,6 @@ interface OrderItem {
   quantity: number
   price: number
   amount: number
-  cloudId: string
 }
 
 interface OrderGroup {
@@ -65,7 +64,6 @@ const CreateOrder = forwardRef(({ onOrderUpdate }, ref) => {
           quantity: 1,
           price: food.price,
           amount: food.price,
-          cloudId: food.cloudId
         })
         group.total = group.items.reduce((sum, item) => sum + item.amount, 0)
       }

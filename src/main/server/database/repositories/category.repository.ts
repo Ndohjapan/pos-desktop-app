@@ -26,23 +26,11 @@ export class CategoryRepository {
 
   async create(data: any) {
     try {
-      const existingCategory = db
-        .prepare('SELECT * FROM Category WHERE cloudId = ?')
-        .get(data.cloudId)
-
-      if (existingCategory) {
-        const updateStatement = db.prepare(`
-          UPDATE Category SET name = ?, updatedAt = CURRENT_TIMESTAMP WHERE cloudId = ?
-        `)
-        updateStatement.run(data.name, data.cloudId)
-        return { ...existingCategory, name: data.name, updatedAt: new Date().toISOString() }
-      } else {
-        const insertStatement = db.prepare(`
-          INSERT INTO Category (name) VALUES (?)
-        `)
-        const result = insertStatement.run(data.name)
-        return { ...data, id: result.lastInsertRowid }
-      }
+      const insertStatement = db.prepare(`
+        INSERT INTO Category (name) VALUES (?)
+      `)
+      const result = insertStatement.run(data.name)
+      return { ...data, id: result.lastInsertRowid }
     } catch (error) {
       throw new CustomError(error.message, 500)
     }

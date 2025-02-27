@@ -5,7 +5,6 @@ interface OrderItem {
   price: number
   amount: number
   foodId: string
-  foodCloudId: string
   groupId: string
 }
 

@@ -85,7 +85,7 @@ export const PaymentMethodManager = ({ total, onPaymentsChange }: PaymentMethodM
           </div>
           <div className="mt-2">
             <input
-              type="number"
+              type="text"
               value={amount || ''} // This change will remove the sticky zero
               onChange={(e) => handleAmountChange(paymentMethod, Number(e.target.value))}
               className="w-full p-2 border rounded"

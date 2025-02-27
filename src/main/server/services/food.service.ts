@@ -75,37 +75,4 @@ export class FoodService {
     }
   }
 
-  async upsertFood(foodData: any) {
-    try {
-      // Find the category by cloudId
-      const category = await this.categoryRepository.findByFilter({
-        cloudId: foodData.category._id
-      })
-
-      if (category.length === 0) {
-        throw new CustomError('Category not found', 404)
-      }
-
-      const formattedData = {
-        name: foodData.name,
-        cloudId: foodData._id,
-        price: foodData.price,
-        quantity: foodData.quantity,
-        category: {
-          cloudId: foodData.category._id,
-          id: category[0].id
-        },
-        image: foodData.image,
-        inStock: foodData.inStock ? 1 : 0
-      }
-
-      // Update if exists, create if doesn't
-      const food = await this.foodRepository.upsert(formattedData)
-
-      return food
-    } catch (error) {
-      console.log(error)
-      throw new CustomError(error.message, error.code || 409)
-    }
-  }
 }

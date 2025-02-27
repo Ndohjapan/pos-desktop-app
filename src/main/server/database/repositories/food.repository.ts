@@ -89,59 +89,16 @@ export class FoodRepository {
     }
   }
 
-  async upsert(foodData: any) {
-    try {
-      const existingFood = db.prepare('SELECT * FROM Food WHERE cloudId = ?').get(foodData.cloudId)
-
-      if (existingFood) {
-        const updateStatement = db.prepare(`
-          UPDATE Food 
-          SET name = ?, price = ?, quantity = ?, inStock = ?, image = ?, categoryId = ?, updatedAt = CURRENT_TIMESTAMP
-          WHERE cloudId = ?
-        `)
-        updateStatement.run(
-          foodData.name,
-          foodData.price,
-          foodData.quantity,
-          foodData.inStock,
-          foodData.image,
-          foodData.category.id,
-          foodData.cloudId
-        )
-        return { ...existingFood, ...foodData, updatedAt: new Date().toISOString() }
-      } else {
-        const insertStatement = db.prepare(`
-          INSERT INTO Food (id, cloudId, name, price, quantity, inStock, image, categoryId)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `)
-        insertStatement.run(
-          foodData.id,
-          foodData.cloudId,
-          foodData.name,
-          foodData.price,
-          foodData.quantity,
-          foodData.inStock,
-          foodData.image,
-          foodData.category.id
-        )
-        return { ...foodData, createdAt: new Date().toISOString() }
-      }
-    } catch (error) {
-      console.log(error)
-      throw new CustomError(error.message, 500)
-    }
-  }
 
   async insertMany(data: any[]) {
     const insertStatement = db.prepare(`
-      INSERT INTO Food (id, cloudId, name, price, quantity, inStock, image, categoryId)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO Food (id, name, price, quantity, inStock, image, categoryId)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `)
     const transaction = db.transaction((foods) => {
       for (const food of foods) {
         insertStatement.run(
           food.id,
-          food.cloudId,
           food.name,
           food.price,
           food.quantity,
