@@ -8,7 +8,6 @@ import Logo from '@renderer/assets/images/logo.svg'
 import ConnectionModal from './modals/ConnectionModal'
 import { useState } from 'react'
 import { useConnectionStore, useServiceStore } from '@renderer/store/connection'
-import toast from 'react-hot-toast'
 
 function HomePage(): JSX.Element {
   const navigate = useNavigate()
@@ -25,10 +24,10 @@ function HomePage(): JSX.Element {
     if (result.success) {
       setConnectionDetails('localhost', result.port, 'localhost', 'Main');
       setServiceName(result.serviceName)
-      toast.success('Server started successfully')
       navigate('/main')
     } else {
       console.error('Failed to start server:', result.error)
+
     }
 
   }

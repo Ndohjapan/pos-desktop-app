@@ -1,16 +1,13 @@
 /* eslint-disable react/display-name */
-//@ts-nocheck
 import { CgSpinner } from 'react-icons/cg'
 import { useState } from 'react'
 import { FaChevronDown, FaChevronUp, FaPlus } from 'react-icons/fa'
-import { IoIosSend } from 'react-icons/io'
-import { TbWorld } from 'react-icons/tb'
-import { HiOutlineCash } from 'react-icons/hi'
-import { FaCreditCard } from 'react-icons/fa'
 import { forwardRef, useImperativeHandle } from 'react'
 import ShoppingBag from '@renderer/assets/images/shopping-bags.svg'
 import { ordersApi, utilsApi } from '@renderer/api/client'
 import { useConnectionStore } from '@renderer/store/connection'
+import { PaymentMethodManager } from './PaymentMethodManager'
+import toast from 'react-hot-toast'
 
 interface OrderItem {
   id: string
@@ -30,7 +27,7 @@ const CreateOrder = forwardRef(({ onOrderUpdate }, ref) => {
   const [groups, setGroups] = useState<OrderGroup[]>([{ items: [], total: 0 }])
   const [activeGroupIndex, setActiveGroupIndex] = useState(0)
   const [openGroups, setOpenGroups] = useState(new Set([0]))
-  const [paymentMethod, setPaymentMethod] = useState('cash')
+  const [paymentMethods, setPaymentMethods] = useState<Payment[]>([])
   const [createdOrder, setCreatedOrder] = useState(null)
 
   const [isPaid, setIsPaid] = useState(false)
@@ -131,6 +128,14 @@ const CreateOrder = forwardRef(({ onOrderUpdate }, ref) => {
     return groups.reduce((sum, group) => sum + group.total, 0)
   }
 
+  const arePaymentsValid = () => {
+    if (paymentMethods.length === 0) return false
+
+    const totalPaymentAmount = paymentMethods.reduce((sum, payment) => sum + payment.amount, 0)
+    return totalPaymentAmount === getTotalOrderAmount()
+  }
+
+
   const clearOrder = () => {
     setGroups([{ items: [], total: 0 }])
     setActiveGroupIndex(0)
@@ -141,12 +146,19 @@ const CreateOrder = forwardRef(({ onOrderUpdate }, ref) => {
 
   const handleCreateOrder = async () => {
     try {
+
       const orderData = {
-        paymentMethod,
+        payments: paymentMethods,
         total: getTotalOrderAmount(),
         groups
       }
       setIsCreatingOrder(true)
+
+      const totalPaymentAmount = paymentMethods.reduce((sum, payment) => sum + payment.amount, 0)
+      if (totalPaymentAmount !== getTotalOrderAmount()) {
+        throw new Error('Payment amount does not match order total')
+      }
+
 
       const baseUrl = `http://${host}:${port}/api`
       const response = await ordersApi.create(baseUrl, orderData)
@@ -156,6 +168,7 @@ const CreateOrder = forwardRef(({ onOrderUpdate }, ref) => {
       setCreatedOrder(response.data)
       setIsPaid(true)
     } catch (error) {
+      toast.error(error.message);
       console.error('Error Creating Order', error)
     } finally {
       setIsCreatingOrder(false)
@@ -269,25 +282,13 @@ const CreateOrder = forwardRef(({ onOrderUpdate }, ref) => {
           </div>
 
           <div className="bg-white rounded-lg px-4 py-5 shadow-sm mt-auto">
-            <h3 className="text-secondary text-xs font-semibold mb-2">Payment method:</h3>
-            <div className="grid grid-cols-4 gap-2">
-              {['Cash', 'Card', 'Transfer', 'Online'].map((method) => (
-                <button
-                  key={method}
-                  onClick={() => setPaymentMethod(method)}
-                  className={`border rounded-lg p-3 flex flex-col items-center ${paymentMethod === method
-                    ? 'bg-blue-100 border-blue-500'
-                    : 'bg-gray-100 border-gray-300'
-                    }`}
-                >
-                  {method === 'Transfer' && <IoIosSend className="text-secondary text-lg" />}
-                  {method === 'Online' && <TbWorld className="text-secondary" />}
-                  {method === 'Card' && <FaCreditCard className="text-secondary" />}
-                  {method === 'Cash' && <HiOutlineCash className="text-secondary" />}
-                  <span className="text-xs mt-1">{method}</span>
-                </button>
-              ))}
-            </div>
+            <PaymentMethodManager
+              total={getTotalOrderAmount()}
+              onPaymentsChange={(payments) => {
+                // Store payments in state if needed
+                setPaymentMethods(payments)
+              }}
+            />
             <div className="mt-4 text-sm">
               <div className="flex justify-between mt-2 border-t pt-2">
                 <span className="font-bold">Total</span>
@@ -298,9 +299,9 @@ const CreateOrder = forwardRef(({ onOrderUpdate }, ref) => {
               {!isPaid && (
                 <div className="mt-4">
                   <button
-                    className="group relative w-full flex justify-center p-2 border border-transparent text-sm font-medium rounded-lg text-white bg-primary-700 hover:bg-primary-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:bg-blue-300 disabled:opacity-50 cursor-pointer"
+                    className={`group relative w-full flex justify-center p-2 border border-transparent text-sm font-medium rounded-lg text-white bg-primary-700 hover:bg-primary-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:bg-blue-300 disabled:opacity-50 cursor-pointer`}
                     onClick={handleCreateOrder}
-                    disabled={isCreatingOrder}
+                    disabled={isCreatingOrder || !arePaymentsValid()}
                   >
                     {isCreatingOrder ? <CgSpinner className="animate-spin text-2xl" /> : 'Paid'}
                   </button>

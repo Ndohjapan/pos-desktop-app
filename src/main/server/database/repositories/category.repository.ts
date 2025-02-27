@@ -38,10 +38,10 @@ export class CategoryRepository {
         return { ...existingCategory, name: data.name, updatedAt: new Date().toISOString() }
       } else {
         const insertStatement = db.prepare(`
-          INSERT INTO Category (id, cloudId, name) VALUES (?, ?, ?)
+          INSERT INTO Category (name) VALUES (?)
         `)
-        insertStatement.run(data.id, data.cloudId, data.name)
-        return { id: data.id, cloudId: data.cloudId, name: data.name }
+        const result = insertStatement.run(data.name)
+        return { ...data, id: result.lastInsertRowid }
       }
     } catch (error) {
       throw new CustomError(error.message, 500)

@@ -1,12 +1,12 @@
-//@ts-nocheck
 import { RxReload } from 'react-icons/rx'
 import { useState, useRef, useEffect } from 'react'
 import Logo from '@renderer/assets/images/logo.svg'
 import CreateOrder from './CreateOrder'
 import { categoriesApi, foodsApi } from '@renderer/api/client'
-import { useConnectionStore } from '@renderer/store/connection'
+import { useConnectionStore, useSectionStore } from '@renderer/store/connection'
 import { Food } from '@renderer/types/food'
 import { Category } from '@renderer/types/category'
+
 
 function Product() {
   const createOrderRef = useRef(null)
@@ -15,6 +15,7 @@ function Product() {
   const host = useConnectionStore((state) => state.host)
   const port = useConnectionStore((state) => state.port)
   const [searchTerm, setSearchTerm] = useState('')
+  const setSectionName = useSectionStore((state) => state.setSectionName)
 
   const [activeGroupIndex, setActiveGroupIndex] = useState(0)
 
@@ -26,6 +27,11 @@ function Product() {
 
   const [foodLoading, setFoodLoading] = useState(true)
   const [categoryLoading, setCategoryLoading] = useState(true)
+
+
+  useEffect(() => {
+    setSectionName('User')
+  }, [])
 
   useEffect(() => {
     const fetchFoods = async () => {

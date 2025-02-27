@@ -3,6 +3,7 @@ import foodRoutes from './food.routes'
 import categoryRoutes from './category.routes'
 import orderRoutes from './order.routes'
 import utilRoutes from './util.routes'
+import authRoutes from './auth.routes'
 
 const router = Router()
 
@@ -10,5 +11,6 @@ router.use('/foods', foodRoutes)
 router.use('/categories', categoryRoutes)
 router.use('/orders', orderRoutes)
 router.use('/utils', utilRoutes)
+router.use('/auth', authRoutes)
 
 export default router

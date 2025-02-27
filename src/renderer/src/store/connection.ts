@@ -44,3 +44,21 @@ export const useServiceStore = create<ServiceState>()(
     }
   )
 )
+
+interface SectionState {
+  sectionName: string
+  setSectionName: (name: string) => void
+  clearSectionName: () => void
+}
+export const useSectionStore = create<SectionState>()(
+  persist(
+    (set) => ({
+      sectionName: 'User',
+      setSectionName: (name: string = "User") => set({ sectionName: name }),
+      clearSectionName: () => set({ sectionName: '' })
+    }),
+    {
+      name: 'section-storage'
+    }
+  )
+)

@@ -18,33 +18,20 @@ export class UtilService {
     this.startPeriodicBackup()
   }
 
-  async getAllFoodsAndCategories(): Promise<any> {
+  async backupFoods(): Promise<any> {
     try {
-      const backedUpOrderCount = await this.orderRepository.count({ backupStatus: 0 })
+      const categories = await this.categoryService.getAllCategories()
 
-      if (backedUpOrderCount > 0) {
-        throw new CustomError('Please backup your orders before syncing', 400)
-      }
+      const foods = await this.foodService.getAllFoods()
 
       const result = await makeApiRequest({
         url: `${import.meta.env.MAIN_VITE_API_URL}/utils/food-and-categories`,
-        method: 'GET'
+        method: 'POST',
+        body: { foods }
       })
-
-      for (const category of result.data.categories) {
-        await this.categoryService.createCategory({
-          _id: category._id,
-          name: category.name
-        })
-      }
-
-      for (const food of result.data.foods) {
-        await this.foodService.upsertFood(food)
-      }
 
       return result
     } catch (error) {
-      console.log(error)
       console.log(`Failed to sync foods and categories: ${error.message}\n`)
       throw new CustomError(error.message, error.code || 500)
     }
@@ -56,8 +43,10 @@ export class UtilService {
       let hasMoreOrders = true
       let uploadedCount = 0
 
+      await this.backupFoods()
+
       while (hasMoreOrders) {
-        const orderBatch = await this.orderRepository.findByFilter(currentPage, BATCH_SIZE, {
+        const orderBatch = await this.orderRepository.findByFilterAll(currentPage, BATCH_SIZE, {
           backupStatus: 0
         })
 
@@ -92,7 +81,6 @@ export class UtilService {
         uploadedCount
       }
     } catch (error) {
-      console.log(error)
       console.log(`Failed to upload orders to cloud: ${error.message}\n`)
       throw new CustomError(error.message, error.code || 500)
     }

@@ -11,6 +11,7 @@ export class FoodRepository {
         SELECT Food.*, Category.name as category
         FROM Food
         LEFT JOIN Category ON Food.categoryId = Category.id
+        WHERE Food.isDeleted = 0
       `
         )
         .all()
@@ -23,21 +24,48 @@ export class FoodRepository {
   async create(data: any) {
     try {
       const statement = db.prepare(`
-        INSERT INTO Food (id, cloudId, name, price, quantity, inStock, image, categoryId)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO Food (id, name, price, quantity, inStock, image, categoryId)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
       `)
-      statement.run(
-        data.id,
-        data.cloudId,
-        data.name,
-        data.price,
-        data.quantity,
-        data.inStock,
-        data.image,
-        data.categoryId
-      )
+      statement.run(data.id, data.name, data.price, data.quantity, 1, data.image, data.categoryId)
 
       return { ...data, createdAt: new Date().toISOString() }
+    } catch (error) {
+      throw new CustomError(error.message, 500)
+    }
+  }
+
+  async updateById(id: number, data: Record<string, any>) {
+    try {
+      const setClause = Object.keys(data)
+        .map((key) => `${key} = ?`)
+        .join(', ')
+
+      const statement = db.prepare(`
+        UPDATE Food 
+        SET ${setClause}, updatedAt = datetime('now')
+        WHERE id = ? AND isDeleted = 0
+      `)
+
+      const values = [...Object.values(data), id]
+      const result = statement.run(...values)
+
+      return result
+    } catch (error) {
+      throw new CustomError(error.message, 500)
+    }
+  }
+
+  async deleteById(id: number) {
+    try {
+      const statement = db.prepare(`
+        UPDATE Food 
+        SET isDeleted = 1, updatedAt = datetime('now')
+        WHERE id = ?
+      `)
+
+      const result = statement.run(id)
+      return result
     } catch (error) {
       throw new CustomError(error.message, 500)
     }
@@ -48,13 +76,15 @@ export class FoodRepository {
       const keys = Object.keys(filter)
       const conditions = keys.map((key) => `${key} = ?`).join(' AND ')
       const statement = db.prepare(`
-        SELECT Food.*, Category.name as category FROM Food
+        SELECT Food.name as foodName, Food.*, Category.name as categoryName
+        FROM Food
         LEFT JOIN Category ON Food.categoryId = Category.id
-        WHERE ${conditions}
+        WHERE ${conditions} AND Food.isDeleted = 0
       `)
       const foods = statement.all(...keys.map((k) => filter[k]))
       return foods
     } catch (error) {
+      console.log(error)
       throw new CustomError(error.message, 500)
     }
   }

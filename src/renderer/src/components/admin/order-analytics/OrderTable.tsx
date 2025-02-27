@@ -16,6 +16,7 @@ export default function OrderTable({ onSelectOrder, orders, fetchMoreOrders }: {
   }, fetchMoreOrders: (page: number) => void
 }) {
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  
 
   const handleOrderClick = (order: any) => {
     if (selectedOrderId === order.id) {
@@ -25,6 +26,7 @@ export default function OrderTable({ onSelectOrder, orders, fetchMoreOrders }: {
       setSelectedOrderId(order.id);
       onSelectOrder(order);
     }
+    console.log(orders)
   };
 
   return (
@@ -112,13 +114,11 @@ export default function OrderTable({ onSelectOrder, orders, fetchMoreOrders }: {
                         ₦{order.total.toLocaleString()}
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-
                         {order.payments.map((payment, index) => (
                           <div key={index} className="flex justify-evenly space-x-2 items-center">
                             <span>{payment.paymentMethod}</span>
                           </div>
                         ))}
-
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                         {order.backupStatus ? (

@@ -1,16 +1,19 @@
-//@ts-nocheck
 import { TbWorld } from 'react-icons/tb'
 import { IoIosSend } from 'react-icons/io'
 import { HiOutlineCash } from 'react-icons/hi'
 import { useState } from 'react'
 import { FaCreditCard, FaChevronDown, FaChevronUp } from 'react-icons/fa'
 import { Order } from '@renderer/types/order'
-import { utilsApi } from '@renderer/api/client'
+import { ordersApi, utilsApi } from '@renderer/api/client'
 import { CgSpinner } from 'react-icons/cg'
+import { useConnectionStore } from '@renderer/store/connection'
 
-const OrderDetails = ({ order }: { order: Order }) => {
+const OrderDetails = ({ order, onDeleteOrder }: { order: Order, onDeleteOrder: () => void }) => {
   const [openGroups, setOpenGroups] = useState(new Set())
   const [isPrintingReceipt, setIsPrintingReceipt] = useState(false)
+  const [isDeletingOrder, setIsDeletingOrder] = useState(false)
+  const host = useConnectionStore((state) => state.host)
+  const port = useConnectionStore((state) => state.port)
 
   // Toggle function for accordions
   const toggleGroup = (groupIndex) => {
@@ -30,10 +33,29 @@ const OrderDetails = ({ order }: { order: Order }) => {
     try {
       await utilsApi.printReceipt(order)
     } catch (error) {
-      console.error('Error Creating Order', error)
+      console.error('Error Printing Order', error)
     } finally {
       setIsPrintingReceipt(false)
     }
+  }
+  const handleDeleteOrder = async (orderId) => {
+
+    const isConfirmed = window.confirm(
+      "Are you sure you want to delete this order?"
+    );
+    if (isConfirmed) {
+      setIsDeletingOrder(true)
+      try {
+        const baseUrl = `http://${host}:${port}/api`
+        await ordersApi.delete(baseUrl, orderId);
+        onDeleteOrder()
+      } catch (error) {
+        console.error('Error Deleting Order', error)
+      } finally {
+        setIsDeletingOrder(false)
+      }
+    }
+
   }
 
   return (
@@ -110,7 +132,6 @@ const OrderDetails = ({ order }: { order: Order }) => {
       </div>
 
       {/* Payment Summary (Stays at Bottom) */}
-
       <div className="bg-white rounded-lg px-4 py-5 shadow-sm mt-auto">
         <h3 className="text-secondary text-xs font-semibold mb-2">Payment methods:</h3>
 
@@ -136,20 +157,31 @@ const OrderDetails = ({ order }: { order: Order }) => {
         ))}
 
         <div className="mt-4 text-sm">
-          <button
-            className={`group relative w-full flex justify-center p-2 border border-transparent text-sm font-medium rounded-lg text-white ${isPrintingReceipt ? 'bg-primary-500' : 'bg-primary-700'} hover:bg-primary-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 cursor-pointer mb-4`}
-            onClick={handlePrintReceipt}
-            disabled={isPrintingReceipt}
-          >
-            {isPrintingReceipt ? <CgSpinner className="animate-spin text-2xl" /> : 'Print Receipt'}
-          </button>
+          <div className='flex items-center justify-between space-x-2'>
+            <button
+              className={`group relative w-full flex justify-center p-2 border border-transparent text-sm font-medium rounded-lg text-white ${isPrintingReceipt ? 'bg-red-500' : 'bg-red-700'} hover:bg-red-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 cursor-pointer mb-4`}
+              onClick={() => {
+                handleDeleteOrder(order.id)
+              }}
+              disabled={isDeletingOrder}
+            >
+              {isPrintingReceipt ? <CgSpinner className="animate-spin text-2xl" /> : 'Delete Order'}
+            </button>
+            <button
+              // onClick={handlePrint}
+              className={`group relative w-full flex justify-center p-2 border border-transparent text-sm font-medium rounded-lg text-white ${isPrintingReceipt ? 'bg-primary-500' : 'bg-primary-700'} hover:bg-primary-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 cursor-pointer mb-4`}
+              onClick={handlePrintReceipt}
+              disabled={isPrintingReceipt}
+            >
+              {isPrintingReceipt ? <CgSpinner className="animate-spin text-2xl" /> : 'Print Receipt'}
+            </button>
+          </div>
           <div className="flex justify-between border-t pt-2">
             <span className="font-bold">Total</span>
             <span className="font-bold text-primary-700">₦{order.total.toLocaleString()}</span>
           </div>
         </div>
       </div>
-
     </div>
   )
 }

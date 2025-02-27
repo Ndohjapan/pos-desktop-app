@@ -15,6 +15,16 @@ export class OrderService {
     return this.orderRepository.findAll(page, limit)
   }
 
+  async deleteOrder(orderId: string | number) {
+    try {
+      await this.orderRepository.deleteById(orderId)
+      return
+    } catch (error) {
+      console.log(error)
+      throw new CustomError(error.message, 500)
+    }
+  }
+
   async getOrdersByDate(page: number, limit: number, date: string) {
     try {
       const startOfDay = new Date(date)
@@ -36,6 +46,33 @@ export class OrderService {
     } catch (error) {
       console.log(error)
       throw new CustomError('Failed to get order', 500)
+    }
+  }
+
+  async searchOrders(page: number, limit: number, date: string, searchQuery: string) {
+    try {
+      const startOfDay = new Date(date)
+      startOfDay.setHours(0, 0, 0, 0)
+
+      const endOfDay = new Date(date)
+      endOfDay.setHours(23, 59, 59, 999)
+
+      const filter = {
+        createdAt: {
+          gte: startOfDay.toISOString(),
+          lte: endOfDay.toISOString()
+        }
+      }
+
+      // Add LIKE query for ID search
+      if (searchQuery) {
+        filter.id = searchQuery
+      }
+
+      const orders = await this.orderRepository.findByFilter(page, limit, filter)
+      return orders
+    } catch (error) {
+      throw new CustomError('Failed to search orders', 500)
     }
   }
 

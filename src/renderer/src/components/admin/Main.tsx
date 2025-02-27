@@ -1,21 +1,19 @@
-"use client";
-
 import { useState } from "react";
-import OrderListPage from "@renderer/components/OrderListPage";
-import Product from "@renderer/components/Product";
-import TabsPellete from "@renderer/components/TabPellete";
+import TabsPellete from "@renderer/components/admin/TabsPellete";
+import Foods from "./foods/Foods";
+import Orders from "./order-analytics/Orders";
 
 export default function Main(): JSX.Element {
-  const [activeTab, setActiveTab] = useState("Menu");
+  const [activeTab, setActiveTab] = useState("Foods");
 
   const renderContent = () => {
     switch (activeTab) {
-      case "Menu":
-        return <Product />;
+      case "Foods":
+        return <Foods />;
       case "Orders Analytics":
-        return <OrderListPage />;
+        return <Orders />;
       default:
-        return <Product />;
+        return <Foods />;
     }
   };
 

@@ -1,5 +1,3 @@
-'use client'
-
 import React, { useEffect, useState } from 'react'
 import OrderTable from './OrderTable'
 import OrderDetails from './OrderDetails'
@@ -18,12 +16,14 @@ const OrderTableSkeleton = () => (
   </div>
 )
 
-function OrderListPage() {
+function Orders() {
   const [orders, setOrders] = useState(null)
   const [order, setOrder] = useState(null)
   const [ordersLoading, setOrdersLoading] = useState(true)
+  const [isSyncLoading, setIsSyncLoading] = useState(false)
   const [isBackupLoading, setIsBackupLoading] = useState(false)
   const [currentDate, setCurrentDate] = useState(new Date().toISOString().split('T')[0])
+  const [searchTerm, setSearchTerm] = useState('')
   const host = useConnectionStore((state) => state.host)
   const port = useConnectionStore((state) => state.port)
 
@@ -59,6 +59,19 @@ function OrderListPage() {
     }
   }
 
+  const handleSyncData = async () => {
+    try {
+      setIsSyncLoading(true)
+      const baseUrl = `http://${host}:${port}/api`
+      await utilsApi.syncData(baseUrl)
+      toast.success('Inventory synced successfully!')
+    } catch (error) {
+      console.error('Error fetching orders:', error)
+    } finally {
+      setIsSyncLoading(false)
+    }
+  }
+
   const fetchMoreOrders = async (page: number) => {
     try {
       const baseUrl = `http://${host}:${port}/api`
@@ -66,6 +79,39 @@ function OrderListPage() {
       setOrders(response.data)
     } catch (error) {
       console.error('Error fetching more orders:', error)
+    }
+  }
+
+  const searchForOrder = async () => {
+    try {
+      const baseUrl = `http://${host}:${port}/api`
+
+      // If search term is empty, fetch all orders for current date
+      if (!searchTerm.trim()) {
+        const response = await ordersApi.getByDate(baseUrl, currentDate, 1, ITEM_PER_PAGE)
+        setOrders(response.data)
+        return
+      }
+
+      const response = await ordersApi.searchByDate(baseUrl, currentDate, 1, ITEM_PER_PAGE, searchTerm)
+      setOrders(response.data)
+    } catch (error) {
+      console.error('Error fetching orders:', error)
+    }
+  }
+
+  const handleOrderDelete = async () => {
+
+    try {
+      setOrdersLoading(true)
+      const baseUrl = `http://${host}:${port}/api`
+      const response = await ordersApi.getByDate(baseUrl, currentDate, 1, ITEM_PER_PAGE)
+      setOrders(response.data)
+      setOrder(null)
+    } catch (error) {
+      console.error('Error fetching orders:', error)
+    } finally {
+      setOrdersLoading(false)
     }
   }
 
@@ -100,6 +146,29 @@ function OrderListPage() {
           </div>
         </div>
 
+        <div className="grid grid-cols-12 gap-2 w-full mt-5">
+          <input
+            type="search"
+            placeholder="Search For Order"
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value)
+              if (!e.target.value.trim()) {
+                searchForOrder()
+              }
+            }}
+            className="col-span-9 md:col-span-10 w-full px-4 py-2 rounded-md border border-[#DCDCDC] bg-[#F5F5F5DD] placeholder-[#828080] text-[#828080] focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+          />
+
+          <button
+            type="button"
+            onClick={searchForOrder}
+            className="col-span-3 md:col-span-2 w-full flex items-center justify-center space-x-3 rounded-lg border border-transparent px-4 py-2 text-sm font-bold text-white shadow-sm bg-primary-700 hover:bg-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:ring-offset-2 sm:w-auto"
+          >
+            <span>Search</span>
+          </button>
+        </div>
+
         {/* Order Table */}
         {ordersLoading ? (
           <>
@@ -120,7 +189,7 @@ function OrderListPage() {
       <div className="col-span-4 bg-white border-l border-[#DCDCDC]  pl-4">
         {order ? (
           <>
-            <OrderDetails order={order} />
+            <OrderDetails order={order} onDeleteOrder={handleOrderDelete} />
           </>
         ) : (
           <>
@@ -137,4 +206,4 @@ function OrderListPage() {
   )
 }
 
-export default OrderListPage
+export default Orders

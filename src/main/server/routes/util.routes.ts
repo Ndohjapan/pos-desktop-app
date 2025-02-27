@@ -7,7 +7,7 @@ const utilService = new UtilService()
 
 router.get('/food-and-categoories', async (req, res) => {
   try {
-    const result = await utilService.getAllFoodsAndCategories()
+    const result = await utilService.backupFoods()
     res.json(result)
   } catch (error) {
     res.status(error.code).json({ message: error.message })

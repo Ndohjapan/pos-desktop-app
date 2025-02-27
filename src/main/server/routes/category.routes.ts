@@ -1,6 +1,7 @@
 //@ts-nocheck
 import { Router } from 'express'
 import { CategoryService } from '../services/category.service'
+import protect from '../middleware/protect'
 
 const router = Router()
 const categoryService = new CategoryService()
@@ -10,7 +11,7 @@ router.get('/', async (req, res) => {
   res.json(foods)
 })
 
-router.post('/', async (req, res) => {
+router.post('/', protect, async (req, res) => {
   try {
     const food = await categoryService.createCategory(req.body)
     res.status(201).json(food)

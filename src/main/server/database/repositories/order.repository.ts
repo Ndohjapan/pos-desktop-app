@@ -13,12 +13,12 @@ export class OrderRepository {
           `
           SELECT 
             id,
-            paymentMethod,
             total,
             backupStatus,
             datetime(createdAt) || 'Z' as createdAt,
             datetime(updatedAt) || 'Z' as updatedAt
           FROM "Order"
+          WHERE isDeleted = 0
           ORDER BY createdAt DESC
           LIMIT ? OFFSET ?
       `
@@ -27,6 +27,16 @@ export class OrderRepository {
 
       // Attach groups and items to each order
       for (const order of orders) {
+        const payments = db
+          .prepare(
+            `
+          SELECT paymentMethod, amount FROM OrderPayment WHERE orderId = ?
+        `
+          )
+          .all(order.id)
+
+        order.payments = payments
+
         const groups = db
           .prepare(
             `
@@ -59,6 +69,116 @@ export class OrderRepository {
           page,
           lastPage: Math.ceil(total / limit)
         }
+      }
+    } catch (error) {
+      throw new CustomError(error.message, error.code || 500)
+    }
+  }
+
+  // This function gets all the orders including deleted ones
+  async findByFilterAll(page = 1, limit = 10, filter = {}) {
+    try {
+      const offset = (page - 1) * limit
+
+      let whereClause = ''
+      let values = []
+      if (Object.keys(filter).length) {
+        const conditions = []
+
+        Object.entries(filter).forEach(([key, value]) => {
+          if (value && typeof value === 'object') {
+            if ('gte' in value) {
+              conditions.push(`${key} >= ?`)
+              values.push(value.gte)
+            }
+            if ('lte' in value) {
+              conditions.push(`${key} <= ?`)
+              values.push(value.lte)
+            }
+          } else {
+            conditions.push(`${key} = ?`)
+            values.push(value)
+          }
+        })
+
+        whereClause = 'WHERE ' + conditions.join(' AND ')
+      }
+
+      // Fetch filtered orders with pagination
+      const orders = db
+        .prepare(
+          `
+          SELECT 
+            id,
+            total,
+            backupStatus,
+            isDeleted,
+            datetime(createdAt) || 'Z' as createdAt,
+            datetime(updatedAt) || 'Z' as updatedAt
+          FROM "Order"
+          ${whereClause}
+          ORDER BY createdAt DESC
+          LIMIT ? OFFSET ?
+      `
+        )
+        .all(...values, limit, offset)
+
+      // Attach groups and items
+      for (const order of orders) {
+        const payments = db
+          .prepare(
+            `
+          SELECT paymentMethod, amount FROM OrderPayment WHERE orderId = ?
+        `
+          )
+          .all(order.id)
+
+        order.payments = payments
+
+        const groups = db
+          .prepare(
+            `
+          SELECT * FROM OrderGroup WHERE orderId = ?
+        `
+          )
+          .all(order.id)
+
+        for (const group of groups) {
+          const items = db
+            .prepare(
+              `
+            SELECT * FROM OrderItem WHERE groupId = ?
+          `
+            )
+            .all(group.id)
+          group.items = items
+        }
+
+        order.groups = groups
+      }
+
+      // Get total count
+      const totalRows = db
+        .prepare(
+          `
+        SELECT COUNT(*) as count FROM "Order" ${whereClause}
+      `
+        )
+        .get(...values).count
+
+      const totalPages = Math.ceil(totalRows / limit)
+
+      return {
+        rows: orders,
+        totalRows,
+        limit,
+        totalPages,
+        page,
+        pagingCounter: offset + 1,
+        hasPrevPage: page > 1,
+        hasNextPage: page < totalPages,
+        prevPage: page > 1 ? page - 1 : null,
+        nextPage: page < totalPages ? page + 1 : null
       }
     } catch (error) {
       throw new CustomError(error.message, error.code || 500)
@@ -99,13 +219,12 @@ export class OrderRepository {
           `
           SELECT 
             id,
-            paymentMethod,
             total,
             backupStatus,
             datetime(createdAt) || 'Z' as createdAt,
             datetime(updatedAt) || 'Z' as updatedAt
           FROM "Order"
-          ${whereClause}
+          ${whereClause} AND isDeleted = 0
           ORDER BY createdAt DESC
           LIMIT ? OFFSET ?
       `
@@ -114,6 +233,16 @@ export class OrderRepository {
 
       // Attach groups and items
       for (const order of orders) {
+        const payments = db
+          .prepare(
+            `
+          SELECT paymentMethod, amount FROM OrderPayment WHERE orderId = ?
+        `
+          )
+          .all(order.id)
+
+        order.payments = payments
+
         const groups = db
           .prepare(
             `
@@ -166,29 +295,36 @@ export class OrderRepository {
 
   async create(orderData) {
     try {
+      // Insert order without payment method
       const insertOrder = db.prepare(`
-      INSERT INTO "Order" (paymentMethod, total, backupStatus, createdAt, updatedAt)
-      VALUES (?, ?, ?, datetime('now'), datetime('now'))
-    `)
+        INSERT INTO "Order" (total, backupStatus, createdAt, updatedAt, isDeleted)
+        VALUES (?, ?, datetime('now'), datetime('now'), 0)
+      `)
 
-      const orderResult = insertOrder.run(
-        orderData.paymentMethod,
-        orderData.total,
-        orderData.backupStatus || 0
-      )
+      const orderResult = insertOrder.run(orderData.total, orderData.backupStatus || 0)
       const orderId = orderResult.lastInsertRowid
 
+      // Insert payments
+      const insertPayment = db.prepare(`
+        INSERT INTO OrderPayment (orderId, paymentMethod, amount)
+        VALUES (?, ?, ?)
+      `)
+
+      for (const payment of orderData.payments) {
+        insertPayment.run(orderId, payment.paymentMethod, payment.amount)
+      }
+
+      // Insert groups and items (existing code)
       const insertGroup = db.prepare(`
-      INSERT INTO OrderGroup ( orderId, total)
-      VALUES ( ?, ?)
-    `)
+        INSERT INTO OrderGroup (orderId, total)
+        VALUES (?, ?)
+      `)
 
       const insertItem = db.prepare(`
-      INSERT INTO OrderItem ( foodName, quantity, price, amount, foodId, foodCloudId, groupId)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `)
+        INSERT INTO OrderItem (foodName, quantity, price, amount, foodId, foodCloudId, groupId)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `)
 
-      // Insert groups and items
       for (const group of orderData.groups) {
         const groupResult = insertGroup.run(orderId, group.total)
         const groupId = groupResult.lastInsertRowid
@@ -205,20 +341,31 @@ export class OrderRepository {
         }
       }
 
-      // Fetch the newly created order with its groups and items
+      // Fetch the complete order with payments, groups and items
       const newOrder = db
         .prepare(
           `
-      SELECT * FROM "Order" WHERE id = ?
-    `
+        SELECT * FROM "Order" WHERE id = ?
+      `
         )
         .get(orderId)
+
+      // Fetch payments for this order
+      const payments = db
+        .prepare(
+          `
+        SELECT paymentMethod, amount FROM OrderPayment WHERE orderId = ?
+      `
+        )
+        .all(orderId)
+
+      newOrder.payments = payments
 
       const groups = db
         .prepare(
           `
-      SELECT * FROM OrderGroup WHERE orderId = ?
-    `
+        SELECT * FROM OrderGroup WHERE orderId = ?
+      `
         )
         .all(orderId)
 
@@ -226,8 +373,8 @@ export class OrderRepository {
         const items = db
           .prepare(
             `
-        SELECT * FROM OrderItem WHERE groupId = ?
-      `
+          SELECT * FROM OrderItem WHERE groupId = ?
+        `
           )
           .all(group.id)
         group.items = items
@@ -241,7 +388,6 @@ export class OrderRepository {
       throw new CustomError(error.message, error.code || 500)
     }
   }
-
   async count(filter = {}) {
     try {
       let whereClause = ''
@@ -258,7 +404,7 @@ export class OrderRepository {
       const count = db
         .prepare(
           `
-        SELECT COUNT(*) as count FROM "Order" ${whereClause}
+        SELECT COUNT(*) as count FROM "Order" ${whereClause} AND isDeleted = 0
       `
         )
         .get(...values).count
@@ -298,6 +444,22 @@ export class OrderRepository {
       return updateResult
     } catch (error) {
       throw new CustomError(error.message, error.code || 500)
+    }
+  }
+
+  async deleteById(id: number | string) {
+    try {
+      const statement = db.prepare(`
+        UPDATE "Order" 
+        SET isDeleted = 1, updatedAt = datetime('now'), backupStatus = 0
+        WHERE id = ?
+      `)
+
+      const result = statement.run(id)
+      return result
+    } catch (error) {
+      console.log(error)
+      throw new CustomError(error.message, 500)
     }
   }
 }

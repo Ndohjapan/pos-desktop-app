@@ -18,7 +18,7 @@ interface OrderGroup {
 
 export interface Order {
   id: number
-  paymentMethod: string
+  payments: Payment[]
   total: number
   backupStatus: boolean
   createdAt: string

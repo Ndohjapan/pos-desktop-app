@@ -1,6 +1,22 @@
 export function generateReceiptHTML(order): string {
   const date = new Date(order.createdAt).toLocaleString()
 
+  const paymentMethodsSection = `
+  <div class="payment-methods">
+  <div class="group-header">Payment Details</div>
+  ${order.payments
+    .map(
+      (payment) => `
+    <div class="item">
+    <span class="item-name">${payment.paymentMethod}</span>
+    <span class="item-amount">₦${payment.amount.toLocaleString()}</span>
+    </div>
+    `
+    )
+    .join('')}
+  <div class="divider"></div>
+  </div>
+`
   const receiptHTML = `
     <!DOCTYPE html>
     <html>
@@ -77,7 +93,6 @@ export function generateReceiptHTML(order): string {
         <div class="address">Plot 4 Block 1, Opposite SUmal Industry,<br>oluyole-Town Planning Area,<br>ring Road, Ibadan</div>
         <div>Order #${order.id}</div>
         <div>${date}</div>
-        <div>Payment: ${order.paymentMethod}</div>
       </div>
 
       <div class="divider"></div>
@@ -104,6 +119,8 @@ export function generateReceiptHTML(order): string {
       `
         )
         .join('')}
+
+      ${paymentMethodsSection}
 
       <div class="total">
         Grand Total: ₦${order.total.toLocaleString()}

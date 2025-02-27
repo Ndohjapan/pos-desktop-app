@@ -1,11 +1,10 @@
-//@ts-nocheck
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { ExpressServer } from '../main/services/express-server'
 import { Bonjour } from 'bonjour-service'
-import { categoriesApi, foodsApi, ordersApi, utilsApi } from './client'
+import { authApi, categoriesApi, foodsApi, ordersApi, utilsApi } from './client'
 import { generateReceiptHTML } from './receipt-formatting'
 
 let expressServer: ExpressServer | null = null
@@ -152,6 +151,43 @@ ipcMain.handle('search-service', () => {
   })
 })
 
+ipcMain.handle('create-food', async (event, baseUrl, foodData, authToken) => {
+  try {
+    const food = await foodsApi.create(baseUrl, foodData, authToken)
+    return {
+      success: true,
+      data: food
+    }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+})
+
+ipcMain.handle('update-food', async (event, baseUrl, foodId, foodData, authToken) => {
+  try {
+    const food = await foodsApi.update(baseUrl, foodId, foodData, authToken)
+    return {
+      success: true,
+      data: food
+    }
+  } catch (error) {
+    console.log(error)
+    return { success: false, error: error.message }
+  }
+})
+
+ipcMain.handle('delete-food', async (event, baseUrl, foodId, authToken) => {
+  try {
+    const food = await foodsApi.delete(baseUrl, foodId, authToken)
+    return {
+      success: true,
+      data: food
+    }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+})
+
 ipcMain.handle('get-foods', async (event, baseUrl) => {
   try {
     const foods = await foodsApi.getAll(baseUrl)
@@ -176,9 +212,33 @@ ipcMain.handle('get-categories', async (event, baseUrl) => {
   }
 })
 
+ipcMain.handle('create-categories', async (event, baseUrl, categoryData, authToken) => {
+  try {
+    const category = await categoriesApi.create(baseUrl, categoryData, authToken)
+    return {
+      success: true,
+      data: category
+    }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+})
+
 ipcMain.handle('create-order', async (event, baseUrl, orderData) => {
   try {
     const order = await ordersApi.create(baseUrl, orderData)
+    return {
+      success: true,
+      data: order
+    }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+})
+
+ipcMain.handle('delete-order', async (event, baseUrl, orderId, authToken) => {
+  try {
+    const order = await ordersApi.deleteById(baseUrl, orderId, authToken)
     return {
       success: true,
       data: order
@@ -200,9 +260,45 @@ ipcMain.handle('get-orders-by-date', async (event, baseUrl, page, limit, date) =
   }
 })
 
+ipcMain.handle('search-orders-by-date', async (event, baseUrl, page, limit, date, searchQuery) => {
+  try {
+    const orders = await ordersApi.search(baseUrl, page, limit, date, searchQuery)
+    return {
+      success: true,
+      data: orders
+    }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+})
+
 ipcMain.handle('backup-orders', async (event, baseUrl) => {
   try {
     const result = await utilsApi.backupOrders(baseUrl)
+    return {
+      success: true,
+      data: result
+    }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+})
+
+ipcMain.handle('signup', async (event, baseUrl, adminData) => {
+  try {
+    const result = await authApi.signup(baseUrl, adminData)
+    return {
+      success: true,
+      data: result
+    }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+})
+
+ipcMain.handle('login', async (event, baseUrl, credentials) => {
+  try {
+    const result = await authApi.login(baseUrl, credentials)
     return {
       success: true,
       data: result
