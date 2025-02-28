@@ -1,6 +1,13 @@
-//@ts-nocheck
 import axios, { AxiosRequestConfig } from 'axios'
 import CustomError from './customError'
+import Rollbar from 'rollbar'
+
+const rollbar = new Rollbar({
+  accessToken: import.meta.env.MAIN_VITE_ROLLBAR_TOKEN,
+  environment: process.env.NODE_ENV || 'development',
+  captureUncaught: true,
+  captureUnhandledRejections: true
+})
 
 interface ApiRequestOptions {
   url: string
@@ -32,6 +39,7 @@ export const makeApiRequest = async ({
     const response = await axios(config)
     return response.data
   } catch (error) {
+    rollbar.error('API request failed', error)
     if (axios.isAxiosError(error)) {
       throw new CustomError(error.response?.data?.message || 'API request failed', 500)
     }

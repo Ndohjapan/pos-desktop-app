@@ -1,22 +1,31 @@
-//@ts-nocheck
 import { OrderRepository } from '../database/repositories/order.repository'
 import { CategoryService } from './category.service'
 import { FoodService } from './food.service'
 import { makeApiRequest } from '../utils/apiRequest'
 import CustomError from '../utils/customError'
+import Rollbar from 'rollbar'
+
 
 export class UtilService {
   private categoryService: CategoryService
   private foodService: FoodService
   private orderRepository: OrderRepository
   private backupInterval: NodeJS.Timer
+  private rollbar: Rollbar
 
   constructor() {
     this.categoryService = new CategoryService()
     this.foodService = new FoodService()
     this.orderRepository = new OrderRepository()
+    this.rollbar = new Rollbar({
+      accessToken: import.meta.env.MAIN_VITE_ROLLBAR_TOKEN,
+      environment: process.env.NODE_ENV || 'development',
+      captureUncaught: true,
+      captureUnhandledRejections: true
+    })
     this.startPeriodicBackup()
   }
+
 
   async backupFoods(): Promise<any> {
     try {
@@ -32,6 +41,7 @@ export class UtilService {
 
       return result
     } catch (error) {
+      this.rollbar.error('Failed to sync foods and categories', error)
       console.log(`Failed to sync foods and categories: ${error.message}\n`)
       throw new CustomError(error.message, error.code || 500)
     }
@@ -81,6 +91,7 @@ export class UtilService {
         uploadedCount
       }
     } catch (error) {
+      this.rollbar.error('Failed to upload orders to cloud', error)
       console.log(`Failed to upload orders to cloud: ${error.message}\n`)
       throw new CustomError(error.message, error.code || 500)
     }
@@ -94,6 +105,7 @@ export class UtilService {
           console.log('Scheduled backup: Orders uploaded to cloud successfully')
         })
         .catch((error) => {
+          this.rollbar.error('Scheduled backup failed', error)
           console.error('Scheduled backup: Error uploading orders to cloud:', error.message)
         })
     }, 300000)
