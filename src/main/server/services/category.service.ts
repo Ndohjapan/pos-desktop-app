@@ -1,5 +1,6 @@
 import { CategoryRepository } from '../database/repositories/category.repository'
 import CustomError from '../utils/customError'
+import { rollbar } from '../utils/logging'
 
 export class CategoryService {
   private categoryRepository: CategoryRepository
@@ -25,6 +26,7 @@ export class CategoryService {
       const result = await this.categoryRepository.create(categoryData)
       return result
     } catch (error) {
+      rollbar.error(error, { categoryData }, { level: 'error' }, `(desktop): ${error.message}`)
       throw new CustomError(error.message, error.code || 409)
     }
   }

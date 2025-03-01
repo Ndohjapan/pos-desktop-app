@@ -2,6 +2,7 @@
 import { CategoryRepository } from '../database/repositories/category.repository'
 import { FoodRepository } from '../database/repositories/food.repository'
 import CustomError from '../utils/customError'
+import { rollbar } from '../utils/logging'
 
 export class FoodService {
   private foodRepository: FoodRepository
@@ -47,6 +48,7 @@ export class FoodService {
       return result
     } catch (error) {
       console.log(error)
+      rollbar.log(error, {}, { level: 'error' }, '(desktop): Failed to create food')
       throw new CustomError(error.message, error.code || 500)
     }
   }
@@ -62,6 +64,7 @@ export class FoodService {
       const result = await this.foodRepository.updateById(foodId, newFoodData)
       return result
     } catch (error) {
+      rollbar.log(error, {}, { level: 'error' }, '(desktop): Failed to update food')
       throw new CustomError(error.message, error.code || 500)
     }
   }
@@ -71,8 +74,8 @@ export class FoodService {
       const result = await this.foodRepository.deleteById(foodId)
       return result
     } catch (error) {
+      rollbar.log(error, {}, { level: 'error' }, '(desktop): Failed to delete food')
       throw new CustomError(error.message, error.code || 500)
     }
   }
-
 }

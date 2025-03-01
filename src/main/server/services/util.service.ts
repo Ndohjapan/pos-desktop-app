@@ -3,56 +3,52 @@ import { CategoryService } from './category.service'
 import { FoodService } from './food.service'
 import { makeApiRequest } from '../utils/apiRequest'
 import CustomError from '../utils/customError'
-import Rollbar from 'rollbar'
-
+import { rollbar } from '../utils/logging'
 
 export class UtilService {
-  private categoryService: CategoryService
   private foodService: FoodService
   private orderRepository: OrderRepository
   private backupInterval: NodeJS.Timer
-  private rollbar: Rollbar
 
   constructor() {
     this.categoryService = new CategoryService()
     this.foodService = new FoodService()
     this.orderRepository = new OrderRepository()
-    this.rollbar = new Rollbar({
-      accessToken: import.meta.env.MAIN_VITE_ROLLBAR_TOKEN,
-      environment: process.env.NODE_ENV || 'development',
-      captureUncaught: true,
-      captureUnhandledRejections: true
-    })
     this.startPeriodicBackup()
   }
 
-
   async backupFoods(): Promise<any> {
     try {
-      const categories = await this.categoryService.getAllCategories()
-
       const foods = await this.foodService.getAllFoods()
 
-      const result = await makeApiRequest({
-        url: `${import.meta.env.MAIN_VITE_API_URL}/utils/food-and-categories`,
-        method: 'POST',
-        body: { foods }
-      })
+      const BATCH_SIZE = 15
+      for (let i = 0; i < foods.length; i += BATCH_SIZE) {
+        const foodsBatch = foods.slice(i, i + BATCH_SIZE)
+        await makeApiRequest({
+          url: `${import.meta.env.MAIN_VITE_API_URL}/utils/food-and-categories`,
+          method: 'POST',
+          body: { foods: foodsBatch }
+        })
+      }
 
-      return result
+      return true
     } catch (error) {
-      this.rollbar.error('Failed to sync foods and categories', error)
+      rollbar.log(
+        error,
+        { foods: error.foods },
+        { level: 'error' },
+        '(desktop): Failed to upload foods and categories'
+      )
       console.log(`Failed to sync foods and categories: ${error.message}\n`)
       throw new CustomError(error.message, error.code || 500)
     }
   }
   async uploadOrdersToCloud() {
+    const BATCH_SIZE = 500
+    let currentPage = 1
+    let hasMoreOrders = true
+    let uploadedCount = 0
     try {
-      const BATCH_SIZE = 500
-      let currentPage = 1
-      let hasMoreOrders = true
-      let uploadedCount = 0
-
       await this.backupFoods()
 
       while (hasMoreOrders) {
@@ -91,7 +87,12 @@ export class UtilService {
         uploadedCount
       }
     } catch (error) {
-      this.rollbar.error('Failed to upload orders to cloud', error)
+      rollbar.log(
+        error,
+        { currentPage, hasMoreOrders, uploadedCount },
+        { level: 'error' },
+        '(desktop): Failed to upload orders to cloud'
+      )
       console.log(`Failed to upload orders to cloud: ${error.message}\n`)
       throw new CustomError(error.message, error.code || 500)
     }
@@ -105,7 +106,6 @@ export class UtilService {
           console.log('Scheduled backup: Orders uploaded to cloud successfully')
         })
         .catch((error) => {
-          this.rollbar.error('Scheduled backup failed', error)
           console.error('Scheduled backup: Error uploading orders to cloud:', error.message)
         })
     }, 300000)

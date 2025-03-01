@@ -39,7 +39,12 @@ export const makeApiRequest = async ({
     const response = await axios(config)
     return response.data
   } catch (error) {
-    rollbar.error('API request failed', error)
+    rollbar.log(
+      error,
+      { url, method, body, headers },
+      { level: 'error' },
+      `(desktop): ${error.response?.data?.message || 'API request failed'}`
+    )
     if (axios.isAxiosError(error)) {
       throw new CustomError(error.response?.data?.message || 'API request failed', 500)
     }
