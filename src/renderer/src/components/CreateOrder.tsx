@@ -22,12 +22,18 @@ interface OrderGroup {
   total: number
 }
 
-const CreateOrder = forwardRef(({ onOrderUpdate }, ref) => {
+interface CreateOrderProps {
+  onOrderUpdate?: (groups: OrderGroup[], activeIndex: number, removedItemId?: string) => void
+  showServiceFee?: boolean
+}
+
+const CreateOrder = forwardRef(({ onOrderUpdate, showServiceFee = false }: CreateOrderProps, ref) => {
   const [groups, setGroups] = useState<OrderGroup[]>([{ items: [], total: 0 }])
   const [activeGroupIndex, setActiveGroupIndex] = useState(0)
   const [openGroups, setOpenGroups] = useState(new Set([0]))
   const [paymentMethods, setPaymentMethods] = useState<Payment[]>([])
   const [createdOrder, setCreatedOrder] = useState(null)
+  const [serviceFee, setServiceFee] = useState(0)
 
   const [isPaid, setIsPaid] = useState(false)
   const [isCreatingOrder, setIsCreatingOrder] = useState(false)
@@ -122,8 +128,18 @@ const CreateOrder = forwardRef(({ onOrderUpdate }, ref) => {
     })
   }
 
-  const getTotalOrderAmount = () => {
+  const getSubtotalAmount = () => {
     return groups.reduce((sum, group) => sum + group.total, 0)
+  }
+
+  const getTotalOrderAmount = () => {
+    const subtotal = getSubtotalAmount()
+    return showServiceFee ? subtotal + serviceFee : subtotal
+  }
+
+  const handleServiceFeeChange = (e) => {
+    const value = parseFloat(e.target.value) || 0
+    setServiceFee(value)
   }
 
   const arePaymentsValid = () => {
@@ -133,21 +149,23 @@ const CreateOrder = forwardRef(({ onOrderUpdate }, ref) => {
     return totalPaymentAmount === getTotalOrderAmount()
   }
 
-
   const clearOrder = () => {
     setGroups([{ items: [], total: 0 }])
     setActiveGroupIndex(0)
     setOpenGroups(new Set([0]))
+    setServiceFee(0)
     onOrderUpdate?.([{ items: [], total: 0 }], 0)
     setIsPaid(false)
   }
 
   const handleCreateOrder = async () => {
     try {
-
       const orderData = {
         payments: paymentMethods,
         total: getTotalOrderAmount(),
+        subTotal: getSubtotalAmount(),
+        serviceFee: showServiceFee ? serviceFee : 0,
+        specialOrder: showServiceFee ? 1 : 0,
         groups
       }
       setIsCreatingOrder(true)
@@ -156,7 +174,6 @@ const CreateOrder = forwardRef(({ onOrderUpdate }, ref) => {
       if (totalPaymentAmount !== getTotalOrderAmount()) {
         throw new Error('Payment amount does not match order total')
       }
-
 
       const baseUrl = `http://${host}:${port}/api`
       const response = await ordersApi.create(baseUrl, orderData)
@@ -289,11 +306,35 @@ const CreateOrder = forwardRef(({ onOrderUpdate }, ref) => {
             />
             <div className="mt-4 text-sm">
               <div className="flex justify-between mt-2 border-t pt-2">
-                <span className="font-bold">Total</span>
-                <span className="font-bold text-primary-700">
-                  Total: ₦{getTotalOrderAmount().toLocaleString()}
+                <span className="font-bold">Subtotal</span>
+                <span className="font-bold">
+                  ₦{getSubtotalAmount().toLocaleString()}
                 </span>
               </div>
+
+              {showServiceFee && (
+                <div className="flex justify-between items-center mt-2">
+                  <span className="font-bold">Service Fee</span>
+                  <div className="flex items-center">
+                    <span className="mr-2">₦</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={serviceFee}
+                      onChange={handleServiceFeeChange}
+                      className="w-24 text-right border rounded-md p-1"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-between mt-2 border-t pt-2">
+                <span className="font-bold">Total</span>
+                <span className="font-bold text-primary-700">
+                  ₦{getTotalOrderAmount().toLocaleString()}
+                </span>
+              </div>
+
               {!isPaid && (
                 <div className="mt-4">
                   <button
@@ -335,3 +376,4 @@ const CreateOrder = forwardRef(({ onOrderUpdate }, ref) => {
 })
 
 export default CreateOrder
+

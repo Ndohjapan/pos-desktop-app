@@ -14,6 +14,9 @@ export class OrderRepository {
           SELECT 
             id,
             total,
+            subTotal,
+            serviceFee,
+            specialOrder,
             backupStatus,
             datetime(createdAt) || 'Z' as createdAt,
             datetime(updatedAt) || 'Z' as updatedAt
@@ -111,6 +114,9 @@ export class OrderRepository {
           SELECT 
             id,
             total,
+            subTotal,
+            serviceFee,
+            specialOrder,
             backupStatus,
             isDeleted,
             datetime(createdAt) || 'Z' as createdAt,
@@ -220,6 +226,9 @@ export class OrderRepository {
           SELECT 
             id,
             total,
+            subTotal,
+            serviceFee,
+            specialOrder,
             backupStatus,
             datetime(createdAt) || 'Z' as createdAt,
             datetime(updatedAt) || 'Z' as updatedAt
@@ -297,11 +306,11 @@ export class OrderRepository {
     try {
       // Insert order without payment method
       const insertOrder = db.prepare(`
-        INSERT INTO "Order" (total, backupStatus, createdAt, updatedAt, isDeleted)
-        VALUES (?, ?, datetime('now'), datetime('now'), 0)
+        INSERT INTO "Order" (total, subTotal, specialOrder, serviceFee, backupStatus, createdAt, updatedAt, isDeleted)
+        VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'), 0)
       `)
 
-      const orderResult = insertOrder.run(orderData.total, orderData.backupStatus || 0)
+      const orderResult = insertOrder.run(orderData.total, orderData.subTotal, orderData.specialOrder, orderData.serviceFee, orderData.backupStatus || 0)
       const orderId = orderResult.lastInsertRowid
 
       // Insert payments

@@ -1,5 +1,6 @@
+import { IoMdGift } from "react-icons/io";
 //@ts-nocheck
-import { IoFastFood } from "react-icons/io5"; 
+import { IoFastFood } from "react-icons/io5";
 import { FiPackage } from "react-icons/fi";
 
 interface TabsPelleteProps {
@@ -11,6 +12,10 @@ const tabs = [
   {
     name: 'Menu',
     icon: <IoFastFood />,
+  },
+  {
+    name: 'Special Order',
+    icon: <IoMdGift />
   },
   {
     name: 'Orders Analytics',
@@ -25,8 +30,8 @@ function TabsPellete({ activeTab, onTabChange }: TabsPelleteProps) {
       <div className='hidden md:flex justify-between items-center m-auto'>
         <div className='w-[33%] m-auto flex gap-4 justify-around'>
           {tabs.map((tab, index) => (
-            <div 
-              key={index} 
+            <div
+              key={index}
               onClick={() => onTabChange(tab.name)}
               className={`flex items-center gap-2 cursor-pointer px-4 py-2 text-sm border border-[#DCDCDC] rounded-full ${activeTab === tab.name ? 'bg-primary-700 shadow-lg text-white' : 'text-secondary'}`}
             >
@@ -41,8 +46,8 @@ function TabsPellete({ activeTab, onTabChange }: TabsPelleteProps) {
       <div className='flex md:hidden'>
         <div className='w-full flex gap-2 justify-around'>
           {tabs.map((tab, index) => (
-            <div 
-              key={index} 
+            <div
+              key={index}
               onClick={() => onTabChange(tab.name)}
               className={`flex flex-col items-center gap-1 cursor-pointer px-3 py-2 border border-[#DCDCDC] rounded-lg ${activeTab === tab.name ? 'bg-primary-700 shadow-lg text-white' : 'text-secondary'}`}
             >

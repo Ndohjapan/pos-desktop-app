@@ -109,7 +109,11 @@ export const ordersApi = {
     orderData: {
       groups: any[]
       paymentMethod: string
-      total: number
+      total: number,
+      payments: any[],
+      subTotal: number,
+      serviceFee: number
+
     }
   ) => {
     try {

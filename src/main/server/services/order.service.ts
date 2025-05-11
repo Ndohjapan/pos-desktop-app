@@ -91,6 +91,8 @@ export class OrderService {
         orderId
       }
 
+      console.log(orderData)
+
       const result = await this.orderRepository.create(data)
 
       this.utilService

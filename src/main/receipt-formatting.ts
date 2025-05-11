@@ -17,6 +17,35 @@ export function generateReceiptHTML(order): string {
   <div class="divider"></div>
   </div>
 `
+
+  // Calculate subtotal if not directly provided
+  const subtotal = order.subtotal || order.groups.reduce((sum, group) => sum + group.total, 0)
+  const hasserviceFee = order.serviceFee && order.serviceFee > 0
+
+  // Create the summary section with conditional service charge
+  const summarySection = `
+  <div class="summary">
+    <div class="item">
+      <span class="item-name">Subtotal</span>
+      <span class="item-amount">₦${subtotal.toLocaleString()}</span>
+    </div>
+    ${hasserviceFee ? `
+    <div class="item">
+      <span class="item-name">Service Charge</span>
+      <span class="item-amount">₦${order.serviceFee.toLocaleString()}</span>
+    </div>
+    ` : ''}
+    <div class="divider"></div>
+  </div>
+  `
+
+  // Add special order note if applicable
+  const specialOrderNote = order.specialOrder ? `
+  <div class="special-order">
+    <div class="special-order-text">*** SPECIAL ORDER ***</div>
+  </div>
+  ` : ''
+
   const receiptHTML = `
     <!DOCTYPE html>
     <html>
@@ -85,6 +114,20 @@ export function generateReceiptHTML(order): string {
           margin-top: 10px;
           font-size: 11px;
         }
+        .summary {
+          margin-top: 5px;
+        }
+        .special-order {
+          text-align: center;
+          margin: 5px 0;
+        }
+        .special-order-text {
+          font-weight: bold;
+          font-size: 12px;
+          padding: 3px;
+          border: 1px solid #000;
+          display: inline-block;
+        }
       </style>
     </head>
     <body>
@@ -93,6 +136,7 @@ export function generateReceiptHTML(order): string {
         <div class="address">Plot 4 Block 1, Opposite SUmal Industry,<br>oluyole-Town Planning Area,<br>ring Road, Ibadan</div>
         <div>Order #${order.id}</div>
         <div>${date}</div>
+        ${specialOrderNote}
       </div>
 
       <div class="divider"></div>
@@ -121,6 +165,8 @@ export function generateReceiptHTML(order): string {
         .join('')}
 
       ${paymentMethodsSection}
+      
+      ${summarySection}
 
       <div class="total">
         Grand Total: ₦${order.total.toLocaleString()}
