@@ -58,6 +58,10 @@ const OrderDetails = ({ order, onDeleteOrder }: { order: Order, onDeleteOrder: (
 
   }
 
+  // Calculate subtotal if not provided directly
+  const subtotal = order.subtotal || order.groups.reduce((sum, group) => sum + group.total, 0)
+  const hasServiceCharge = order.serviceFee && order.serviceFee > 0
+
   return (
     <div className="w-full h-full max-h-[100vh] bg-gray-100 p-5 rounded-lg flex flex-col">
       {/* Order Header */}
@@ -81,6 +85,15 @@ const OrderDetails = ({ order, onDeleteOrder }: { order: Order, onDeleteOrder: (
             hour12: true
           })}
         </p>
+
+        {/* Display special order badge if applicable */}
+        {order.specialOrder > 0 && (
+          <div className="mt-2 text-center">
+            <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded">
+              Special Order
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Order Groups with Accordion (Expands to Fill Space) */}
@@ -176,9 +189,29 @@ const OrderDetails = ({ order, onDeleteOrder }: { order: Order, onDeleteOrder: (
               {isPrintingReceipt ? <CgSpinner className="animate-spin text-2xl" /> : 'Print Receipt'}
             </button>
           </div>
-          <div className="flex justify-between border-t pt-2">
-            <span className="font-bold">Total</span>
-            <span className="font-bold text-primary-700">₦{order.total.toLocaleString()}</span>
+
+
+          {/* Order Summary Section */}
+          <div className="border-t pt-2 space-y-2">
+            {/* Subtotal */}
+            <div className="flex justify-between">
+              <span className="text-gray-600">Subtotal</span>
+              <span className="font-medium">₦{subtotal.toLocaleString()}</span>
+            </div>
+
+            {/* Service Charge - only show if present */}
+            {hasServiceCharge && (
+              <div className="flex justify-between">
+                <span className="text-gray-600">Service Charge</span>
+                <span className="font-medium">₦{order.serviceFee.toLocaleString()}</span>
+              </div>
+            )}
+
+            {/* Total - always show */}
+            <div className="flex justify-between border-t pt-2">
+              <span className="font-bold">Total</span>
+              <span className="font-bold text-primary-700">₦{order.total.toLocaleString()}</span>
+            </div>
           </div>
         </div>
       </div>

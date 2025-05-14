@@ -23,4 +23,7 @@ export interface Order {
   createdAt: string
   updatedAt: string
   groups: OrderGroup[]
+  specialOrder: number
+  subtotal: number
+  serviceFee: number
 }

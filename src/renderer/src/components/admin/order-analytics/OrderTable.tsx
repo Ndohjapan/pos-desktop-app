@@ -72,6 +72,12 @@ export default function OrderTable({ onSelectOrder, orders, fetchMoreOrders }: {
                       scope="col"
                       className="px-3 py-3.5 text-left text-sm font-semibold text-secondary"
                     >
+                      Special Order
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-3 py-3.5 text-left text-sm font-semibold text-secondary"
+                    >
                       Backup Status
                     </th>
                   </tr>
@@ -119,6 +125,17 @@ export default function OrderTable({ onSelectOrder, orders, fetchMoreOrders }: {
                             <span>{payment.paymentMethod}</span>
                           </div>
                         ))}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                        {order.specialOrder ? (
+                          <span className="text-yellow-800 bg-yellow-100 rounded-md p-1 text-xs">
+                            Special Order
+                          </span>
+                        ) : (
+                          <span className="text-[#7b7b7b]  rounded-md p-1 text-xs">
+                            Nil
+                          </span>
+                        )}
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                         {order.backupStatus ? (
