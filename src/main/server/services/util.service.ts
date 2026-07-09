@@ -1,4 +1,5 @@
 import { OrderRepository } from '../database/repositories/order.repository'
+import { settingsRepository } from '../database/repositories/settings.repository'
 import { FoodService } from './food.service'
 import { makeApiRequest, retryTransient, NETWORK_ERROR_CODE } from '../utils/apiRequest'
 import { getErrorMessage, toCustomError } from '../utils/errors'
@@ -21,6 +22,11 @@ export interface SyncStatus {
   pending: number
   failed: number
   lastUploadedCount: number
+}
+
+function branchIdentity(): { branchId: string; branchName: string } {
+  const settings = settingsRepository.getAll()
+  return { branchId: settings.branchId, branchName: settings.branchName }
 }
 
 function ingestHeaders(): Record<string, string> {
@@ -73,7 +79,7 @@ export class UtilService {
             url: `${import.meta.env.MAIN_VITE_API_URL}/utils/food-and-categories`,
             method: 'POST',
             headers: ingestHeaders(),
-            body: { foods: foodsBatch }
+            body: { foods: foodsBatch, branch: branchIdentity() }
           }),
         { label: 'backup-foods' }
       )
@@ -98,7 +104,7 @@ export class UtilService {
             url: `${import.meta.env.MAIN_VITE_API_URL}/order`,
             method: 'POST',
             headers: ingestHeaders(),
-            body: { orders }
+            body: { orders, branch: branchIdentity() }
           }),
         { label: 'backup-orders-batch' }
       )
@@ -127,7 +133,7 @@ export class UtilService {
                 url: `${import.meta.env.MAIN_VITE_API_URL}/order`,
                 method: 'POST',
                 headers: ingestHeaders(),
-                body: { orders: [order] }
+                body: { orders: [order], branch: branchIdentity() }
               }),
             { label: `backup-order-${order.id}` }
           )

@@ -219,48 +219,85 @@ export class OrderRepository {
     }
   }
 
-  async create(orderData: CreateOrderInput & { backupStatus?: 0 | 1 }): Promise<OrderWithDetails> {
+  async create(
+    orderData: CreateOrderInput & { backupStatus?: 0 | 1; fulfillment?: string }
+  ): Promise<OrderWithDetails> {
     try {
-      const insertOrder = db.prepare(`
-        INSERT INTO "Order" (total, subTotal, specialOrder, serviceFee, backupStatus, createdAt, updatedAt, isDeleted)
-        VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'), 0)
-      `)
+      // Whole creation is one transaction: the daily ticket number is computed
+      // and the rows inserted atomically, so two tills can never mint the same
+      // number or leave a half-written order behind.
+      const orderId = db.transaction(() => {
+        const { nextNumber } = db
+          .prepare(
+            `SELECT COALESCE(MAX(orderNumber), 0) + 1 as nextNumber
+             FROM "Order"
+             WHERE date(createdAt, 'localtime') = date('now', 'localtime')`
+          )
+          .get() as { nextNumber: number }
 
-      const orderResult = insertOrder.run(
-        orderData.total,
-        orderData.subTotal,
-        orderData.specialOrder,
-        orderData.serviceFee,
-        orderData.backupStatus || 0
-      )
-      const orderId = orderResult.lastInsertRowid as number
+        const orderResult = db
+          .prepare(
+            `INSERT INTO "Order"
+               (total, subTotal, specialOrder, serviceFee, backupStatus,
+                orderNumber, status, fulfillment, cashierId, cashierName, shiftId,
+                discount, discountReason, tendered, changeDue,
+                createdAt, updatedAt, isDeleted)
+             VALUES (?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'), 0)`
+          )
+          .run(
+            orderData.total,
+            orderData.subTotal,
+            orderData.specialOrder,
+            orderData.serviceFee,
+            orderData.backupStatus || 0,
+            nextNumber,
+            orderData.fulfillment ?? 'served',
+            orderData.cashierId ?? null,
+            orderData.cashierName ?? null,
+            orderData.shiftId ?? null,
+            orderData.discount ?? 0,
+            orderData.discountReason ?? null,
+            orderData.tendered ?? 0,
+            orderData.changeDue ?? 0
+          )
+        const newOrderId = orderResult.lastInsertRowid as number
 
-      const insertPayment = db.prepare(`
-        INSERT INTO OrderPayment (orderId, paymentMethod, amount)
-        VALUES (?, ?, ?)
-      `)
+        const insertPayment = db.prepare(`
+          INSERT INTO OrderPayment (orderId, paymentMethod, amount)
+          VALUES (?, ?, ?)
+        `)
 
-      for (const payment of orderData.payments) {
-        insertPayment.run(orderId, payment.paymentMethod, payment.amount)
-      }
-
-      const insertGroup = db.prepare(`
-        INSERT INTO OrderGroup (orderId, total)
-        VALUES (?, ?)
-      `)
-
-      const insertItem = db.prepare(`
-        INSERT INTO OrderItem (foodName, quantity, price, amount, foodId, groupId)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `)
-
-      for (const group of orderData.groups) {
-        const groupResult = insertGroup.run(orderId, group.total)
-        const groupId = groupResult.lastInsertRowid
-        for (const item of group.items) {
-          insertItem.run(item.foodName, item.quantity, item.price, item.amount, item.id, groupId)
+        for (const payment of orderData.payments) {
+          insertPayment.run(newOrderId, payment.paymentMethod, payment.amount)
         }
-      }
+
+        const insertGroup = db.prepare(`
+          INSERT INTO OrderGroup (orderId, total)
+          VALUES (?, ?)
+        `)
+
+        const insertItem = db.prepare(`
+          INSERT INTO OrderItem (foodName, quantity, price, amount, foodId, groupId)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `)
+
+        for (const group of orderData.groups) {
+          const groupResult = insertGroup.run(newOrderId, group.total)
+          const groupId = groupResult.lastInsertRowid
+          for (const item of group.items) {
+            insertItem.run(
+              item.foodName,
+              item.quantity,
+              item.price,
+              item.amount,
+              item.id,
+              groupId
+            )
+          }
+        }
+
+        return newOrderId
+      })()
 
       const newOrder = db.prepare(`SELECT * FROM "Order" WHERE id = ?`).get(orderId) as OrderRow
 
@@ -269,6 +306,41 @@ export class OrderRepository {
       console.log(error)
       throw toCustomError(error)
     }
+  }
+
+  findById(id: number): OrderWithDetails | undefined {
+    const order = db.prepare(`SELECT * FROM "Order" WHERE id = ?`).get(id) as OrderRow | undefined
+    return order ? this.hydrateOrder(order) : undefined
+  }
+
+  // Mark an order voided (kept in history + uploaded to the cloud as voided).
+  void(id: number, reason: string, voidedBy: string): void {
+    db.prepare(
+      `UPDATE "Order"
+       SET status = 'voided', voidReason = ?, voidedBy = ?, backupStatus = 0, updatedAt = datetime('now')
+       WHERE id = ?`
+    ).run(reason, voidedBy, id)
+  }
+
+  setFulfillment(id: number, fulfillment: string): void {
+    db.prepare(`UPDATE "Order" SET fulfillment = ?, updatedAt = datetime('now') WHERE id = ?`).run(
+      fulfillment,
+      id
+    )
+  }
+
+  // Today's active queue: paid orders not yet served, oldest first.
+  findQueue(): OrderWithDetails[] {
+    const rows = db
+      .prepare(
+        `SELECT * FROM "Order"
+         WHERE date(createdAt, 'localtime') = date('now', 'localtime')
+           AND status = 'completed' AND isDeleted = 0
+           AND fulfillment IN ('preparing', 'ready')
+         ORDER BY createdAt ASC`
+      )
+      .all() as OrderRow[]
+    return rows.map((row) => this.hydrateOrder(row))
   }
 
   async count(filter: Record<string, string | number> = {}): Promise<number> {

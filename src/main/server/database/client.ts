@@ -41,6 +41,22 @@ const currentSchema = {
     isDeleted: 'BOOLEAN DEFAULT false',
     specialOrder: 'BOOLEAN DEFAULT false',
     serviceFee: 'REAL DEFAULT 0',
+    // --- Quick-service fields ---
+    // Daily sequential ticket number, shown big on screen/receipt for calling
+    orderNumber: 'INTEGER DEFAULT 0',
+    // 'completed' (paid) | 'voided' (cancelled with approval)
+    status: "TEXT DEFAULT 'completed'",
+    // kitchen flow: 'preparing' -> 'ready' -> 'served'
+    fulfillment: "TEXT DEFAULT 'served'",
+    cashierId: 'INTEGER',
+    cashierName: 'TEXT',
+    shiftId: 'INTEGER',
+    discount: 'REAL DEFAULT 0',
+    discountReason: 'TEXT',
+    tendered: 'REAL DEFAULT 0',
+    changeDue: 'REAL DEFAULT 0',
+    voidReason: 'TEXT',
+    voidedBy: 'TEXT',
     createdAt: 'DATETIME DEFAULT CURRENT_TIMESTAMP',
     updatedAt: 'DATETIME'
   },
@@ -90,6 +106,59 @@ const currentSchema = {
     expiresAt: 'DATETIME',
     createdAt: 'DATETIME DEFAULT CURRENT_TIMESTAMP',
     foreignKeys: ['FOREIGN KEY (adminId) REFERENCES Admin(id)']
+  },
+  // Store-level configuration (branch identity, quick-service toggles, printers)
+  Settings: {
+    id: 'INTEGER PRIMARY KEY AUTOINCREMENT',
+    key: 'TEXT UNIQUE',
+    value: 'TEXT',
+    updatedAt: 'DATETIME'
+  },
+  // Cashier accounts with a short PIN for fast switching at the till.
+  // role: 'cashier' | 'supervisor' — supervisors approve voids/discounts.
+  Cashier: {
+    id: 'INTEGER PRIMARY KEY AUTOINCREMENT',
+    fullName: 'TEXT',
+    pin: 'TEXT',
+    role: "TEXT DEFAULT 'cashier'",
+    active: 'BOOLEAN DEFAULT true',
+    createdAt: 'DATETIME DEFAULT CURRENT_TIMESTAMP',
+    updatedAt: 'DATETIME'
+  },
+  // A cashier's working session: opening float -> sales -> counted cash (Z report)
+  Shift: {
+    id: 'INTEGER PRIMARY KEY AUTOINCREMENT',
+    cashierId: 'INTEGER',
+    cashierName: 'TEXT',
+    openingFloat: 'REAL DEFAULT 0',
+    openedAt: 'DATETIME DEFAULT CURRENT_TIMESTAMP',
+    closedAt: 'DATETIME',
+    countedCash: 'REAL',
+    expectedCash: 'REAL',
+    notes: 'TEXT',
+    foreignKeys: ['FOREIGN KEY (cashierId) REFERENCES Cashier(id)']
+  },
+  // Held/parked draft orders — persisted server-side so they survive app
+  // restarts and can be resumed from any till.
+  ParkedOrder: {
+    id: 'INTEGER PRIMARY KEY AUTOINCREMENT',
+    label: 'TEXT',
+    cashierId: 'INTEGER',
+    cashierName: 'TEXT',
+    payload: 'TEXT',
+    createdAt: 'DATETIME DEFAULT CURRENT_TIMESTAMP',
+    updatedAt: 'DATETIME'
+  },
+  // Permanent trail of sensitive actions (voids, discounts, shift events)
+  AuditLog: {
+    id: 'INTEGER PRIMARY KEY AUTOINCREMENT',
+    action: 'TEXT',
+    orderId: 'INTEGER',
+    cashierName: 'TEXT',
+    approvedBy: 'TEXT',
+    reason: 'TEXT',
+    detail: 'TEXT',
+    createdAt: 'DATETIME DEFAULT CURRENT_TIMESTAMP'
   }
 }
 
@@ -102,7 +171,12 @@ const indexes = [
   'CREATE INDEX IF NOT EXISTS idx_orderitem_groupId ON OrderItem(groupId)',
   'CREATE INDEX IF NOT EXISTS idx_orderpayment_orderId ON OrderPayment(orderId)',
   'CREATE INDEX IF NOT EXISTS idx_food_categoryId ON Food(categoryId)',
-  'CREATE INDEX IF NOT EXISTS idx_session_token ON Session(token)'
+  'CREATE INDEX IF NOT EXISTS idx_session_token ON Session(token)',
+  'CREATE INDEX IF NOT EXISTS idx_order_status ON "Order"(status)',
+  'CREATE INDEX IF NOT EXISTS idx_order_fulfillment ON "Order"(fulfillment)',
+  'CREATE INDEX IF NOT EXISTS idx_order_shiftId ON "Order"(shiftId)',
+  'CREATE INDEX IF NOT EXISTS idx_shift_cashierId ON Shift(cashierId)',
+  'CREATE INDEX IF NOT EXISTS idx_auditlog_createdAt ON AuditLog(createdAt)'
 ]
 
 // Initialize database with automatic schema synchronization

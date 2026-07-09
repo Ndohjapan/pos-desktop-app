@@ -7,6 +7,7 @@ import { ExpressServer } from '../main/services/express-server'
 import { Bonjour } from 'bonjour-service'
 import { authApi, categoriesApi, foodsApi, ordersApi, utilsApi } from './client'
 import { generateReceiptHTML, ReceiptOrder } from './receipt-formatting'
+import { generateKitchenTicketHTML } from './kitchen-ticket'
 import { getErrorMessage } from './server/utils/errors'
 import { SERVICE_APP_ID } from './services/network'
 import { backupNow, listBackups, stageRestore } from './services/db-backup'
@@ -238,6 +239,37 @@ ipcMain.handle('check-health', async (_event, host: string, port: number) => {
   }
 })
 
+// Generic bridge to the LAN server for the quick-service endpoints (settings,
+// cashiers, shifts, parked orders, queue…). One handler instead of a dozen
+// copy-paste ones; the typed surface lives in the preload/renderer client.
+ipcMain.handle(
+  'server-request',
+  async (
+    _event,
+    baseUrl: string,
+    method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+    path: string,
+    body?: unknown,
+    token?: string
+  ) => {
+    try {
+      const response = await axios({
+        method,
+        url: `${baseUrl}${path}`,
+        data: body,
+        timeout: 15000,
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined
+      })
+      return { success: true, data: response.data }
+    } catch (error) {
+      const message = axios.isAxiosError(error)
+        ? error.response?.data?.message || getErrorMessage(error)
+        : getErrorMessage(error)
+      return { success: false, error: message }
+    }
+  }
+)
+
 ipcMain.handle('create-food', (_event, baseUrl, foodData, authToken) =>
   ipcResult(() => foodsApi.create(baseUrl, foodData, authToken))
 )
@@ -310,10 +342,14 @@ ipcMain.handle('retry-failed-orders', (_event, baseUrl) =>
   ipcResult(() => utilsApi.retryFailed(baseUrl))
 )
 
-ipcMain.handle('print-receipt', async (_event, orderData: ReceiptOrder) => {
-  // Hidden, self-contained print window. Previously this opened a *visible*
-  // window and relied on getFocusedWindow() (which could be null right after a
-  // print), leaving a stray white window on top and the UI stuck on a spinner.
+/**
+ * Print arbitrary receipt-style HTML in a hidden window. deviceName targets a
+ * specific printer (kitchen printer); omitted = system default (receipt printer).
+ */
+async function printHtml(
+  htmlContent: string,
+  deviceName?: string
+): Promise<{ success: true; message?: string }> {
   const printContentsWindow = new BrowserWindow({
     show: false,
     webPreferences: {
@@ -348,23 +384,47 @@ ipcMain.handle('print-receipt', async (_event, orderData: ReceiptOrder) => {
       else resolve({ success: true, message })
     }
 
-    const htmlContent = generateReceiptHTML(orderData)
+    const printOptions = deviceName ? { ...options, deviceName } : options
 
     printContentsWindow.webContents.once('did-finish-load', () => {
-      printContentsWindow.webContents.print(options, (success, failureReason) => {
+      printContentsWindow.webContents.print(printOptions, (success, failureReason) => {
         if (!success) finish(new Error(failureReason || 'Print failed'))
         else finish(null, 'Print completed successfully')
       })
     })
 
     printContentsWindow.webContents.once('did-fail-load', (_e, _code, desc) => {
-      finish(new Error(desc || 'Failed to render receipt'))
+      finish(new Error(desc || 'Failed to render document'))
     })
 
     printContentsWindow
       .loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`)
-      .catch((err) => finish(err instanceof Error ? err : new Error('Failed to load receipt')))
+      .catch((err) => finish(err instanceof Error ? err : new Error('Failed to load document')))
   })
+}
+
+ipcMain.handle('print-receipt', (_event, orderData: ReceiptOrder) =>
+  printHtml(generateReceiptHTML(orderData))
+)
+
+// Kitchen slip to a specific printer (falls back to default when unset).
+ipcMain.handle('print-kitchen-ticket', (_event, orderData: ReceiptOrder, printerName?: string) =>
+  printHtml(generateKitchenTicketHTML(orderData), printerName || undefined)
+)
+
+// Available system printers — for the kitchen-printer picker in Settings.
+ipcMain.handle('get-printers', async () => {
+  try {
+    const window = mainWindow ?? BrowserWindow.getAllWindows()[0]
+    if (!window) return { success: false, error: 'No window available' }
+    const printers = await window.webContents.getPrintersAsync()
+    return {
+      success: true,
+      data: printers.map((p) => ({ name: p.name, isDefault: p.isDefault ?? false }))
+    }
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) }
+  }
 })
 
 // Hardware-acceleration toggle for troublesome machines. Writing/removing the

@@ -4,7 +4,13 @@ import { OrderWithDetails } from './server/types'
 export type ReceiptOrder = Pick<
   OrderWithDetails,
   'id' | 'createdAt' | 'total' | 'subTotal' | 'serviceFee' | 'specialOrder' | 'payments' | 'groups'
->
+> &
+  Partial<
+    Pick<
+      OrderWithDetails,
+      'orderNumber' | 'discount' | 'tendered' | 'changeDue' | 'cashierName' | 'status'
+    >
+  >
 
 export function generateReceiptHTML(order: ReceiptOrder): string {
   const date = new Date(order.createdAt).toLocaleString()
@@ -47,9 +53,37 @@ export function generateReceiptHTML(order: ReceiptOrder): string {
     `
         : ''
     }
+    ${
+      order.discount && order.discount > 0
+        ? `
+    <div class="item">
+      <span class="item-name">Discount</span>
+      <span class="item-amount">-₦${order.discount.toLocaleString()}</span>
+    </div>
+    `
+        : ''
+    }
     <div class="divider"></div>
   </div>
   `
+
+  // Cash handling lines (only when a tendered amount was recorded)
+  const cashSection =
+    order.tendered && order.tendered > 0
+      ? `
+  <div class="summary">
+    <div class="item">
+      <span class="item-name">Cash Tendered</span>
+      <span class="item-amount">₦${order.tendered.toLocaleString()}</span>
+    </div>
+    <div class="item">
+      <span class="item-name">Change</span>
+      <span class="item-amount">₦${(order.changeDue ?? 0).toLocaleString()}</span>
+    </div>
+    <div class="divider"></div>
+  </div>
+  `
+      : ''
 
   // Add special order note if applicable
   const specialOrderNote = order.specialOrder
@@ -135,6 +169,11 @@ export function generateReceiptHTML(order: ReceiptOrder): string {
           text-align: center;
           margin: 5px 0;
         }
+        .ticket-number {
+          font-size: 28px;
+          font-weight: bold;
+          margin: 4px 0;
+        }
         .special-order-text {
           font-weight: bold;
           font-size: 12px;
@@ -148,8 +187,13 @@ export function generateReceiptHTML(order: ReceiptOrder): string {
       <div class="header">
         <h2>Amala Oluyole</h2>
         <div class="address">Plot 4 Block 1, Opposite SUmal Industry,<br>oluyole-Town Planning Area,<br>ring Road, Ibadan</div>
-        <div>Order #${order.id}</div>
+        ${
+          order.orderNumber
+            ? `<div class="ticket-number">#${String(order.orderNumber).padStart(3, '0')}</div>`
+            : `<div>Order #${order.id}</div>`
+        }
         <div>${date}</div>
+        ${order.cashierName ? `<div>Served by: ${order.cashierName}</div>` : ''}
         ${specialOrderNote}
       </div>
 
@@ -179,7 +223,9 @@ export function generateReceiptHTML(order: ReceiptOrder): string {
         .join('')}
 
       ${paymentMethodsSection}
-      
+
+      ${cashSection}
+
       ${summarySection}
 
       <div class="total">

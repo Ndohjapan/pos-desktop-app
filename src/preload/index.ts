@@ -15,6 +15,7 @@ import type {
 import type { SyncStatus } from '../main/server/services/util.service'
 
 export type { SyncStatus }
+export type ServerMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 
 // Envelope every data IPC handler resolves with (see ipcResult in src/main/index.ts)
 export interface IpcResponse<T = unknown> {
@@ -108,6 +109,24 @@ const api = {
     ipcRenderer.invoke('delete-order', baseUrl, orderId, authToken),
   printReceipt: (orderData: OrderWithDetails): Promise<{ success: boolean; message?: string }> =>
     ipcRenderer.invoke('print-receipt', orderData),
+  printKitchenTicket: (
+    orderData: OrderWithDetails,
+    printerName?: string
+  ): Promise<{ success: boolean; message?: string }> =>
+    ipcRenderer.invoke('print-kitchen-ticket', orderData, printerName),
+  getPrinters: (): Promise<{
+    success: boolean
+    data?: { name: string; isDefault: boolean }[]
+    error?: string
+  }> => ipcRenderer.invoke('get-printers'),
+  serverRequest: <T = unknown>(
+    baseUrl: string,
+    method: ServerMethod,
+    path: string,
+    body?: unknown,
+    token?: string
+  ): Promise<IpcResponse<T>> =>
+    ipcRenderer.invoke('server-request', baseUrl, method, path, body, token),
   getOrdersByDate: (
     baseUrl: string,
     page: number,

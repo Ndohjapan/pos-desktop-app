@@ -25,14 +25,29 @@ export interface FoodWithCategoryRow extends FoodRow {
   category: string | null
 }
 
+export type OrderStatus = 'completed' | 'voided'
+export type FulfillmentStatus = 'preparing' | 'ready' | 'served'
+
 export interface OrderRow {
   id: number
   total: number
   subTotal: number
-  backupStatus: 0 | 1
+  backupStatus: 0 | 1 | 2
   isDeleted: 0 | 1
   specialOrder: 0 | 1
   serviceFee: number
+  orderNumber: number
+  status: OrderStatus
+  fulfillment: FulfillmentStatus
+  cashierId: number | null
+  cashierName: string | null
+  shiftId: number | null
+  discount: number
+  discountReason: string | null
+  tendered: number
+  changeDue: number
+  voidReason: string | null
+  voidedBy: string | null
   createdAt: string
   updatedAt: string | null
 }
@@ -78,6 +93,91 @@ export interface SessionRow {
   adminId: number
   expiresAt: string
   createdAt: string
+}
+
+// --- Quick-service entities ---
+
+export type CashierRole = 'cashier' | 'supervisor'
+
+export interface CashierRow {
+  id: number
+  fullName: string
+  pin: string
+  role: CashierRole
+  active: 0 | 1
+  createdAt: string
+  updatedAt: string | null
+}
+
+export type CashierPublic = Omit<CashierRow, 'pin'>
+
+export interface ShiftRow {
+  id: number
+  cashierId: number
+  cashierName: string
+  openingFloat: number
+  openedAt: string
+  closedAt: string | null
+  countedCash: number | null
+  expectedCash: number | null
+  notes: string | null
+}
+
+export interface ParkedOrderRow {
+  id: number
+  label: string
+  cashierId: number | null
+  cashierName: string | null
+  payload: string
+  createdAt: string
+  updatedAt: string | null
+}
+
+export interface AuditLogRow {
+  id: number
+  action: string
+  orderId: number | null
+  cashierName: string | null
+  approvedBy: string | null
+  reason: string | null
+  detail: string | null
+  createdAt: string
+}
+
+export interface StoreSettings {
+  branchId: string
+  branchName: string
+  quickService: boolean
+  cashiersEnabled: boolean
+  kitchenPrintingEnabled: boolean
+  kitchenPrinterName: string
+}
+
+// Shift report (X = live snapshot, Z = at close)
+export interface ShiftReport {
+  shift: ShiftRow
+  orderCount: number
+  grossSales: number
+  totalDiscount: number
+  voidCount: number
+  voidedAmount: number
+  byPaymentMethod: { paymentMethod: string; amount: number; count: number }[]
+  cashSales: number
+  expectedCash: number
+  countedCash: number | null
+  variance: number | null
+}
+
+export interface DailySummary {
+  date: string
+  orderCount: number
+  grossSales: number
+  totalDiscount: number
+  serviceFees: number
+  voidCount: number
+  voidedAmount: number
+  byPaymentMethod: { paymentMethod: string; amount: number; count: number }[]
+  topItems: { foodName: string; quantity: number; amount: number }[]
 }
 
 // Hydrated shapes returned by the repositories
@@ -129,6 +229,17 @@ export interface CreateOrderInput {
   serviceFee: number
   specialOrder: 0 | 1
   groups: OrderGroupInput[]
+  // Quick-service extras (all optional so the restaurant flow is unchanged)
+  cashierId?: number
+  cashierName?: string
+  shiftId?: number
+  discount?: number
+  discountReason?: string
+  supervisorPin?: string
+  tendered?: number
+  changeDue?: number
+  // resume flow: the parked draft this order came from (deleted on success)
+  parkedOrderId?: number
 }
 
 export interface CreateFoodInput {

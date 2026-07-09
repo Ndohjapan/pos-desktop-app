@@ -41,6 +41,56 @@ router.post('/', async (req, res) => {
   }
 })
 
+// Today's kitchen queue (paid, not yet served).
+router.get('/queue', (_req, res) => {
+  try {
+    res.json({ data: orderService.getQueue() })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
+// On-device daily summary (?date=YYYY-MM-DD, default today).
+router.get('/summary', (req, res) => {
+  try {
+    const date =
+      typeof req.query.date === 'string' && req.query.date
+        ? req.query.date
+        : new Date().toLocaleDateString('en-CA') // YYYY-MM-DD in local time
+    res.json({ data: orderService.getDailySummary(date) })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
+// Void with supervisor approval + reason (audited).
+router.post('/:id/void', async (req, res) => {
+  try {
+    const order = await orderService.voidOrder(
+      Number(req.params.id),
+      String(req.body?.reason ?? ''),
+      String(req.body?.supervisorPin ?? ''),
+      req.body?.cashierName ? String(req.body.cashierName) : undefined
+    )
+    res.json({ data: order })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
+// Advance an order through the kitchen queue.
+router.patch('/:id/fulfillment', (req, res) => {
+  try {
+    const order = orderService.setFulfillment(
+      Number(req.params.id),
+      String(req.body?.fulfillment ?? '')
+    )
+    res.json({ data: order })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
 router.delete('/:id', protect, async (req, res) => {
   try {
     const order = await orderService.deleteOrder(String(req.params.id))
