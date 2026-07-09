@@ -25,7 +25,8 @@ export default function Login() {
       const baseUrl = `http://${host}:${port}/api`
       const response = await authApi.login(baseUrl, { phoneNumber, password })
 
-      localStorage.setItem('pos-admin-token', String(response.data.id))
+      // Store the real session token (was the forgeable admin row id).
+      localStorage.setItem('pos-admin-token', response.data.token)
 
       navigate('/admin/main')
     } catch (error) {

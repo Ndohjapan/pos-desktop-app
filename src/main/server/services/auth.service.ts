@@ -1,14 +1,17 @@
 import { AdminRepository } from '../database/repositories/admin.repository'
+import { SessionRepository } from '../database/repositories/session.repository'
 import CustomError from '../utils/customError'
-import { getErrorMessage, toCustomError } from '../utils/errors'
+import { toCustomError } from '../utils/errors'
 import { LoginInput, SignupInput } from '../types'
 import bcrypt from 'bcryptjs'
 
 export class AuthService {
   private adminRepository: AdminRepository
+  private sessionRepository: SessionRepository
 
   constructor() {
     this.adminRepository = new AdminRepository()
+    this.sessionRepository = new SessionRepository()
   }
 
   async signup(adminData: SignupInput) {
@@ -37,6 +40,8 @@ export class AuthService {
         phoneNumber: adminData.phoneNumber,
         password: hashedPassword,
         isSuperAdmin: promoteToSuperAdmin,
+        // Owner is auto-verified; additional staff must be verified by the owner
+        // before they can log in.
         verified: promoteToSuperAdmin
       }
 
@@ -65,11 +70,44 @@ export class AuthService {
         throw new CustomError('Invalid credentials', 401)
       }
 
+      // Enforce the verified flag — unverified staff accounts cannot log in
+      // until the owner approves them.
+      if (!admin.verified) {
+        throw new CustomError('Account is awaiting approval by the owner', 403)
+      }
+
+      // Issue a real, unguessable, expiring session token (replaces the old
+      // "token = admin row id" scheme).
+      this.sessionRepository.purgeExpired()
+      const token = this.sessionRepository.create(admin.id)
+
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password, ...adminWithoutPassword } = admin
-      return adminWithoutPassword
+      return { ...adminWithoutPassword, token }
     } catch (error) {
-      throw new CustomError(getErrorMessage(error), toCustomError(error).code)
+      throw toCustomError(error, 401)
     }
+  }
+
+  async logout(token: string): Promise<void> {
+    this.sessionRepository.delete(token)
+  }
+
+  // --- Admin management (super-admin only, enforced at the route) ---
+
+  async listAdmins() {
+    const admins = await this.adminRepository.findAll()
+    // Never leak password hashes.
+    return admins.map(({ password: _password, ...rest }) => rest)
+  }
+
+  async setAdminVerified(id: number, verified: boolean) {
+    const admin = await this.adminRepository.findById(id)
+    if (!admin) throw new CustomError('Admin not found', 404)
+    if (admin.isSuperAdmin && !verified) {
+      throw new CustomError('The owner account cannot be unverified', 400)
+    }
+    await this.adminRepository.setVerified(id, verified)
+    return { success: true }
   }
 }

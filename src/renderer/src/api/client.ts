@@ -7,6 +7,7 @@ import type {
   Food,
   IpcResponse,
   LoginInput,
+  LoginResult,
   Order,
   PaginatedOrders,
   SignupInput,
@@ -169,9 +170,41 @@ export const authApi = {
   login: async (
     baseUrl: string,
     credentials: LoginInput
-  ): Promise<SuccessResponse<AdminWithoutPassword>> => {
+  ): Promise<SuccessResponse<LoginResult>> => {
     try {
       return ensureSuccess(await window.api.login(baseUrl, credentials))
+    } catch (error) {
+      return handleApiError(error)
+    }
+  },
+
+  logout: async (baseUrl: string, token: string): Promise<void> => {
+    try {
+      await window.api.logout(baseUrl, token)
+    } catch {
+      // logout is best-effort; local state is cleared regardless
+    }
+  },
+
+  listAdmins: async (
+    baseUrl: string,
+    token: string
+  ): Promise<SuccessResponse<{ data: AdminWithoutPassword[] }>> => {
+    try {
+      return ensureSuccess(await window.api.listAdmins(baseUrl, token))
+    } catch (error) {
+      return handleApiError(error)
+    }
+  },
+
+  verifyAdmin: async (
+    baseUrl: string,
+    adminId: number,
+    verified: boolean,
+    token: string
+  ): Promise<SuccessResponse<{ success: boolean }>> => {
+    try {
+      return ensureSuccess(await window.api.verifyAdmin(baseUrl, adminId, verified, token))
     } catch (error) {
       return handleApiError(error)
     }

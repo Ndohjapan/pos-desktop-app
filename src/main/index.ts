@@ -9,6 +9,7 @@ import { authApi, categoriesApi, foodsApi, ordersApi, utilsApi } from './client'
 import { generateReceiptHTML, ReceiptOrder } from './receipt-formatting'
 import { getErrorMessage } from './server/utils/errors'
 import { SERVICE_APP_ID } from './services/network'
+import { backupNow, listBackups, stageRestore } from './services/db-backup'
 import axios from 'axios'
 
 let expressServer: ExpressServer | null = null
@@ -283,6 +284,18 @@ ipcMain.handle('login', (_event, baseUrl, credentials) =>
   ipcResult(() => authApi.login(baseUrl, credentials))
 )
 
+ipcMain.handle('logout', (_event, baseUrl, token) =>
+  ipcResult(() => authApi.logout(baseUrl, token))
+)
+
+ipcMain.handle('list-admins', (_event, baseUrl, token) =>
+  ipcResult(() => authApi.listAdmins(baseUrl, token))
+)
+
+ipcMain.handle('verify-admin', (_event, baseUrl, adminId, verified, token) =>
+  ipcResult(() => authApi.verifyAdmin(baseUrl, adminId, verified, token))
+)
+
 ipcMain.handle('sync-data', (_event, baseUrl) => ipcResult(() => utilsApi.syncData(baseUrl)))
 
 ipcMain.handle('get-sync-status', (_event, baseUrl) =>
@@ -352,6 +365,35 @@ ipcMain.handle('print-receipt', async (_event, orderData: ReceiptOrder) => {
 
 // Hardware-acceleration toggle for troublesome machines. Writing/removing the
 // marker takes effect after a relaunch (the flag must be set before app-ready).
+// --- Local database backup / restore (Main machine only) ---
+
+ipcMain.handle('backup-database', async () => {
+  try {
+    const path = await backupNow()
+    return { success: true, path }
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) }
+  }
+})
+
+ipcMain.handle('list-database-backups', () => {
+  try {
+    return { success: true, data: listBackups() }
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) }
+  }
+})
+
+ipcMain.handle('restore-database', (_event, name: string) => {
+  const result = stageRestore(name)
+  if (result.success) {
+    // Apply the restore cleanly on a fresh start.
+    app.relaunch()
+    app.exit(0)
+  }
+  return result
+})
+
 ipcMain.handle('get-hardware-acceleration', () => {
   return { enabled: !existsSync(gpuDisabledMarker) }
 })

@@ -213,5 +213,42 @@ export const authApi = {
     } catch (error) {
       handleApiError(error)
     }
+  },
+
+  logout: async (baseUrl: string, token: string) => {
+    try {
+      const response = await axios.post(
+        `${baseUrl}/auth/logout`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      return response.data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  listAdmins: async (baseUrl: string, token: string) => {
+    try {
+      const response = await axios.get(`${baseUrl}/auth/admins`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      return response.data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  verifyAdmin: async (baseUrl: string, adminId: number, verified: boolean, token: string) => {
+    try {
+      const response = await axios.post(
+        `${baseUrl}/auth/admins/${adminId}/verify`,
+        { verified },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      return response.data
+    } catch (error) {
+      handleApiError(error)
+    }
   }
 }

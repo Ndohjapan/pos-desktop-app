@@ -48,6 +48,7 @@ export interface SearchServiceResult {
 }
 
 export type AdminWithoutPassword = Omit<AdminRow, 'password'>
+export type LoginResult = AdminWithoutPassword & { token: string }
 
 // Custom APIs for renderer
 const api = {
@@ -60,6 +61,15 @@ const api = {
     ipcRenderer.invoke('get-hardware-acceleration'),
   setHardwareAcceleration: (enabled: boolean): Promise<{ success: boolean; error?: string }> =>
     ipcRenderer.invoke('set-hardware-acceleration', enabled),
+  backupDatabase: (): Promise<{ success: boolean; path?: string; error?: string }> =>
+    ipcRenderer.invoke('backup-database'),
+  listDatabaseBackups: (): Promise<{
+    success: boolean
+    data?: { name: string; sizeKb: number; createdAt: string }[]
+    error?: string
+  }> => ipcRenderer.invoke('list-database-backups'),
+  restoreDatabase: (name: string): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke('restore-database', name),
   getFoods: (baseUrl: string): Promise<IpcResponse<FoodWithCategoryRow[]>> =>
     ipcRenderer.invoke('get-foods', baseUrl),
   createFood: (
@@ -115,8 +125,22 @@ const api = {
     ipcRenderer.invoke('search-orders-by-date', baseUrl, page, limit, date, searchQuery),
   signup: (baseUrl: string, adminData: SignupInput): Promise<IpcResponse<AdminWithoutPassword>> =>
     ipcRenderer.invoke('signup', baseUrl, adminData),
-  login: (baseUrl: string, credentials: LoginInput): Promise<IpcResponse<AdminWithoutPassword>> =>
+  login: (baseUrl: string, credentials: LoginInput): Promise<IpcResponse<LoginResult>> =>
     ipcRenderer.invoke('login', baseUrl, credentials),
+  logout: (baseUrl: string, token: string): Promise<IpcResponse<{ success: boolean }>> =>
+    ipcRenderer.invoke('logout', baseUrl, token),
+  listAdmins: (
+    baseUrl: string,
+    token: string
+  ): Promise<IpcResponse<{ data: AdminWithoutPassword[] }>> =>
+    ipcRenderer.invoke('list-admins', baseUrl, token),
+  verifyAdmin: (
+    baseUrl: string,
+    adminId: number,
+    verified: boolean,
+    token: string
+  ): Promise<IpcResponse<{ success: boolean }>> =>
+    ipcRenderer.invoke('verify-admin', baseUrl, adminId, verified, token),
   syncData: (baseUrl: string): Promise<IpcResponse<unknown>> =>
     ipcRenderer.invoke('sync-data', baseUrl),
   getSyncStatus: (baseUrl: string): Promise<IpcResponse<SyncStatus>> =>

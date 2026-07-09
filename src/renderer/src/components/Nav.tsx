@@ -5,10 +5,14 @@ import { useServiceStore } from '@renderer/store/connection'
 import { useConnectionStore, useSectionStore } from '@renderer/store/connection'
 import { useNavigate } from 'react-router-dom'
 import ConnectionStatus from './ConnectionStatus'
+import { authApi } from '@renderer/api/client'
+import { getAdminToken } from '@renderer/utils/auth'
 
 function Nav() {
   const navigate = useNavigate()
   const connectionType = useConnectionStore((state) => state.type)
+  const host = useConnectionStore((state) => state.host)
+  const port = useConnectionStore((state) => state.port)
   const serviceName = useServiceStore((state) => state.serviceName)
   const setSectionName = useSectionStore((state) => state.setSectionName)
   const clearSectionName = useSectionStore((state) => state.clearSectionName)
@@ -17,14 +21,16 @@ function Nav() {
   const clearConnectionDetails = useConnectionStore((state) => state.clearConnectionDetails)
 
   const handleLogout = async () => {
-    // Clear service name and connection details
+    // Invalidate the session server-side before clearing local state.
+    const token = getAdminToken()
+    if (token) {
+      await authApi.logout(`http://${host}:${port}/api`, token)
+    }
 
     clearServiceName()
     clearConnectionDetails()
     clearSectionName()
     localStorage.removeItem('pos-admin-token')
-
-    console.log(connectionType)
 
     // Stop server if running as main
     if (connectionType === 'Main') {

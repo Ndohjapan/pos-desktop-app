@@ -48,4 +48,27 @@ export class AdminRepository {
       throw new CustomError(getErrorMessage(error), 500)
     }
   }
+
+  async findById(id: number): Promise<AdminRow | undefined> {
+    return this.findByFilter({ id })
+  }
+
+  async findAll(): Promise<AdminRow[]> {
+    try {
+      return db.prepare(`SELECT * FROM Admin ORDER BY createdAt ASC`).all() as AdminRow[]
+    } catch (error) {
+      throw new CustomError(getErrorMessage(error), 500)
+    }
+  }
+
+  async setVerified(id: number, verified: boolean): Promise<void> {
+    try {
+      db.prepare(`UPDATE Admin SET verified = ?, updatedAt = datetime('now') WHERE id = ?`).run(
+        verified ? 1 : 0,
+        id
+      )
+    } catch (error) {
+      throw new CustomError(getErrorMessage(error), 500)
+    }
+  }
 }

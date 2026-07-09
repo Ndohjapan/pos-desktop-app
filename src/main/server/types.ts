@@ -72,6 +72,14 @@ export interface AdminRow {
   updatedAt: string | null
 }
 
+export interface SessionRow {
+  id: number
+  token: string
+  adminId: number
+  expiresAt: string
+  createdAt: string
+}
+
 // Hydrated shapes returned by the repositories
 export interface OrderGroupWithItems extends OrderGroupRow {
   items: OrderItemRow[]

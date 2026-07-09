@@ -1,5 +1,5 @@
 import { BsCart3 } from 'react-icons/bs'
-import { FiPackage } from 'react-icons/fi'
+import { FiPackage, FiUsers } from 'react-icons/fi'
 
 interface TabsPelleteProps {
   activeTab: string
@@ -14,6 +14,10 @@ const tabs = [
   {
     name: 'Orders Analytics',
     icon: <FiPackage />
+  },
+  {
+    name: 'Staff',
+    icon: <FiUsers />
   }
 ]
 

@@ -6,6 +6,7 @@ import { initializeDatabase } from '../server/database/client'
 import { getErrorMessage } from '../server/utils/errors'
 import { getLanIp, SERVICE_APP_ID, SERVICE_NAME } from './network'
 import { utilService } from '../server/services/util.service'
+import { startScheduledBackups, stopScheduledBackups } from './db-backup'
 
 export class ExpressServer {
   private app: express.Application
@@ -108,6 +109,8 @@ export class ExpressServer {
 
       // Start the single cloud-sync scheduler now that we are acting as Main.
       utilService.start()
+      // Nightly local DB file backups (this machine holds the real data).
+      startScheduledBackups()
 
       return {
         serviceName: bonjourServiceName,
@@ -121,9 +124,10 @@ export class ExpressServer {
   }
 
   public stop(): void {
-    // Always stop the sync scheduler so logging out (or restarting as Main)
-    // never leaks another 5-minute timer.
+    // Always stop the sync + backup schedulers so logging out (or restarting as
+    // Main) never leaks another timer.
     utilService.stop()
+    stopScheduledBackups()
     if (this.server) {
       this.server.close()
       this.bonjourInstance.unpublishAll()

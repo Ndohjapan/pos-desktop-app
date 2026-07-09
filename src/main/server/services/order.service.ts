@@ -3,7 +3,26 @@ import CustomError from '../utils/customError'
 import { getErrorMessage } from '../utils/errors'
 import { rollbar } from '../utils/logging'
 import { utilService } from './util.service'
-import { CreateOrderInput, OrderFilter } from '../types'
+import { CreateOrderInput, DateRangeFilter, OrderFilter } from '../types'
+
+// Orders are stored by SQLite as UTC 'YYYY-MM-DD HH:MM:SS'. The old code compared
+// that against ISO strings ('...T...Z'), which is lexicographically wrong at the
+// 'T'/space boundary — so orders near midnight (and the WAT +1h offset) landed on
+// the wrong day. This builds the *local* day's boundaries and formats them in the
+// exact stored format so the comparison is correct.
+function toDbUtc(date: Date): string {
+  return date
+    .toISOString()
+    .replace('T', ' ')
+    .replace(/\.\d{3}Z$/, '')
+}
+
+function dayRangeFilter(dateStr: string): DateRangeFilter {
+  const [year, month, day] = dateStr.split('-').map(Number)
+  const startLocal = new Date(year, month - 1, day, 0, 0, 0, 0)
+  const endLocal = new Date(year, month - 1, day, 23, 59, 59, 999)
+  return { gte: toDbUtc(startLocal), lte: toDbUtc(endLocal) }
+}
 
 export class OrderService {
   private orderRepository: OrderRepository
@@ -34,19 +53,7 @@ export class OrderService {
 
   async getOrdersByDate(page: number, limit: number, date: string) {
     try {
-      const startOfDay = new Date(date)
-      startOfDay.setHours(0, 0, 0, 0)
-
-      const endOfDay = new Date(date)
-      endOfDay.setHours(23, 59, 59, 999)
-
-      const filter: OrderFilter = {
-        createdAt: {
-          gte: startOfDay.toISOString(),
-          lte: endOfDay.toISOString()
-        }
-      }
-
+      const filter: OrderFilter = { createdAt: dayRangeFilter(date) }
       const orders = await this.orderRepository.findByFilter(page, limit, filter)
 
       return orders
@@ -59,18 +66,7 @@ export class OrderService {
 
   async searchOrders(page: number, limit: number, date: string, searchQuery: string) {
     try {
-      const startOfDay = new Date(date)
-      startOfDay.setHours(0, 0, 0, 0)
-
-      const endOfDay = new Date(date)
-      endOfDay.setHours(23, 59, 59, 999)
-
-      const filter: OrderFilter = {
-        createdAt: {
-          gte: startOfDay.toISOString(),
-          lte: endOfDay.toISOString()
-        }
-      }
+      const filter: OrderFilter = { createdAt: dayRangeFilter(date) }
 
       // Add LIKE query for ID search
       if (searchQuery) {

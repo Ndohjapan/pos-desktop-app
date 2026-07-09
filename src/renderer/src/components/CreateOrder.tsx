@@ -9,6 +9,7 @@ import { useConnectionStore } from '@renderer/store/connection'
 import { PaymentMethodManager } from './PaymentMethodManager'
 import toast from 'react-hot-toast'
 import type { CreateOrderInput, Food, Order, Payment } from '../types'
+import { round2, sumMoney } from '@renderer/utils/money'
 
 export interface DraftOrderItem {
   id: number
@@ -75,9 +76,9 @@ const CreateOrder = forwardRef<CreateOrderHandle, CreateOrderProps>(
             foodName: food.name,
             quantity: 1,
             price: food.price,
-            amount: food.price
+            amount: round2(food.price)
           })
-          group.total = group.items.reduce((sum, item) => sum + item.amount, 0)
+          group.total = sumMoney(group.items.map((it) => it.amount))
         }
 
         return newGroups
@@ -102,11 +103,11 @@ const CreateOrder = forwardRef<CreateOrderHandle, CreateOrderProps>(
           const item = group.items.find((item) => item.id === itemId)
           if (item) {
             item.quantity = newQuantity
-            item.amount = item.quantity * item.price
+            item.amount = round2(item.quantity * item.price)
           }
         }
 
-        group.total = group.items.reduce((sum, item) => sum + item.amount, 0)
+        group.total = sumMoney(group.items.map((it) => it.amount))
         return newGroups
       })
     }
@@ -135,23 +136,23 @@ const CreateOrder = forwardRef<CreateOrderHandle, CreateOrderProps>(
     }
 
     const getSubtotalAmount = () => {
-      return groups.reduce((sum, group) => sum + group.total, 0)
+      return sumMoney(groups.map((group) => group.total))
     }
 
     const getTotalOrderAmount = () => {
       const subtotal = getSubtotalAmount()
-      return showServiceFee ? subtotal + serviceFee : subtotal
+      return showServiceFee ? round2(subtotal + serviceFee) : subtotal
     }
 
     const handleServiceFeeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = parseFloat(e.target.value) || 0
+      const value = round2(parseFloat(e.target.value) || 0)
       setServiceFee(value)
     }
 
     const arePaymentsValid = () => {
       if (paymentMethods.length === 0) return false
 
-      const totalPaymentAmount = paymentMethods.reduce((sum, payment) => sum + payment.amount, 0)
+      const totalPaymentAmount = sumMoney(paymentMethods.map((p) => p.amount))
       return totalPaymentAmount === getTotalOrderAmount()
     }
 
@@ -176,7 +177,7 @@ const CreateOrder = forwardRef<CreateOrderHandle, CreateOrderProps>(
         }
         setIsCreatingOrder(true)
 
-        const totalPaymentAmount = paymentMethods.reduce((sum, payment) => sum + payment.amount, 0)
+        const totalPaymentAmount = sumMoney(paymentMethods.map((p) => p.amount))
         if (totalPaymentAmount !== getTotalOrderAmount()) {
           throw new Error('Payment amount does not match order total')
         }

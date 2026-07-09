@@ -1,9 +1,16 @@
 import Database from 'better-sqlite3'
-import { app } from 'electron'
-import { join } from 'path'
+import { applyPendingRestore, getDbPath } from './paths'
 
-const dbPath = join(app.getPath('userData'), `pos-${import.meta.env.MODE}.db`)
+// Apply a staged restore (if any) before the file is opened.
+applyPendingRestore()
+
+const dbPath = getDbPath()
 const db = new Database(dbPath)
+
+// WAL improves crash resilience and read/write concurrency; foreign_keys
+// enforces referential integrity on writes.
+db.pragma('journal_mode = WAL')
+db.pragma('foreign_keys = ON')
 
 // Define the current schema in one place
 const currentSchema = {
@@ -73,8 +80,30 @@ const currentSchema = {
     isSuperAdmin: 'BOOLEAN DEFAULT false',
     createdAt: 'DATETIME DEFAULT CURRENT_TIMESTAMP',
     updatedAt: 'DATETIME'
+  },
+  // Server-side sessions: real bearer tokens replace the old "token = admin row
+  // id" scheme that was trivially forgeable from any till on the LAN.
+  Session: {
+    id: 'INTEGER PRIMARY KEY AUTOINCREMENT',
+    token: 'TEXT UNIQUE',
+    adminId: 'INTEGER',
+    expiresAt: 'DATETIME',
+    createdAt: 'DATETIME DEFAULT CURRENT_TIMESTAMP',
+    foreignKeys: ['FOREIGN KEY (adminId) REFERENCES Admin(id)']
   }
 }
+
+// Indexes that keep queries fast as order history grows.
+const indexes = [
+  'CREATE INDEX IF NOT EXISTS idx_order_createdAt ON "Order"(createdAt)',
+  'CREATE INDEX IF NOT EXISTS idx_order_backupStatus ON "Order"(backupStatus)',
+  'CREATE INDEX IF NOT EXISTS idx_order_isDeleted ON "Order"(isDeleted)',
+  'CREATE INDEX IF NOT EXISTS idx_ordergroup_orderId ON OrderGroup(orderId)',
+  'CREATE INDEX IF NOT EXISTS idx_orderitem_groupId ON OrderItem(groupId)',
+  'CREATE INDEX IF NOT EXISTS idx_orderpayment_orderId ON OrderPayment(orderId)',
+  'CREATE INDEX IF NOT EXISTS idx_food_categoryId ON Food(categoryId)',
+  'CREATE INDEX IF NOT EXISTS idx_session_token ON Session(token)'
+]
 
 // Initialize database with automatic schema synchronization
 export const initializeDatabase = () => {
@@ -106,31 +135,36 @@ export const initializeDatabase = () => {
       return a & a
     }, 0)
 
-  // If versions match, no changes needed
-  if (currentVersion === newVersion) {
+  // Synchronize tables only when the schema definition changed.
+  if (currentVersion !== newVersion) {
+    console.log(
+      `Schema change detected. Updating from version ${currentVersion} to ${newVersion}...`
+    )
+
+    db.transaction(() => {
+      for (const [tableName, tableSchema] of Object.entries(currentSchema)) {
+        synchronizeTable(tableName, tableSchema)
+      }
+
+      if (currentVersion === 0) {
+        db.prepare('INSERT INTO schema_version (id, version) VALUES (1, ?)').run(newVersion)
+      } else {
+        db.prepare(
+          'UPDATE schema_version SET version = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1'
+        ).run(newVersion)
+      }
+    })()
+
+    console.log('Database schema updated successfully')
+  } else {
     console.log('Database schema is up to date')
-    return
   }
 
-  console.log(`Schema change detected. Updating from version ${currentVersion} to ${newVersion}...`)
-
-  // Synchronize each table with the current schema
-  db.transaction(() => {
-    for (const [tableName, tableSchema] of Object.entries(currentSchema)) {
-      synchronizeTable(tableName, tableSchema)
-    }
-
-    // Update schema version
-    if (currentVersion === 0) {
-      db.prepare('INSERT INTO schema_version (id, version) VALUES (1, ?)').run(newVersion)
-    } else {
-      db.prepare(
-        'UPDATE schema_version SET version = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1'
-      ).run(newVersion)
-    }
-  })()
-
-  console.log('Database schema updated successfully')
+  // Always ensure indexes exist (idempotent). Runs after tables are guaranteed
+  // to exist, whether or not the schema changed this launch.
+  for (const indexSql of indexes) {
+    db.exec(indexSql)
+  }
 }
 
 // Function to synchronize a table with its schema definition
