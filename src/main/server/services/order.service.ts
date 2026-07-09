@@ -2,16 +2,14 @@ import { OrderRepository } from '../database/repositories/order.repository'
 import CustomError from '../utils/customError'
 import { getErrorMessage } from '../utils/errors'
 import { rollbar } from '../utils/logging'
-import { UtilService } from './util.service'
+import { utilService } from './util.service'
 import { CreateOrderInput, OrderFilter } from '../types'
 
 export class OrderService {
   private orderRepository: OrderRepository
-  private utilService: UtilService
 
   constructor() {
     this.orderRepository = new OrderRepository()
-    this.utilService = new UtilService()
   }
 
   async getAllOrders(page?: number, limit?: number) {
@@ -96,7 +94,7 @@ export class OrderService {
     try {
       const result = await this.orderRepository.create(orderData)
 
-      this.utilService
+      utilService
         .uploadOrdersToCloud()
         .then(() => {
           console.log('Uploaded orders to cloud')

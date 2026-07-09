@@ -12,6 +12,9 @@ import type {
   SignupInput,
   UpdateFoodInput
 } from '../main/server/types'
+import type { SyncStatus } from '../main/server/services/util.service'
+
+export type { SyncStatus }
 
 // Envelope every data IPC handler resolves with (see ipcResult in src/main/index.ts)
 export interface IpcResponse<T = unknown> {
@@ -112,6 +115,10 @@ const api = {
     ipcRenderer.invoke('login', baseUrl, credentials),
   syncData: (baseUrl: string): Promise<IpcResponse<unknown>> =>
     ipcRenderer.invoke('sync-data', baseUrl),
+  getSyncStatus: (baseUrl: string): Promise<IpcResponse<SyncStatus>> =>
+    ipcRenderer.invoke('get-sync-status', baseUrl),
+  retryFailedOrders: (baseUrl: string): Promise<IpcResponse<{ requeued: number }>> =>
+    ipcRenderer.invoke('retry-failed-orders', baseUrl),
   backupOrders: (
     baseUrl: string
   ): Promise<IpcResponse<{ success: boolean; message: string; uploadedCount: number }>> =>

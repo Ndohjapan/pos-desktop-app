@@ -195,6 +195,22 @@ export const utilsApi = {
     }
   },
 
+  getSyncStatus: async (baseUrl: string) => {
+    try {
+      return ensureSuccess(await window.api.getSyncStatus(baseUrl))
+    } catch (error) {
+      return handleApiError(error)
+    }
+  },
+
+  retryFailed: async (baseUrl: string) => {
+    try {
+      return ensureSuccess(await window.api.retryFailedOrders(baseUrl))
+    } catch (error) {
+      return handleApiError(error)
+    }
+  },
+
   printReceipt: async (orderData: Order): Promise<{ success: boolean; message?: string }> => {
     try {
       const response = await window.api.printReceipt(orderData)

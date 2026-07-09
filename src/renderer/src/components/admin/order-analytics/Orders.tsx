@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import OrderTable from './OrderTable'
 import OrderDetails from './OrderDetails'
 import { ordersApi, utilsApi } from '@renderer/api/client'
 import { useConnectionStore } from '@renderer/store/connection'
 import toast from 'react-hot-toast'
-import type { Order, PaginatedOrders } from '@renderer/types'
+import type { Order, PaginatedOrders, SyncStatus } from '@renderer/types'
 
 const ITEM_PER_PAGE = 50
 
@@ -24,8 +24,41 @@ function Orders() {
   const [isBackupLoading, setIsBackupLoading] = useState(false)
   const [currentDate, setCurrentDate] = useState(new Date().toISOString().split('T')[0])
   const [searchTerm, setSearchTerm] = useState('')
+  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null)
+  const [isRetrying, setIsRetrying] = useState(false)
   const host = useConnectionStore((state) => state.host)
   const port = useConnectionStore((state) => state.port)
+
+  const refreshSyncStatus = useCallback(async () => {
+    try {
+      const baseUrl = `http://${host}:${port}/api`
+      const response = await utilsApi.getSyncStatus(baseUrl)
+      setSyncStatus(response.data)
+    } catch {
+      // status is best-effort; ignore transient failures
+    }
+  }, [host, port])
+
+  useEffect(() => {
+    refreshSyncStatus()
+    const interval = setInterval(refreshSyncStatus, 15000)
+    return () => clearInterval(interval)
+  }, [refreshSyncStatus])
+
+  const handleRetryFailed = async () => {
+    try {
+      setIsRetrying(true)
+      const baseUrl = `http://${host}:${port}/api`
+      const result = await utilsApi.retryFailed(baseUrl)
+      toast.success(`Re-queued ${result.data?.requeued ?? 0} order(s) for backup`)
+      await utilsApi.backupOrders(baseUrl)
+      await refreshSyncStatus()
+    } catch (error) {
+      console.error('Error retrying failed orders:', error)
+    } finally {
+      setIsRetrying(false)
+    }
+  }
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -52,11 +85,23 @@ function Orders() {
       await utilsApi.backupOrders(baseUrl)
       toast.success('Orders backed up successfully!')
       fetchMoreOrders(1)
+      await refreshSyncStatus()
     } catch (error) {
       console.error('Error fetching orders:', error)
     } finally {
       setIsBackupLoading(false)
     }
+  }
+
+  const formatLastSync = (iso: string | null): string => {
+    if (!iso) return 'never'
+    return new Date(iso).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    })
   }
 
   const fetchMoreOrders = async (page: number) => {
@@ -138,6 +183,31 @@ function Orders() {
             </button>
           </div>
         </div>
+
+        {/* Sync status bar — shows real backup health at a glance */}
+        {syncStatus && (
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-md bg-[#F6F6F6] px-3 py-2 text-xs">
+            <span className="text-secondary">
+              Last backup: <b>{formatLastSync(syncStatus.lastSyncAt)}</b>
+            </span>
+            <span className={syncStatus.pending > 0 ? 'text-yellow-600' : 'text-[#01A920]'}>
+              {syncStatus.pending} pending
+            </span>
+            {syncStatus.isSyncing && <span className="text-primary-700">syncing…</span>}
+            {syncStatus.failed > 0 && (
+              <>
+                <span className="text-[#FD0002] font-medium">{syncStatus.failed} failed</span>
+                <button
+                  onClick={handleRetryFailed}
+                  disabled={isRetrying}
+                  className="text-primary-700 underline hover:text-primary-900 disabled:opacity-50"
+                >
+                  {isRetrying ? 'Retrying…' : 'Retry failed'}
+                </button>
+              </>
+            )}
+          </div>
+        )}
 
         <div className="grid grid-cols-12 gap-2 w-full mt-5">
           <input

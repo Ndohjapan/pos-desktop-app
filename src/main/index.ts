@@ -248,6 +248,14 @@ ipcMain.handle('login', (_event, baseUrl, credentials) =>
 
 ipcMain.handle('sync-data', (_event, baseUrl) => ipcResult(() => utilsApi.syncData(baseUrl)))
 
+ipcMain.handle('get-sync-status', (_event, baseUrl) =>
+  ipcResult(() => utilsApi.syncStatus(baseUrl))
+)
+
+ipcMain.handle('retry-failed-orders', (_event, baseUrl) =>
+  ipcResult(() => utilsApi.retryFailed(baseUrl))
+)
+
 ipcMain.handle('print-receipt', async (_event, orderData: ReceiptOrder) => {
   const printWindow = BrowserWindow.getFocusedWindow()
   if (printWindow) {

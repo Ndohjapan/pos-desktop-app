@@ -172,6 +172,24 @@ export const utilsApi = {
     } catch (error) {
       handleApiError(error)
     }
+  },
+
+  syncStatus: async (baseUrl: string) => {
+    try {
+      const response = await axios.get(`${baseUrl}/utils/sync-status`)
+      return response.data
+    } catch (error) {
+      handleApiError(error)
+    }
+  },
+
+  retryFailed: async (baseUrl: string) => {
+    try {
+      const response = await axios.post(`${baseUrl}/utils/retry-failed`)
+      return response.data
+    } catch (error) {
+      handleApiError(error)
+    }
   }
 }
 

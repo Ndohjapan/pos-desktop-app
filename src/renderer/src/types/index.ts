@@ -24,5 +24,6 @@ export type {
   DiscoveredService,
   StartServerResult,
   SearchServiceResult,
-  AdminWithoutPassword
+  AdminWithoutPassword,
+  SyncStatus
 } from '../../../preload'

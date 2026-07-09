@@ -5,6 +5,7 @@ import routes from '../server/routes'
 import { initializeDatabase } from '../server/database/client'
 import { getErrorMessage } from '../server/utils/errors'
 import { getLanIp, SERVICE_APP_ID, SERVICE_NAME } from './network'
+import { utilService } from '../server/services/util.service'
 
 export class ExpressServer {
   private app: express.Application
@@ -105,6 +106,9 @@ export class ExpressServer {
         console.log(`Server is running on ${ip}:${availablePort}`)
       })
 
+      // Start the single cloud-sync scheduler now that we are acting as Main.
+      utilService.start()
+
       return {
         serviceName: bonjourServiceName,
         port: availablePort,
@@ -117,6 +121,9 @@ export class ExpressServer {
   }
 
   public stop(): void {
+    // Always stop the sync scheduler so logging out (or restarting as Main)
+    // never leaks another 5-minute timer.
+    utilService.stop()
     if (this.server) {
       this.server.close()
       this.bonjourInstance.unpublishAll()
