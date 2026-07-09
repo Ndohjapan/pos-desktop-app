@@ -23,12 +23,21 @@ export class AuthService {
 
       const hashedPassword = await bcrypt.hash(adminData.password, 10)
 
+      // Bootstrap: while no super admin exists on this machine, the next admin
+      // to register becomes the owner (super admin). Without this, no code path
+      // ever grants isSuperAdmin, so every protected action (food/category CRUD,
+      // order delete) returns 403 and the admin panel is permanently unusable.
+      // Checking "no super admin exists" (rather than "no admins at all") also
+      // self-heals existing installs whose admins were all created non-super.
+      const superAdminExists = await this.adminRepository.findByFilter({ isSuperAdmin: 1 })
+      const promoteToSuperAdmin = !superAdminExists
+
       const formattedData = {
         fullName: adminData.fullName,
         phoneNumber: adminData.phoneNumber,
         password: hashedPassword,
-        isSuperAdmin: false,
-        verified: false
+        isSuperAdmin: promoteToSuperAdmin,
+        verified: promoteToSuperAdmin
       }
 
       const result = await this.adminRepository.create(formattedData)
