@@ -25,7 +25,8 @@ export function getLanIp(): string {
 
   // Prefer typical home/office LAN ranges
   const preferred = candidates.find(
-    (ip) => ip.startsWith('192.168.') || ip.startsWith('10.') || /^172\.(1[6-9]|2\d|3[01])\./.test(ip)
+    (ip) =>
+      ip.startsWith('192.168.') || ip.startsWith('10.') || /^172\.(1[6-9]|2\d|3[01])\./.test(ip)
   )
 
   return preferred ?? candidates[0] ?? '127.0.0.1'

@@ -3,7 +3,11 @@ import { useConnectionStore } from '@renderer/store/connection'
 
 const STATUS_STYLES = {
   connected: { dot: 'bg-[#01A920]', text: 'text-[#01A920]', label: 'Connected' },
-  reconnecting: { dot: 'bg-yellow-500 animate-pulse', text: 'text-yellow-600', label: 'Reconnecting…' },
+  reconnecting: {
+    dot: 'bg-yellow-500 animate-pulse',
+    text: 'text-yellow-600',
+    label: 'Reconnecting…'
+  },
   offline: { dot: 'bg-[#FD0002]', text: 'text-[#FD0002]', label: 'Disconnected' }
 } as const
 
@@ -28,7 +32,9 @@ function ConnectionStatus(): JSX.Element {
         <span className="text-secondary/70 hidden md:inline">· This device: {hostIp}</span>
       ) : (
         !isMain &&
-        mainSystemIP && <span className="text-secondary/70 hidden md:inline">· Host: {mainSystemIP}</span>
+        mainSystemIP && (
+          <span className="text-secondary/70 hidden md:inline">· Host: {mainSystemIP}</span>
+        )
       )}
     </div>
   )

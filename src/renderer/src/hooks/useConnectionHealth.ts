@@ -53,8 +53,7 @@ export function useConnectionHealth(): { status: ConnectionStatus; checkNow: () 
       cancelledRef.current = true
       if (timerRef.current) clearTimeout(timerRef.current)
     }
-    // Re-establish polling whenever the target host/port changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Re-establish polling whenever the target host/port changes.
   }, [host, port])
 
   return { status, checkNow }

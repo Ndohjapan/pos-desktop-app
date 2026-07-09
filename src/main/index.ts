@@ -1,5 +1,6 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { ExpressServer } from '../main/services/express-server'
@@ -11,6 +12,16 @@ import { SERVICE_APP_ID } from './services/network'
 import axios from 'axios'
 
 let expressServer: ExpressServer | null = null
+let mainWindow: BrowserWindow | null = null
+
+// Hardware-acceleration fallback for low-end / old-GPU POS machines where the
+// GPU process crashes and blanks the screen. Presence of this marker file
+// (toggled from the app, then relaunched) disables acceleration. Must be
+// decided BEFORE app is ready.
+const gpuDisabledMarker = join(app.getPath('userData'), 'gpu-disabled')
+if (existsSync(gpuDisabledMarker)) {
+  app.disableHardwareAcceleration()
+}
 
 const bonjourBrowser = new Bonjour()
 
@@ -43,9 +54,17 @@ const options = {
   preview: true
 }
 
+function loadRenderer(window: BrowserWindow): void {
+  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    window.loadURL(process.env['ELECTRON_RENDERER_URL'])
+  } else {
+    window.loadFile(join(__dirname, '../renderer/index.html'))
+  }
+}
+
 function createWindow(): void {
   // Create the browser window.
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1100,
     height: 700,
     show: false,
@@ -59,7 +78,7 @@ function createWindow(): void {
   })
 
   mainWindow.on('ready-to-show', () => {
-    mainWindow.show()
+    mainWindow?.show()
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -67,13 +86,31 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
-  // HMR for renderer base on electron-vite cli.
-  // Load the remote URL for development or the local html file for production.
-  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
-  } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
-  }
+  // Crash recovery: if the renderer/GPU process dies (a common blank-screen
+  // cause on cheap POS hardware), reload instead of leaving a white window.
+  let reloadAttempts = 0
+  mainWindow.webContents.on('render-process-gone', (_e, details) => {
+    console.error('Renderer process gone:', details.reason)
+    if (details.reason === 'clean-exit') return
+    if (reloadAttempts < 5 && mainWindow && !mainWindow.isDestroyed()) {
+      reloadAttempts += 1
+      loadRenderer(mainWindow)
+    }
+  })
+
+  // Reset the reload counter once a load succeeds so future crashes get their
+  // own fresh set of retry attempts.
+  mainWindow.webContents.on('did-finish-load', () => {
+    reloadAttempts = 0
+  })
+
+  // If the page hangs, force a reload rather than let it sit frozen.
+  mainWindow.on('unresponsive', () => {
+    console.error('Window unresponsive — reloading')
+    if (mainWindow && !mainWindow.isDestroyed()) loadRenderer(mainWindow)
+  })
+
+  loadRenderer(mainWindow)
 }
 
 // This method will be called when Electron has finished
@@ -257,33 +294,81 @@ ipcMain.handle('retry-failed-orders', (_event, baseUrl) =>
 )
 
 ipcMain.handle('print-receipt', async (_event, orderData: ReceiptOrder) => {
-  const printWindow = BrowserWindow.getFocusedWindow()
-  if (printWindow) {
-    await printWindow.webContents.getPrintersAsync()
-  }
-
+  // Hidden, self-contained print window. Previously this opened a *visible*
+  // window and relied on getFocusedWindow() (which could be null right after a
+  // print), leaving a stray white window on top and the UI stuck on a spinner.
   const printContentsWindow = new BrowserWindow({
-    show: true,
+    show: false,
     webPreferences: {
-      nodeIntegration: true
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true
     }
   })
 
-  const htmlContent = generateReceiptHTML(orderData)
-
-  await printContentsWindow.loadURL(
-    `data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`
-  )
+  // Guarantee the window is always torn down, exactly once.
+  let settled = false
+  const cleanup = (): void => {
+    if (!printContentsWindow.isDestroyed()) printContentsWindow.destroy()
+  }
 
   return new Promise((resolve, reject) => {
-    printContentsWindow.webContents.print(options, (success, failureReason) => {
-      if (!success) {
-        console.log(failureReason)
-        reject(new Error(failureReason))
-      } else {
-        resolve({ success: true, message: 'Print completed successfully' })
-      }
-      printContentsWindow.close()
+    // Hard timeout so a stalled printer driver can never hang the promise (and
+    // the renderer's "Printing…" spinner) forever.
+    const timeout = setTimeout(() => {
+      if (settled) return
+      settled = true
+      cleanup()
+      reject(new Error('Printing timed out'))
+    }, 30000)
+
+    const finish = (err: Error | null, message?: string): void => {
+      if (settled) return
+      settled = true
+      clearTimeout(timeout)
+      cleanup()
+      if (err) reject(err)
+      else resolve({ success: true, message })
+    }
+
+    const htmlContent = generateReceiptHTML(orderData)
+
+    printContentsWindow.webContents.once('did-finish-load', () => {
+      printContentsWindow.webContents.print(options, (success, failureReason) => {
+        if (!success) finish(new Error(failureReason || 'Print failed'))
+        else finish(null, 'Print completed successfully')
+      })
     })
+
+    printContentsWindow.webContents.once('did-fail-load', (_e, _code, desc) => {
+      finish(new Error(desc || 'Failed to render receipt'))
+    })
+
+    printContentsWindow
+      .loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`)
+      .catch((err) => finish(err instanceof Error ? err : new Error('Failed to load receipt')))
   })
+})
+
+// Hardware-acceleration toggle for troublesome machines. Writing/removing the
+// marker takes effect after a relaunch (the flag must be set before app-ready).
+ipcMain.handle('get-hardware-acceleration', () => {
+  return { enabled: !existsSync(gpuDisabledMarker) }
+})
+
+ipcMain.handle('set-hardware-acceleration', (_event, enabled: boolean) => {
+  try {
+    if (enabled) {
+      if (existsSync(gpuDisabledMarker)) rmSync(gpuDisabledMarker)
+    } else {
+      mkdirSync(app.getPath('userData'), { recursive: true })
+      writeFileSync(gpuDisabledMarker, 'gpu-disabled')
+    }
+    // Relaunch so the change takes effect immediately.
+    app.relaunch()
+    app.exit(0)
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) }
+  }
 })

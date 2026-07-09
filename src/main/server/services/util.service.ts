@@ -88,7 +88,9 @@ export class UtilService {
    * bad ones are flagged (backupStatus=2) and left for reconciliation. A pure
    * network failure is rethrown so the caller aborts and retries next cycle.
    */
-  private async uploadBatch(orders: OrderWithDetails[]): Promise<{ uploaded: number; failed: number }> {
+  private async uploadBatch(
+    orders: OrderWithDetails[]
+  ): Promise<{ uploaded: number; failed: number }> {
     try {
       await retryTransient(
         () =>
@@ -101,7 +103,10 @@ export class UtilService {
         { label: 'backup-orders-batch' }
       )
       for (const order of orders) {
-        await this.orderRepository.updateManyByFilter({ id: order.id }, { backupStatus: BACKUP_DONE })
+        await this.orderRepository.updateManyByFilter(
+          { id: order.id },
+          { backupStatus: BACKUP_DONE }
+        )
       }
       return { uploaded: orders.length, failed: 0 }
     } catch (error) {
@@ -152,7 +157,11 @@ export class UtilService {
     }
   }
 
-  async uploadOrdersToCloud(): Promise<{ success: boolean; message: string; uploadedCount: number }> {
+  async uploadOrdersToCloud(): Promise<{
+    success: boolean
+    message: string
+    uploadedCount: number
+  }> {
     // Mutex — skip if a run is already in progress.
     if (this.isSyncing) {
       return { success: true, message: 'Sync already in progress', uploadedCount: 0 }
@@ -233,9 +242,7 @@ export class UtilService {
     this.backupInterval = setInterval(() => {
       this.uploadOrdersToCloud()
         .then(() => console.log('Scheduled backup complete'))
-        .catch((error) =>
-          console.error('Scheduled backup error:', getErrorMessage(error))
-        )
+        .catch((error) => console.error('Scheduled backup error:', getErrorMessage(error)))
     }, SYNC_INTERVAL_MS)
   }
 

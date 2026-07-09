@@ -63,7 +63,11 @@ export const makeApiRequest = async <T = unknown>({
  */
 export async function retryTransient<T>(
   fn: () => Promise<T>,
-  { attempts = 3, baseDelayMs = 1000, label = 'request' }: { attempts?: number; baseDelayMs?: number; label?: string } = {}
+  {
+    attempts = 3,
+    baseDelayMs = 1000,
+    label = 'request'
+  }: { attempts?: number; baseDelayMs?: number; label?: string } = {}
 ): Promise<T> {
   let lastError: unknown
   for (let attempt = 1; attempt <= attempts; attempt++) {
