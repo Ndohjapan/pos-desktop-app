@@ -10,6 +10,7 @@ import { generateReceiptHTML, ReceiptOrder } from './receipt-formatting'
 import { getErrorMessage } from './server/utils/errors'
 import { SERVICE_APP_ID } from './services/network'
 import { backupNow, listBackups, stageRestore } from './services/db-backup'
+import { initAutoUpdater } from './services/updater'
 import axios from 'axios'
 
 let expressServer: ExpressServer | null = null
@@ -132,6 +133,9 @@ app.whenReady().then(() => {
   ipcMain.on('ping', () => console.log('pong'))
 
   createWindow()
+
+  // Check for and install app updates automatically (packaged builds only).
+  initAutoUpdater()
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
