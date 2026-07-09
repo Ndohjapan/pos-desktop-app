@@ -1,4 +1,1 @@
-interface Payment {
-  paymentMethod: string
-  amount: number
-}
+export type { Payment } from './index'

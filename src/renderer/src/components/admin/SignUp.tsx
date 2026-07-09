@@ -28,7 +28,6 @@ export default function SignUp() {
       return
     }
 
-
     try {
       const baseUrl = `http://${host}:${port}/api`
       await authApi.signup(baseUrl, { fullName, phoneNumber, password })

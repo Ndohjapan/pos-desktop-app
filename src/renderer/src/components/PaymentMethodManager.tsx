@@ -3,7 +3,7 @@ import { IoIosSend } from 'react-icons/io'
 import { TbWorld } from 'react-icons/tb'
 import { HiOutlineCash } from 'react-icons/hi'
 import { FaCreditCard } from 'react-icons/fa'
-
+import type { Payment } from '../types'
 
 interface PaymentMethodManagerProps {
   total: number
@@ -26,7 +26,7 @@ export const PaymentMethodManager = ({ total, onPaymentsChange }: PaymentMethodM
   }, [payments, total])
 
   const handleMethodSelect = (paymentMethod: string) => {
-    if (payments.find(p => p.paymentMethod === paymentMethod)) return
+    if (payments.find((p) => p.paymentMethod === paymentMethod)) return
 
     const newPayment = {
       paymentMethod,
@@ -39,15 +39,13 @@ export const PaymentMethodManager = ({ total, onPaymentsChange }: PaymentMethodM
   }
 
   const handleAmountChange = (method: string, amount: number) => {
-    const updatedPayments = payments.map(p =>
-      p.paymentMethod === method ? { ...p, amount } : p
-    )
+    const updatedPayments = payments.map((p) => (p.paymentMethod === method ? { ...p, amount } : p))
     setPayments(updatedPayments)
     onPaymentsChange(updatedPayments)
   }
 
   const removePaymentMethod = (method: string) => {
-    const updatedPayments = payments.filter(p => p.paymentMethod !== method)
+    const updatedPayments = payments.filter((p) => p.paymentMethod !== method)
     setPayments(updatedPayments)
     onPaymentsChange(updatedPayments)
   }
@@ -61,10 +59,11 @@ export const PaymentMethodManager = ({ total, onPaymentsChange }: PaymentMethodM
           <button
             key={name}
             onClick={() => handleMethodSelect(name)}
-            className={`border rounded-lg p-3 flex flex-col items-center ${payments.some(p => p.paymentMethod === name)
-              ? 'bg-blue-100 border-blue-500'
-              : 'bg-gray-100 border-gray-300'
-              }`}
+            className={`border rounded-lg p-3 flex flex-col items-center ${
+              payments.some((p) => p.paymentMethod === name)
+                ? 'bg-blue-100 border-blue-500'
+                : 'bg-gray-100 border-gray-300'
+            }`}
           >
             <Icon className="text-secondary text-lg" />
             <span className="text-xs mt-1">{name}</span>
@@ -91,7 +90,6 @@ export const PaymentMethodManager = ({ total, onPaymentsChange }: PaymentMethodM
               className="w-full p-2 border rounded"
               max={total}
             />
-
           </div>
         </div>
       ))}

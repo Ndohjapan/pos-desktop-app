@@ -1,4 +1,3 @@
-//@ts-nocheck
 import { CgSpinner } from 'react-icons/cg'
 import { FaNetworkWired } from 'react-icons/fa'
 import { BsFillHddNetworkFill } from 'react-icons/bs'
@@ -21,15 +20,13 @@ function HomePage(): JSX.Element {
     setStartingServer(true)
     const result = await window.api.startServer()
     setStartingServer(false)
-    if (result.success) {
-      setConnectionDetails('localhost', result.port, 'localhost', 'Main');
+    if (result.success && result.port != null && result.serviceName) {
+      setConnectionDetails('localhost', result.port, 'localhost', 'Main')
       setServiceName(result.serviceName)
       navigate('/main')
     } else {
       console.error('Failed to start server:', result.error)
-
     }
-
   }
 
   return (
@@ -73,11 +70,7 @@ function HomePage(): JSX.Element {
         </div>
       </div>
 
-      <ConnectionModal
-        isOpen={openModal}
-        onClose={() => setOpenModal(false)}
-        status={'searching'}
-      />
+      <ConnectionModal isOpen={openModal} onClose={() => setOpenModal(false)} />
     </>
   )
 }

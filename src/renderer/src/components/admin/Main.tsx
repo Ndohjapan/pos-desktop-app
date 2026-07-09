@@ -1,21 +1,21 @@
-import { useState } from "react";
-import TabsPellete from "@renderer/components/admin/TabsPellete";
-import Foods from "./foods/Foods";
-import Orders from "./order-analytics/Orders";
+import { useState } from 'react'
+import TabsPellete from '@renderer/components/admin/TabsPellete'
+import Foods from './foods/Foods'
+import Orders from './order-analytics/Orders'
 
 export default function Main(): JSX.Element {
-  const [activeTab, setActiveTab] = useState("Foods");
+  const [activeTab, setActiveTab] = useState('Foods')
 
   const renderContent = () => {
     switch (activeTab) {
-      case "Foods":
-        return <Foods />;
-      case "Orders Analytics":
-        return <Orders />;
+      case 'Foods':
+        return <Foods />
+      case 'Orders Analytics':
+        return <Orders />
       default:
-        return <Foods />;
+        return <Foods />
     }
-  };
+  }
 
   return (
     <>
@@ -24,5 +24,5 @@ export default function Main(): JSX.Element {
         {renderContent()}
       </div>
     </>
-  );
+  )
 }

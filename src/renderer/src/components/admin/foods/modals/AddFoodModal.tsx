@@ -1,27 +1,33 @@
-import React, { useState, useEffect } from "react";
-import toast from "react-hot-toast";
-import AddCategoryModal from "./AddCategoryModal";
-import SelectCategoryDropDown from "./SelectCategoryDropDown";
-import { UploadImage } from "../../../../utils/uploadImage";
-import { Category } from "@/types/category";
-import { useConnectionStore } from "@renderer/store/connection";
-import { categoriesApi, foodsApi } from "@renderer/api/client";
+import { useState, useEffect } from 'react'
+import toast from 'react-hot-toast'
+import AddCategoryModal from './AddCategoryModal'
+import SelectCategoryDropDown from './SelectCategoryDropDown'
+import { UploadImage } from '../../../../utils/uploadImage'
+import { Category, Food } from '@renderer/types'
+import { getAdminToken } from '@renderer/utils/auth'
+import { useConnectionStore } from '@renderer/store/connection'
+import { categoriesApi, foodsApi } from '@renderer/api/client'
 
 const AddFoodModal = ({
   isOpen,
   onClose,
   onProductAdded,
-  onCategoryAdded,
+  onCategoryAdded
+}: {
+  isOpen: boolean
+  onClose: () => void
+  onProductAdded: (food: Food) => void
+  onCategoryAdded: (category: Category) => void
 }) => {
-  const [productName, setProductName] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [category, setCategory] = useState<Category | null>(null);
-  const [price, setPrice] = useState("");
-  const [quantity, setQuantity] = useState("");
-  const [image, setImage] = useState(null);
-  const [preview, setPreview] = useState(null);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [productName, setProductName] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [category, setCategory] = useState<Category | null>(null)
+  const [price, setPrice] = useState('')
+  const [quantity, setQuantity] = useState('')
+  const [image, setImage] = useState<File | null>(null)
+  const [preview, setPreview] = useState<string | null>(null)
+  const [categories, setCategories] = useState<Category[]>([])
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
   const host = useConnectionStore((state) => state.host)
   const port = useConnectionStore((state) => state.port)
 
@@ -37,89 +43,80 @@ const AddFoodModal = ({
     }
 
     fetchCategories()
-  }, []);
+  }, [])
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    const maxSize = 0.5 * 1024 * 1024;
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    const maxSize = 0.5 * 1024 * 1024
 
     if (file && file.size > maxSize) {
-      toast.error("File size exceeds the maximum limit of 500KB.");
-      return;
+      toast.error('File size exceeds the maximum limit of 500KB.')
+      return
     }
 
-    setImage(file);
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setPreview(reader.result);
-      reader.readAsDataURL(file);
+      setImage(file)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') setPreview(reader.result)
+      }
+      reader.readAsDataURL(file)
     }
-  };
+  }
 
   const handleRemoveImage = () => {
-    setImage(null);
-    setPreview(null);
-  };
+    setImage(null)
+    setPreview(null)
+  }
 
   const handleSubmit = async () => {
-
-    let image_url = "https://res.cloudinary.com/lcu-feeding/image/upload/v1738939187/amala-oluyole/foods/bpkbfmng2np4nq18tqc7.png"
+    let image_url =
+      'https://res.cloudinary.com/lcu-feeding/image/upload/v1738939187/amala-oluyole/foods/bpkbfmng2np4nq18tqc7.png'
 
     if (productName && category && price && quantity) {
-      setIsLoading(true);
+      setIsLoading(true)
       try {
-
         if (image) {
-          const response = (await UploadImage(image)) as { secure_url: string };
+          const response = (await UploadImage(image)) as { secure_url: string }
           image_url = response.secure_url
         }
 
         const foodData = {
           name: productName,
-          categoryId: (category.id),
+          categoryId: category.id,
           quantity: parseInt(quantity),
           price: parseInt(price),
-          image: image_url,
-        };
+          image: image_url
+        }
 
         const baseUrl = `http://${host}:${port}/api`
-        const food = await foodsApi.create(baseUrl, foodData);
+        const food = await foodsApi.create(baseUrl, foodData, getAdminToken())
 
-        toast.success("Food Item Created");
-        onProductAdded(food.data);
-        setProductName("");
-        setCategory(null);
-        setPrice("");
-        setQuantity("");
-        setImage(null);
-        onClose();
+        toast.success('Food Item Created')
+        onProductAdded(food.data)
+        setProductName('')
+        setCategory(null)
+        setPrice('')
+        setQuantity('')
+        setImage(null)
+        onClose()
       } catch (error) {
-        console.error("Error adding food item:", error);
+        console.error('Error adding food item:', error)
       } finally {
-        setIsLoading(false);
+        setIsLoading(false)
       }
     }
-  };
+  }
 
-  const handleAddCategory = (newCategory: {
-    _id: string;
-    name: string;
-    isDeleted: boolean;
-    createdAt: string;
-    updatedAt: string;
-    __v: number;
-  }) => {
-    if (
-      newCategory &&
-      !categories.some((category) => category.id === newCategory._id)
-    ) {
-      setCategories([...categories, newCategory]);
-      onCategoryAdded(newCategory);
-      toast.success(`${newCategory.name} added successfully`);
+  const handleAddCategory = (newCategory: Category) => {
+    if (newCategory && !categories.some((category) => category.id === newCategory.id)) {
+      setCategories([...categories, newCategory])
+      onCategoryAdded(newCategory)
+      toast.success(`${newCategory.name} added successfully`)
     }
-  };
+  }
 
-  if (!isOpen) return null;
+  if (!isOpen) return null
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-[#000000db]">
@@ -132,9 +129,7 @@ const AddFoodModal = ({
         <div className="space-y-3">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="font-medium text-xs text-secondary">
-                Food Name
-              </label>
+              <label className="font-medium text-xs text-secondary">Food Name</label>
               <input
                 type="text"
                 placeholder="Food Name"
@@ -146,9 +141,7 @@ const AddFoodModal = ({
             </div>
 
             <div className="space-y-2 relative">
-              <label className="font-medium text-xs text-secondary">
-                Category
-              </label>
+              <label className="font-medium text-xs text-secondary">Category</label>
               <SelectCategoryDropDown
                 categories={categories}
                 onSelect={setCategory}
@@ -157,9 +150,7 @@ const AddFoodModal = ({
             </div>
 
             <div className="space-y-2">
-              <label className="font-medium text-xs text-secondary">
-                Price (₦)
-              </label>
+              <label className="font-medium text-xs text-secondary">Price (₦)</label>
               <input
                 type="number"
                 placeholder="Price (₦)"
@@ -171,9 +162,7 @@ const AddFoodModal = ({
             </div>
 
             <div className="space-y-2">
-              <label className="font-medium text-xs text-secondary">
-                Quantity
-              </label>
+              <label className="font-medium text-xs text-secondary">Quantity</label>
               <input
                 type="number"
                 placeholder="Quantity"
@@ -187,24 +176,13 @@ const AddFoodModal = ({
 
           <div className="flex items-center space-x-4">
             <label className="bg-gray-200 py-2 px-4 rounded cursor-pointer flex flex-col">
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleImageChange}
-              />
+              <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
               Add Image
               <span className="text-xs">(Max size: 500KB)</span>
             </label>
             {preview && (
               <div className="relative">
-                <img
-                  src={preview}
-                  alt="Preview"
-                  width={100}
-                  height={100}
-                  className="rounded"
-                />
+                <img src={preview} alt="Preview" width={100} height={100} className="rounded" />
                 <button
                   onClick={handleRemoveImage}
                   className="absolute top-0 right-0 bg-red-500 text-white p-1 rounded-full text-xs"
@@ -216,12 +194,13 @@ const AddFoodModal = ({
           </div>
 
           <button
-            className={`${isLoading ? "bg-primary-500" : "bg-primary-700"
-              } w-full text-white px-4 py-4 rounded-lg font-bold text-sm`}
+            className={`${
+              isLoading ? 'bg-primary-500' : 'bg-primary-700'
+            } w-full text-white px-4 py-4 rounded-lg font-bold text-sm`}
             disabled={isLoading}
             onClick={handleSubmit}
           >
-            {isLoading ? "Creating..." : "Create Food"}
+            {isLoading ? 'Creating...' : 'Create Food'}
           </button>
         </div>
       </div>
@@ -232,7 +211,7 @@ const AddFoodModal = ({
         onAddCategory={handleAddCategory}
       />
     </div>
-  );
-};
+  )
+}
 
-export default AddFoodModal;
+export default AddFoodModal

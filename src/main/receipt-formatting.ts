@@ -37,22 +37,28 @@ export function generateReceiptHTML(order: ReceiptOrder): string {
       <span class="item-name">Subtotal</span>
       <span class="item-amount">₦${subtotal.toLocaleString()}</span>
     </div>
-    ${hasserviceFee ? `
+    ${
+      hasserviceFee
+        ? `
     <div class="item">
       <span class="item-name">Service Charge</span>
       <span class="item-amount">₦${order.serviceFee.toLocaleString()}</span>
     </div>
-    ` : ''}
+    `
+        : ''
+    }
     <div class="divider"></div>
   </div>
   `
 
   // Add special order note if applicable
-  const specialOrderNote = order.specialOrder ? `
+  const specialOrderNote = order.specialOrder
+    ? `
   <div class="special-order">
     <div class="special-order-text">*** SPECIAL ORDER ***</div>
   </div>
-  ` : ''
+  `
+    : ''
 
   const receiptHTML = `
     <!DOCTYPE html>

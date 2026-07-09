@@ -1,4 +1,3 @@
-//@ts-nocheck
 import { TbWorld } from 'react-icons/tb'
 import { IoIosSend } from 'react-icons/io'
 import { HiOutlineCash } from 'react-icons/hi'
@@ -9,11 +8,11 @@ import { utilsApi } from '@renderer/api/client'
 import { CgSpinner } from 'react-icons/cg'
 
 const OrderDetails = ({ order }: { order: Order }) => {
-  const [openGroups, setOpenGroups] = useState(new Set())
+  const [openGroups, setOpenGroups] = useState(new Set<number>())
   const [isPrintingReceipt, setIsPrintingReceipt] = useState(false)
 
   // Toggle function for accordions
-  const toggleGroup = (groupIndex) => {
+  const toggleGroup = (groupIndex: number) => {
     setOpenGroups((prev) => {
       const newOpenGroups = new Set(prev)
       if (newOpenGroups.has(groupIndex)) {
@@ -37,8 +36,8 @@ const OrderDetails = ({ order }: { order: Order }) => {
   }
 
   // Calculate subtotal if not provided directly
-  const subtotal = order.subtotal || order.groups.reduce((sum, group) => sum + group.total, 0)
-  const hasServiceCharge = order.serviceFee && order.serviceFee > 0
+  const subtotal = order.subTotal || order.groups.reduce((sum, group) => sum + group.total, 0)
+  const hasServiceCharge = order.serviceFee > 0
 
   return (
     <div className="w-full h-full max-h-[100vh] bg-gray-100 p-5 rounded-lg flex flex-col">
@@ -63,7 +62,7 @@ const OrderDetails = ({ order }: { order: Order }) => {
             hour12: true
           })}
         </p>
-        
+
         {/* Display special order badge if applicable */}
         {order.specialOrder > 0 && (
           <div className="mt-2 text-center">
@@ -79,7 +78,6 @@ const OrderDetails = ({ order }: { order: Order }) => {
         {order.groups.map((group, groupIndex) => {
           const isOpen = openGroups.has(groupIndex)
           const totalItems = group.items.reduce((acc, item) => acc + item.quantity, 0)
-          const totalPrice = group.items.reduce((acc, item) => acc + item.amount, 0)
 
           return (
             <div key={groupIndex} className="bg-white rounded-lg shadow-sm mb-3">
@@ -127,7 +125,10 @@ const OrderDetails = ({ order }: { order: Order }) => {
         <h3 className="text-secondary text-xs font-semibold mb-2">Payment methods:</h3>
 
         {order.payments.map((payment, index) => (
-          <div key={index} className="mb-2 border rounded-lg p-3 flex items-center justify-between bg-[#FBFFFF] border-[#012FA9]">
+          <div
+            key={index}
+            className="mb-2 border rounded-lg p-3 flex items-center justify-between bg-[#FBFFFF] border-[#012FA9]"
+          >
             <div className="flex items-center space-x-2">
               {payment.paymentMethod.toLowerCase() === 'transfer' && (
                 <IoIosSend className="text-secondary transform rotate-45 text-lg" />
@@ -155,7 +156,7 @@ const OrderDetails = ({ order }: { order: Order }) => {
           >
             {isPrintingReceipt ? <CgSpinner className="animate-spin text-2xl" /> : 'Print Receipt'}
           </button>
-          
+
           {/* Order Summary Section */}
           <div className="border-t pt-2 space-y-2">
             {/* Subtotal */}
@@ -163,15 +164,15 @@ const OrderDetails = ({ order }: { order: Order }) => {
               <span className="text-gray-600">Subtotal</span>
               <span className="font-medium">₦{subtotal.toLocaleString()}</span>
             </div>
-            
+
             {/* Service Charge - only show if present */}
-            {hasServiceCharge > 0 && (
+            {hasServiceCharge && (
               <div className="flex justify-between">
                 <span className="text-gray-600">Service Charge</span>
                 <span className="font-medium">₦{order.serviceFee.toLocaleString()}</span>
               </div>
             )}
-            
+
             {/* Total - always show */}
             <div className="flex justify-between border-t pt-2">
               <span className="font-bold">Total</span>

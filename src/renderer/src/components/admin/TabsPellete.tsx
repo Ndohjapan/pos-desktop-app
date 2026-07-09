@@ -1,30 +1,28 @@
-import { IoFastFood } from "react-icons/io5";
-import React from 'react'
-import { BsCart3 } from "react-icons/bs";
-import { FiPackage } from "react-icons/fi";
+import { BsCart3 } from 'react-icons/bs'
+import { FiPackage } from 'react-icons/fi'
 
 interface TabsPelleteProps {
-  activeTab: string;
-  onTabChange: (tabName: string) => void;
+  activeTab: string
+  onTabChange: (tabName: string) => void
 }
 
 const tabs = [
   {
     name: 'Foods',
-    icon: <BsCart3 />,
+    icon: <BsCart3 />
   },
   {
     name: 'Orders Analytics',
-    icon: <FiPackage />,
-  },
+    icon: <FiPackage />
+  }
 ]
 
 function TabsPellete({ activeTab, onTabChange }: TabsPelleteProps) {
   return (
-    <div className='w-full mt-3 bg-white'>
+    <div className="w-full mt-3 bg-white">
       {/* Desktop version */}
-      <div className='hidden md:flex justify-between items-center m-auto'>
-        <div className='w-[33%] m-auto flex gap-4 justify-around'>
+      <div className="hidden md:flex justify-between items-center m-auto">
+        <div className="w-[33%] m-auto flex gap-4 justify-around">
           {tabs.map((tab, index) => (
             <div
               key={index}
@@ -39,8 +37,8 @@ function TabsPellete({ activeTab, onTabChange }: TabsPelleteProps) {
       </div>
 
       {/* Mobile version */}
-      <div className='flex md:hidden'>
-        <div className='w-full flex gap-2 justify-around'>
+      <div className="flex md:hidden">
+        <div className="w-full flex gap-2 justify-around">
           {tabs.map((tab, index) => (
             <div
               key={index}
@@ -48,7 +46,7 @@ function TabsPellete({ activeTab, onTabChange }: TabsPelleteProps) {
               className={`flex flex-col items-center gap-1 cursor-pointer px-3 py-2 border border-[#DCDCDC] rounded-lg ${activeTab === tab.name ? 'bg-primary-700 shadow-lg text-white' : 'text-secondary'}`}
             >
               {tab.icon}
-              <p className='text-xs'>{tab.name}</p>
+              <p className="text-xs">{tab.name}</p>
             </div>
           ))}
         </div>

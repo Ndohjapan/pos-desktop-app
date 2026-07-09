@@ -1,34 +1,31 @@
-//@ts-nocheck
 import { useEffect, useState } from 'react'
 import ConncetionIcon from '@renderer/assets/icons/connection.svg'
 import { BsFillHddNetworkFill } from 'react-icons/bs'
 import { useConnectionStore, useServiceStore } from '../../store/connection'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
+import type { DiscoveredService } from '@renderer/types'
 function ConnectionModal({
   isOpen,
   onClose
 }: {
   isOpen: boolean
   onClose: () => void
-  onRetry: () => void
 }): JSX.Element {
-  const [services, setServices] = useState(null)
+  const [services, setServices] = useState<DiscoveredService[]>([])
   const [componentStatus, setComponentStatus] = useState('searching')
   const setConnectionDetails = useConnectionStore((state) => state.setConnectionDetails)
   const setServiceName = useServiceStore((state) => state.setServiceName)
   const navigate = useNavigate()
 
-
-  function handleConnection(service) {
-    console.log(service);
+  function handleConnection(service: DiscoveredService) {
+    console.log(service)
     setConnectionDetails(service.ip, service.port, service.host, 'Others')
-    setServiceName(service.name);
+    setServiceName(service.name)
     toast.success('Connected to Main Server')
     onClose()
     navigate('/main')
   }
-
 
   useEffect(() => {
     if (componentStatus === 'searching') {
@@ -44,9 +41,6 @@ function ConnectionModal({
       searchForDevice()
     }
   }, [componentStatus])
-
-
-
 
   if (!isOpen) return <></>
 
@@ -104,9 +98,9 @@ function DeviceFoundState({
   connected,
   onSelect
 }: {
-  services: any[]
+  services: DiscoveredService[]
   connected: boolean
-  onSelect: () => void
+  onSelect: (service: DiscoveredService) => void
 }): JSX.Element {
   return (
     <div>
@@ -117,7 +111,9 @@ function DeviceFoundState({
           <div
             key={index}
             className="p-3 bg-[#F6F6F6] rounded-md flex justify-between items-center cursor-pointer hover:bg-[#EFEFEF]"
-            onClick={() => { onSelect(service) }}
+            onClick={() => {
+              onSelect(service)
+            }}
           >
             <div className="flex flex-col gap-2">
               <BsFillHddNetworkFill className="text-secondary text-lg" />

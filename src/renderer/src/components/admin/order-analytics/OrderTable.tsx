@@ -1,33 +1,28 @@
-import { AiFillCaretDown, AiFillCaretRight } from "react-icons/ai";
-import { useState } from "react";
-import { Order } from "@renderer/types/order"
+import { AiFillCaretDown, AiFillCaretRight } from 'react-icons/ai'
+import { useState } from 'react'
+import { Order, PaginatedOrders } from '@renderer/types'
 
-export default function OrderTable({ onSelectOrder, orders, fetchMoreOrders }: {
-  onSelectOrder: (order: any) => void, orders: {
-    rows: Order[], totalRows: number,
-    limit: number,
-    totalPages: number,
-    page: number,
-    pagingCounter: number,
-    hasPrevPage: boolean,
-    hasNextPage: boolean,
-    prevPage: number | null,
-    nextPage: number | null
-  }, fetchMoreOrders: (page: number) => void
+export default function OrderTable({
+  onSelectOrder,
+  orders,
+  fetchMoreOrders
+}: {
+  onSelectOrder: (order: Order | null) => void
+  orders: PaginatedOrders
+  fetchMoreOrders: (page: number) => void
 }) {
-  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
-  
+  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null)
 
-  const handleOrderClick = (order: any) => {
+  const handleOrderClick = (order: Order) => {
     if (selectedOrderId === order.id) {
-      setSelectedOrderId(null);
-      onSelectOrder(null);
+      setSelectedOrderId(null)
+      onSelectOrder(null)
     } else {
-      setSelectedOrderId(order.id);
-      onSelectOrder(order);
+      setSelectedOrderId(order.id)
+      onSelectOrder(order)
     }
     console.log(orders)
-  };
+  }
 
   return (
     <>
@@ -97,9 +92,7 @@ export default function OrderTable({ onSelectOrder, orders, fetchMoreOrders }: {
                             ) : (
                               <AiFillCaretDown className="text-secondary" />
                             )}
-                            <p className="font-bold text-base- text-secondary">
-                              #{order.id}
-                            </p>
+                            <p className="font-bold text-base- text-secondary">#{order.id}</p>
                           </div>
                         </div>
                       </td>
@@ -107,13 +100,13 @@ export default function OrderTable({ onSelectOrder, orders, fetchMoreOrders }: {
                         {order.groups.length}
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {new Date(order.createdAt).toLocaleString("en-US", {
-                          month: "numeric",
-                          day: "numeric",
-                          year: "numeric",
-                          hour: "numeric",
-                          minute: "2-digit",
-                          hour12: true,
+                        {new Date(order.createdAt).toLocaleString('en-US', {
+                          month: 'numeric',
+                          day: 'numeric',
+                          year: 'numeric',
+                          hour: 'numeric',
+                          minute: '2-digit',
+                          hour12: true
                         })}
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
@@ -132,9 +125,7 @@ export default function OrderTable({ onSelectOrder, orders, fetchMoreOrders }: {
                             Special Order
                           </span>
                         ) : (
-                          <span className="text-[#7b7b7b]  rounded-md p-1 text-xs">
-                            Nil
-                          </span>
+                          <span className="text-[#7b7b7b]  rounded-md p-1 text-xs">Nil</span>
                         )}
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
@@ -158,7 +149,9 @@ export default function OrderTable({ onSelectOrder, orders, fetchMoreOrders }: {
       </div>
       <div className="flex justify-center mt-4 gap-2">
         <button
-          onClick={() => { fetchMoreOrders(orders.prevPage) }}
+          onClick={() => {
+            if (orders.prevPage != null) fetchMoreOrders(orders.prevPage)
+          }}
           disabled={!orders.hasPrevPage}
           className="px-4 py-2 border rounded-md disabled:bg-gray-100"
         >
@@ -168,7 +161,9 @@ export default function OrderTable({ onSelectOrder, orders, fetchMoreOrders }: {
           Page {orders.page} of {orders.totalPages}
         </span>
         <button
-          onClick={() => { fetchMoreOrders(orders.nextPage) }}
+          onClick={() => {
+            if (orders.nextPage != null) fetchMoreOrders(orders.nextPage)
+          }}
           disabled={!orders.hasNextPage}
           className="px-4 py-2 border rounded-md disabled:bg-gray-100"
         >
@@ -176,5 +171,5 @@ export default function OrderTable({ onSelectOrder, orders, fetchMoreOrders }: {
         </button>
       </div>
     </>
-  );
+  )
 }

@@ -17,7 +17,10 @@ interface CountRow {
 }
 
 // Build "createdAt >= ? AND createdAt <= ?" style conditions from a filter object
-function buildWhereClause(filter: OrderFilter): { whereClause: string; values: (string | number)[] } {
+function buildWhereClause(filter: OrderFilter): {
+  whereClause: string
+  values: (string | number)[]
+} {
   if (!Object.keys(filter).length) {
     return { whereClause: '', values: [] }
   }
@@ -135,7 +138,9 @@ export class OrderRepository {
       const hydrated = orders.map((order) => this.hydrateOrder(order))
 
       const totalRows = (
-        db.prepare(`SELECT COUNT(*) as count FROM "Order" ${whereClause}`).get(...values) as CountRow
+        db
+          .prepare(`SELECT COUNT(*) as count FROM "Order" ${whereClause}`)
+          .get(...values) as CountRow
       ).count
 
       const totalPages = Math.ceil(totalRows / limit)
@@ -285,7 +290,9 @@ export class OrderRepository {
         : 'WHERE isDeleted = 0'
 
       const count = (
-        db.prepare(`SELECT COUNT(*) as count FROM "Order" ${notDeletedClause}`).get(...values) as CountRow
+        db
+          .prepare(`SELECT COUNT(*) as count FROM "Order" ${notDeletedClause}`)
+          .get(...values) as CountRow
       ).count
 
       return count

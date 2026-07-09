@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import OrderTable from './OrderTable'
 import OrderDetails from './OrderDetails'
 import { ordersApi, utilsApi } from '@renderer/api/client'
 import { useConnectionStore } from '@renderer/store/connection'
 import toast from 'react-hot-toast'
+import type { Order, PaginatedOrders } from '@renderer/types'
 
 const ITEM_PER_PAGE = 50
 
@@ -17,10 +18,9 @@ const OrderTableSkeleton = () => (
 )
 
 function Orders() {
-  const [orders, setOrders] = useState(null)
-  const [order, setOrder] = useState(null)
+  const [orders, setOrders] = useState<PaginatedOrders | null>(null)
+  const [order, setOrder] = useState<Order | null>(null)
   const [ordersLoading, setOrdersLoading] = useState(true)
-  const [isSyncLoading, setIsSyncLoading] = useState(false)
   const [isBackupLoading, setIsBackupLoading] = useState(false)
   const [currentDate, setCurrentDate] = useState(new Date().toISOString().split('T')[0])
   const [searchTerm, setSearchTerm] = useState('')
@@ -59,19 +59,6 @@ function Orders() {
     }
   }
 
-  const handleSyncData = async () => {
-    try {
-      setIsSyncLoading(true)
-      const baseUrl = `http://${host}:${port}/api`
-      await utilsApi.syncData(baseUrl)
-      toast.success('Inventory synced successfully!')
-    } catch (error) {
-      console.error('Error fetching orders:', error)
-    } finally {
-      setIsSyncLoading(false)
-    }
-  }
-
   const fetchMoreOrders = async (page: number) => {
     try {
       const baseUrl = `http://${host}:${port}/api`
@@ -93,7 +80,13 @@ function Orders() {
         return
       }
 
-      const response = await ordersApi.searchByDate(baseUrl, currentDate, 1, ITEM_PER_PAGE, searchTerm)
+      const response = await ordersApi.searchByDate(
+        baseUrl,
+        currentDate,
+        1,
+        ITEM_PER_PAGE,
+        searchTerm
+      )
       setOrders(response.data)
     } catch (error) {
       console.error('Error fetching orders:', error)
@@ -101,7 +94,6 @@ function Orders() {
   }
 
   const handleOrderDelete = async () => {
-
     try {
       setOrdersLoading(true)
       const baseUrl = `http://${host}:${port}/api`
@@ -136,10 +128,11 @@ function Orders() {
               onClick={handleBackupOrders}
               disabled={isBackupLoading}
               className={`group relative w-full flex justify-center p-2 text-sm font-medium rounded-lg
-      ${isBackupLoading
-                  ? 'text-primary-400 border-2 border-primary-400 cursor-not-allowed'
-                  : 'text-primary-700 border-2 border-primary-700 hover:border-primary-900 cursor-pointer'
-                }`}
+      ${
+        isBackupLoading
+          ? 'text-primary-400 border-2 border-primary-400 cursor-not-allowed'
+          : 'text-primary-700 border-2 border-primary-700 hover:border-primary-900 cursor-pointer'
+      }`}
             >
               {isBackupLoading ? 'Backing up...' : 'Backup Orders'}
             </button>
@@ -175,13 +168,13 @@ function Orders() {
             <OrderTableSkeleton />
           </>
         ) : (
-          <>
+          orders && (
             <OrderTable
               onSelectOrder={setOrder}
               orders={orders}
               fetchMoreOrders={fetchMoreOrders}
             />
-          </>
+          )
         )}
       </div>
 

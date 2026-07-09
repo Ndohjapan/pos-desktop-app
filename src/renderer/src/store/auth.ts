@@ -10,4 +10,3 @@ export const useAuthStore = create<AuthState>()((set) => ({
   setAdminId: (adminId: string) => set({ adminId }),
   clearAdminId: () => set({ adminId: '' })
 }))
-

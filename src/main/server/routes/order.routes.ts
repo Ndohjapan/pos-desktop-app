@@ -43,7 +43,7 @@ router.post('/', async (req, res) => {
 
 router.delete('/:id', protect, async (req, res) => {
   try {
-    const order = await orderService.deleteOrder(req.params.id)
+    const order = await orderService.deleteOrder(String(req.params.id))
     res.status(201).json(order)
   } catch (error) {
     console.log(error)

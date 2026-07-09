@@ -1,28 +1,36 @@
-import { Category } from "@renderer/types/category";
-import { useState, useRef, useEffect } from "react";
+import { Category } from '@renderer/types/category'
+import { useState, useRef, useEffect } from 'react'
 
-const SelectCategoryDropDown = ({ categories, onSelect, onAddNew }: { categories: Category[], onSelect: (category: Category) => void, onAddNew: () => void }) => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const dropdownRef = useRef(null);
+const SelectCategoryDropDown = ({
+  categories,
+  onSelect,
+  onAddNew
+}: {
+  categories: Category[]
+  onSelect: (category: Category) => void
+  onAddNew: () => void
+}) => {
+  const [searchTerm, setSearchTerm] = useState('')
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   const filteredCategories = categories.filter((cat) =>
     cat.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  )
 
   // Close dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsDropdownOpen(false);
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false)
       }
-    };
+    }
 
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside)
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -42,9 +50,9 @@ const SelectCategoryDropDown = ({ categories, onSelect, onAddNew }: { categories
                 key={cat.id}
                 className="px-3 py-2 cursor-pointer hover:bg-gray-100"
                 onClick={() => {
-                  onSelect(cat);
-                  setSearchTerm(cat.name);
-                  setIsDropdownOpen(false);
+                  onSelect(cat)
+                  setSearchTerm(cat.name)
+                  setIsDropdownOpen(false)
                 }}
               >
                 {cat.name}
@@ -59,7 +67,7 @@ const SelectCategoryDropDown = ({ categories, onSelect, onAddNew }: { categories
         + Add New Category
       </button>
     </div>
-  );
-};
+  )
+}
 
-export default SelectCategoryDropDown;
+export default SelectCategoryDropDown

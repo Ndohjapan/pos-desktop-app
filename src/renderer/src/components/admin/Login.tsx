@@ -7,14 +7,11 @@ import { Link, useNavigate } from 'react-router-dom'
 import { authApi } from '@renderer/api/client'
 import { useConnectionStore } from '@renderer/store/connection'
 
-
 export default function Login() {
   const [isLoading, setIsLoading] = useState(false)
   const host = useConnectionStore((state) => state.host)
   const port = useConnectionStore((state) => state.port)
   const navigate = useNavigate()
-
-
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -28,7 +25,7 @@ export default function Login() {
       const baseUrl = `http://${host}:${port}/api`
       const response = await authApi.login(baseUrl, { phoneNumber, password })
 
-      localStorage.setItem('pos-admin-token', response.data.id)
+      localStorage.setItem('pos-admin-token', String(response.data.id))
 
       navigate('/admin/main')
     } catch (error) {

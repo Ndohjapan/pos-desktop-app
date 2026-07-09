@@ -3,20 +3,21 @@ import { IoIosSend } from 'react-icons/io'
 import { HiOutlineCash } from 'react-icons/hi'
 import { useState } from 'react'
 import { FaCreditCard, FaChevronDown, FaChevronUp } from 'react-icons/fa'
-import { Order } from '@renderer/types/order'
+import { Order } from '@renderer/types'
+import { getAdminToken } from '@renderer/utils/auth'
 import { ordersApi, utilsApi } from '@renderer/api/client'
 import { CgSpinner } from 'react-icons/cg'
 import { useConnectionStore } from '@renderer/store/connection'
 
-const OrderDetails = ({ order, onDeleteOrder }: { order: Order, onDeleteOrder: () => void }) => {
-  const [openGroups, setOpenGroups] = useState(new Set())
+const OrderDetails = ({ order, onDeleteOrder }: { order: Order; onDeleteOrder: () => void }) => {
+  const [openGroups, setOpenGroups] = useState(new Set<number>())
   const [isPrintingReceipt, setIsPrintingReceipt] = useState(false)
   const [isDeletingOrder, setIsDeletingOrder] = useState(false)
   const host = useConnectionStore((state) => state.host)
   const port = useConnectionStore((state) => state.port)
 
   // Toggle function for accordions
-  const toggleGroup = (groupIndex) => {
+  const toggleGroup = (groupIndex: number) => {
     setOpenGroups((prev) => {
       const newOpenGroups = new Set(prev)
       if (newOpenGroups.has(groupIndex)) {
@@ -38,16 +39,13 @@ const OrderDetails = ({ order, onDeleteOrder }: { order: Order, onDeleteOrder: (
       setIsPrintingReceipt(false)
     }
   }
-  const handleDeleteOrder = async (orderId) => {
-
-    const isConfirmed = window.confirm(
-      "Are you sure you want to delete this order?"
-    );
+  const handleDeleteOrder = async (orderId: number) => {
+    const isConfirmed = window.confirm('Are you sure you want to delete this order?')
     if (isConfirmed) {
       setIsDeletingOrder(true)
       try {
         const baseUrl = `http://${host}:${port}/api`
-        await ordersApi.delete(baseUrl, orderId);
+        await ordersApi.delete(baseUrl, orderId, getAdminToken())
         onDeleteOrder()
       } catch (error) {
         console.error('Error Deleting Order', error)
@@ -55,12 +53,11 @@ const OrderDetails = ({ order, onDeleteOrder }: { order: Order, onDeleteOrder: (
         setIsDeletingOrder(false)
       }
     }
-
   }
 
   // Calculate subtotal if not provided directly
-  const subtotal = order.subtotal || order.groups.reduce((sum, group) => sum + group.total, 0)
-  const hasServiceCharge = order.serviceFee && order.serviceFee > 0
+  const subtotal = order.subTotal || order.groups.reduce((sum, group) => sum + group.total, 0)
+  const hasServiceCharge = order.serviceFee > 0
 
   return (
     <div className="w-full h-full max-h-[100vh] bg-gray-100 p-5 rounded-lg flex flex-col">
@@ -101,7 +98,6 @@ const OrderDetails = ({ order, onDeleteOrder }: { order: Order, onDeleteOrder: (
         {order.groups.map((group, groupIndex) => {
           const isOpen = openGroups.has(groupIndex)
           const totalItems = group.items.reduce((acc, item) => acc + item.quantity, 0)
-          const totalPrice = group.items.reduce((acc, item) => acc + item.amount, 0)
 
           return (
             <div key={groupIndex} className="bg-white rounded-lg shadow-sm mb-3">
@@ -149,7 +145,10 @@ const OrderDetails = ({ order, onDeleteOrder }: { order: Order, onDeleteOrder: (
         <h3 className="text-secondary text-xs font-semibold mb-2">Payment methods:</h3>
 
         {order.payments.map((payment, index) => (
-          <div key={index} className="mb-2 border rounded-lg p-3 flex items-center justify-between bg-[#FBFFFF] border-[#012FA9]">
+          <div
+            key={index}
+            className="mb-2 border rounded-lg p-3 flex items-center justify-between bg-[#FBFFFF] border-[#012FA9]"
+          >
             <div className="flex items-center space-x-2">
               {payment.paymentMethod.toLowerCase() === 'transfer' && (
                 <IoIosSend className="text-secondary transform rotate-45 text-lg" />
@@ -170,7 +169,7 @@ const OrderDetails = ({ order, onDeleteOrder }: { order: Order, onDeleteOrder: (
         ))}
 
         <div className="mt-4 text-sm">
-          <div className='flex items-center justify-between space-x-2'>
+          <div className="flex items-center justify-between space-x-2">
             <button
               className={`group relative w-full flex justify-center p-2 border border-transparent text-sm font-medium rounded-lg text-white ${isPrintingReceipt ? 'bg-red-500' : 'bg-red-700'} hover:bg-red-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 cursor-pointer mb-4`}
               onClick={() => {
@@ -186,10 +185,13 @@ const OrderDetails = ({ order, onDeleteOrder }: { order: Order, onDeleteOrder: (
               onClick={handlePrintReceipt}
               disabled={isPrintingReceipt}
             >
-              {isPrintingReceipt ? <CgSpinner className="animate-spin text-2xl" /> : 'Print Receipt'}
+              {isPrintingReceipt ? (
+                <CgSpinner className="animate-spin text-2xl" />
+              ) : (
+                'Print Receipt'
+              )}
             </button>
           </div>
-
 
           {/* Order Summary Section */}
           <div className="border-t pt-2 space-y-2">

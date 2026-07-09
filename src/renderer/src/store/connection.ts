@@ -54,7 +54,7 @@ export const useSectionStore = create<SectionState>()(
   persist(
     (set) => ({
       sectionName: 'User',
-      setSectionName: (name: string = "User") => set({ sectionName: name }),
+      setSectionName: (name: string = 'User') => set({ sectionName: name }),
       clearSectionName: () => set({ sectionName: '' })
     }),
     {

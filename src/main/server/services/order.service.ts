@@ -24,7 +24,12 @@ export class OrderService {
       return
     } catch (error) {
       console.log(error)
-      rollbar.log(getErrorMessage(error), {}, { level: 'error' }, '(desktop): Failed to delete order')
+      rollbar.log(
+        getErrorMessage(error),
+        {},
+        { level: 'error' },
+        '(desktop): Failed to delete order'
+      )
       throw new CustomError(getErrorMessage(error), 500)
     }
   }
@@ -77,7 +82,12 @@ export class OrderService {
       const orders = await this.orderRepository.findByFilter(page, limit, filter)
       return orders
     } catch (error) {
-      rollbar.log(getErrorMessage(error), {}, { level: 'error' }, '(desktop): Failed to search orders')
+      rollbar.log(
+        getErrorMessage(error),
+        {},
+        { level: 'error' },
+        '(desktop): Failed to search orders'
+      )
       throw new CustomError('Failed to search orders', 500)
     }
   }
@@ -97,7 +107,12 @@ export class OrderService {
 
       return result
     } catch (error) {
-      rollbar.log(getErrorMessage(error), {}, { level: 'error' }, '(desktop): Failed to create order')
+      rollbar.log(
+        getErrorMessage(error),
+        {},
+        { level: 'error' },
+        '(desktop): Failed to create order'
+      )
       throw new CustomError('Failed to create order', 500)
     }
   }

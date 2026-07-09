@@ -208,7 +208,9 @@ ipcMain.handle('search-orders-by-date', (_event, baseUrl, page, limit, date, sea
   ipcResult(() => ordersApi.search(baseUrl, page, limit, date, searchQuery))
 )
 
-ipcMain.handle('backup-orders', (_event, baseUrl) => ipcResult(() => utilsApi.backupOrders(baseUrl)))
+ipcMain.handle('backup-orders', (_event, baseUrl) =>
+  ipcResult(() => utilsApi.backupOrders(baseUrl))
+)
 
 ipcMain.handle('signup', (_event, baseUrl, adminData) =>
   ipcResult(() => authApi.signup(baseUrl, adminData))

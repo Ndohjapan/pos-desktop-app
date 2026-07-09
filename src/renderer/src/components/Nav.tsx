@@ -1,5 +1,4 @@
-import { AiOutlineUser } from "react-icons/ai";
-//@ts-nocheck
+import { AiOutlineUser } from 'react-icons/ai'
 import { IoLogOut } from 'react-icons/io5'
 import Logo from '@renderer/assets/images/logo.svg'
 import { useServiceStore } from '@renderer/store/connection'
@@ -70,7 +69,10 @@ function Nav() {
             <IoLogOut className="inline-block text-lg ml-2 text-[#FD0002]" />
           </button>
 
-          <button className="flex items-center rounded-full p-2 bg-[#F5F5F5] border-[#DCDCDC] border border-secondary focus:outline-none focus:ring-secondary focus:border-secondary cursor-pointer h-10" onClick={changeSection}>
+          <button
+            className="flex items-center rounded-full p-2 bg-[#F5F5F5] border-[#DCDCDC] border border-secondary focus:outline-none focus:ring-secondary focus:border-secondary cursor-pointer h-10"
+            onClick={changeSection}
+          >
             <AiOutlineUser className="text-secondary text-xl" />
             <span className="text-xs text-secondary font-bold">{getOppositeSection()}</span>
           </button>

@@ -1,16 +1,15 @@
 import { RxReload } from 'react-icons/rx'
 import { useState, useRef, useEffect } from 'react'
 import Logo from '@renderer/assets/images/logo.svg'
-import CreateOrder from './CreateOrder'
+import CreateOrder, { CreateOrderHandle, DraftOrderGroup } from './CreateOrder'
 import { categoriesApi, foodsApi } from '@renderer/api/client'
 import { useConnectionStore, useSectionStore } from '@renderer/store/connection'
 import { Food } from '@renderer/types/food'
 import { Category } from '@renderer/types/category'
 
-
 function Product() {
-  const createOrderRef = useRef(null)
-  const [selectedFoods, setSelectedFoods] = useState({})
+  const createOrderRef = useRef<CreateOrderHandle>(null)
+  const [selectedFoods, setSelectedFoods] = useState<Record<number, Record<number, boolean>>>({})
   const [imageError, setImageError] = useState<Record<string, boolean>>({})
   const host = useConnectionStore((state) => state.host)
   const port = useConnectionStore((state) => state.port)
@@ -23,11 +22,10 @@ function Product() {
 
   const [foods, setFoods] = useState<Food[]>([])
 
-  const [selectedCategory, setSelectedCategory] = useState('all')
+  const [selectedCategory, setSelectedCategory] = useState<number | 'all'>('all')
 
   const [foodLoading, setFoodLoading] = useState(true)
   const [categoryLoading, setCategoryLoading] = useState(true)
-
 
   useEffect(() => {
     setSectionName('User')
@@ -125,12 +123,12 @@ function Product() {
       }
     }))
   }
-  const handleOrderUpdate = (groups, groupIndex, removedItemId) => {
+  const handleOrderUpdate = (groups: DraftOrderGroup[], groupIndex: number) => {
     setActiveGroupIndex(groupIndex)
 
     // Update selected foods based on current group items
     const groupItems = groups[groupIndex]?.items || []
-    const groupSelections = {}
+    const groupSelections: Record<number, boolean> = {}
     groupItems.forEach((item) => {
       groupSelections[item.id] = true
     })
@@ -165,10 +163,11 @@ function Product() {
                 <>
                   <div className="flex items-start mt-3 flex-wrap gap-3">
                     <div
-                      className={`flex items-center gap-2 cursor-pointer px-4 py-2 text-xs border border-[#DCDCDC] rounded-md font-bold ${selectedCategory === 'all'
-                        ? 'bg-primary-700 text-white'
-                        : 'bg-[#F5F5F5] text-secondary'
-                        }`}
+                      className={`flex items-center gap-2 cursor-pointer px-4 py-2 text-xs border border-[#DCDCDC] rounded-md font-bold ${
+                        selectedCategory === 'all'
+                          ? 'bg-primary-700 text-white'
+                          : 'bg-[#F5F5F5] text-secondary'
+                      }`}
                       onClick={() => setSelectedCategory('all')}
                     >
                       <p>All</p>
@@ -176,10 +175,11 @@ function Product() {
                     {categories.map((category) => (
                       <div
                         key={category.id}
-                        className={`flex items-center gap-2 cursor-pointer px-4 py-2 text-xs border border-[#DCDCDC] rounded-md ${selectedCategory === category.id
-                          ? 'bg-primary-700 text-white'
-                          : 'bg-[#F5F5F5] text-secondary'
-                          }`}
+                        className={`flex items-center gap-2 cursor-pointer px-4 py-2 text-xs border border-[#DCDCDC] rounded-md ${
+                          selectedCategory === category.id
+                            ? 'bg-primary-700 text-white'
+                            : 'bg-[#F5F5F5] text-secondary'
+                        }`}
                         onClick={() => setSelectedCategory(category.id)}
                       >
                         <p>{category.name}</p>
@@ -204,7 +204,7 @@ function Product() {
                 onClick={refreshData}
                 className="col-span-3 md:col-span-2 w-full flex items-center justify-center space-x-3 rounded-lg border border-transparent px-4 py-2 text-sm font-bold text-white shadow-sm bg-primary-700 hover:bg-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:ring-offset-2 sm:w-auto"
               >
-                <span>Refresh</span> <RxReload className='text-xl' />
+                <span>Refresh</span> <RxReload className="text-xl" />
               </button>
             </div>
           </div>
@@ -225,7 +225,7 @@ function Product() {
                     >
                       <div className="w-full flex items-center justify-center">
                         <img
-                          src={imageError[food.id] ? Logo : food.image}
+                          src={imageError[food.id] ? Logo : (food.image ?? undefined)}
                           alt={food.name}
                           className="object-cover rounded-full"
                           onError={() => setImageError((prev) => ({ ...prev, [food.id]: true }))}
@@ -243,10 +243,11 @@ function Product() {
                         {food.inStock ? '' : 'Out of Stock'}
                       </p>
                       <button
-                        className={`w-full ${food.inStock && !selectedFoods[activeGroupIndex]?.[food.id]
-                          ? 'bg-[#EEE] text-primary-700 py-2 rounded-md mt-2 hover:text-primary-500 font-bold text-sm cursor-pointer'
-                          : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                          }`}
+                        className={`w-full ${
+                          food.inStock && !selectedFoods[activeGroupIndex]?.[food.id]
+                            ? 'bg-[#EEE] text-primary-700 py-2 rounded-md mt-2 hover:text-primary-500 font-bold text-sm cursor-pointer'
+                            : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                        }`}
                         onClick={() =>
                           food.inStock &&
                           !selectedFoods[activeGroupIndex]?.[food.id] &&

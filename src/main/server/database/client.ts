@@ -99,10 +99,12 @@ export const initializeDatabase = () => {
   }
 
   // Calculate new schema version (simple hash of schema definition)
-  const newVersion = JSON.stringify(currentSchema).split('').reduce((a, b) => {
-    a = (a << 5) - a + b.charCodeAt(0)
-    return a & a
-  }, 0)
+  const newVersion = JSON.stringify(currentSchema)
+    .split('')
+    .reduce((a, b) => {
+      a = (a << 5) - a + b.charCodeAt(0)
+      return a & a
+    }, 0)
 
   // If versions match, no changes needed
   if (currentVersion === newVersion) {
@@ -122,7 +124,9 @@ export const initializeDatabase = () => {
     if (currentVersion === 0) {
       db.prepare('INSERT INTO schema_version (id, version) VALUES (1, ?)').run(newVersion)
     } else {
-      db.prepare('UPDATE schema_version SET version = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1').run(newVersion)
+      db.prepare(
+        'UPDATE schema_version SET version = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1'
+      ).run(newVersion)
     }
   })()
 
@@ -130,41 +134,46 @@ export const initializeDatabase = () => {
 }
 
 // Function to synchronize a table with its schema definition
-function synchronizeTable(tableName, schema) {
+function synchronizeTable(tableName: string, schema: Record<string, string | string[]>) {
   const quotedTableName = tableName === 'Order' ? '"Order"' : tableName
-  
+
   // Check if table exists
-  const tableExists = db.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name=?`).get(tableName)
-  
+  const tableExists = db
+    .prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name=?`)
+    .get(tableName)
+
   if (!tableExists) {
     // Create table if it doesn't exist
     let createSql = `CREATE TABLE ${quotedTableName} (`
-    
+
     const columns = Object.entries(schema)
       .filter(([key]) => key !== 'foreignKeys')
       .map(([columnName, definition]) => `${columnName} ${definition}`)
-    
+
     createSql += columns.join(', ')
-    
+
     // Add foreign keys if any
-    if (schema.foreignKeys && schema.foreignKeys.length > 0) {
-      createSql += ', ' + schema.foreignKeys.join(', ')
+    const foreignKeys = schema.foreignKeys
+    if (Array.isArray(foreignKeys) && foreignKeys.length > 0) {
+      createSql += ', ' + foreignKeys.join(', ')
     }
-    
+
     createSql += ')'
-    
+
     db.exec(createSql)
     console.log(`Created table: ${tableName}`)
   } else {
     // Table exists, check for missing columns
-    const tableInfo = db.prepare(`PRAGMA table_info(${quotedTableName})`).all() as { name: string }[]
-    const existingColumns = new Set(tableInfo.map(col => col.name))
-    
+    const tableInfo = db.prepare(`PRAGMA table_info(${quotedTableName})`).all() as {
+      name: string
+    }[]
+    const existingColumns = new Set(tableInfo.map((col) => col.name))
+
     // Find columns that need to be added
     const columnsToAdd = Object.entries(schema)
       .filter(([key]) => key !== 'foreignKeys')
       .filter(([columnName]) => !existingColumns.has(columnName))
-    
+
     // Add missing columns
     for (const [columnName, definition] of columnsToAdd) {
       const alterSql = `ALTER TABLE ${quotedTableName} ADD COLUMN ${columnName} ${definition}`

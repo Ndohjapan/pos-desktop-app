@@ -49,7 +49,12 @@ export class FoodService {
       return result
     } catch (error) {
       console.log(error)
-      rollbar.log(getErrorMessage(error), {}, { level: 'error' }, '(desktop): Failed to create food')
+      rollbar.log(
+        getErrorMessage(error),
+        {},
+        { level: 'error' },
+        '(desktop): Failed to create food'
+      )
       throw toCustomError(error)
     }
   }
@@ -65,7 +70,12 @@ export class FoodService {
       const result = await this.foodRepository.updateById(foodId, newFoodData)
       return result
     } catch (error) {
-      rollbar.log(getErrorMessage(error), {}, { level: 'error' }, '(desktop): Failed to update food')
+      rollbar.log(
+        getErrorMessage(error),
+        {},
+        { level: 'error' },
+        '(desktop): Failed to update food'
+      )
       throw toCustomError(error)
     }
   }
@@ -75,7 +85,12 @@ export class FoodService {
       const result = await this.foodRepository.deleteById(foodId)
       return result
     } catch (error) {
-      rollbar.log(getErrorMessage(error), {}, { level: 'error' }, '(desktop): Failed to delete food')
+      rollbar.log(
+        getErrorMessage(error),
+        {},
+        { level: 'error' },
+        '(desktop): Failed to delete food'
+      )
       throw toCustomError(error)
     }
   }

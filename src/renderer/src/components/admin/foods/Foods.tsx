@@ -1,25 +1,22 @@
-import { useEffect, useState } from "react";
-import EmptyState from "./EmptyState";
+import { useEffect, useState } from 'react'
+import EmptyState from './EmptyState'
 
-import FoodTable from "./FoodTable";
-import LoadingState from "./LoadingState";
-import { Category } from "@/types/category";
-import { Food } from "@/types/food";
+import FoodTable from './FoodTable'
+import LoadingState from './LoadingState'
+import { Category, Food } from '@renderer/types'
 import { categoriesApi, foodsApi } from '@renderer/api/client'
-import AddFoodModal from "./modals/AddFoodModal";
-import { useConnectionStore } from "@renderer/store/connection";
+import AddFoodModal from './modals/AddFoodModal'
+import { useConnectionStore } from '@renderer/store/connection'
 
 function Foods() {
-  const [foods, setFoods] = useState<Food[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [foods, setFoods] = useState<Food[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const host = useConnectionStore((state) => state.host)
   const port = useConnectionStore((state) => state.port)
-  const [modalOpen, setModalOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [modalOpen, setModalOpen] = useState(false)
+  const [selectedCategory, setSelectedCategory] = useState<number | 'all'>('all')
   const [foodLoading, setFoodLoading] = useState(true)
-  const [categoryLoading, setCategoryLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-
 
   useEffect(() => {
     const fetchFoods = async () => {
@@ -38,47 +35,40 @@ function Foods() {
     }
 
     fetchFoods()
-  }, []);
+  }, [])
 
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        setCategoryLoading(true)
         const baseUrl = `http://${host}:${port}/api`
         const response = await categoriesApi.getAll(baseUrl)
         setCategories(response.data)
       } catch (error) {
-        console.error('Error fetching foods:', error)
-      } finally {
-        setCategoryLoading(false)
+        console.error('Error fetching categories:', error)
       }
     }
 
     fetchCategories()
-  }, []);
+  }, [])
 
-  const handleProductAdded = (newProduct: object) => {
-    setFoods((prevFoods) => [...prevFoods, newProduct]);
-    setModalOpen(false);
-  };
+  const handleProductAdded = (newProduct: Food) => {
+    setFoods((prevFoods) => [...prevFoods, newProduct])
+    setModalOpen(false)
+  }
 
-  const handleProductDeleted = (deletedFoodId: string) => {
+  const handleProductDeleted = (deletedFoodId: number) => {
+    setFoods((prevFoods) => prevFoods.filter((food) => food.id !== deletedFoodId))
+  }
+
+  const handleProductUpdated = (updatedProduct: Food) => {
     setFoods((prevFoods) =>
-      prevFoods.filter((food) => food.id !== deletedFoodId)
-    );
-  };
+      prevFoods.map((food) => (food.id === updatedProduct.id ? updatedProduct : food))
+    )
+  }
 
-  const handleProductUpdated = (updatedProduct: any) => {
-    setFoods((prevFoods) =>
-      prevFoods.map((food) =>
-        food.id === updatedProduct.id ? updatedProduct : food
-      )
-    );
-  };
-
-  const handleCategoryAdded = (newCategory) => {
-    setCategories((prevCategories) => [...prevCategories, newCategory]);
-  };
+  const handleCategoryAdded = (newCategory: Category) => {
+    setCategories((prevCategories) => [...prevCategories, newCategory])
+  }
 
   const filteredFoods = foods.filter(
     (food) =>
@@ -101,16 +91,15 @@ function Foods() {
               <div className="w-full 2xl:max-w-[2000px] 2xl:m-auto py-1 px-8 md:px-24 mt-7">
                 <div className="sm:flex sm:items-center">
                   <div className="sm:flex-auto">
-                    <h1 className="text-xl font-bold text-secondary">
-                      Categories:{" "}
-                    </h1>
+                    <h1 className="text-xl font-bold text-secondary">Categories: </h1>
                     <div className="flex items-start mt-3 flex-wrap gap-3">
                       <div
-                        className={`flex items-center gap-2 cursor-pointer px-4 py-2 text-xs border border-[#DCDCDC] rounded-md font-bold ${selectedCategory === "all"
-                          ? "bg-primary-700 text-white"
-                          : "bg-[#F5F5F5] text-secondary"
-                          }`}
-                        onClick={() => setSelectedCategory("all")}
+                        className={`flex items-center gap-2 cursor-pointer px-4 py-2 text-xs border border-[#DCDCDC] rounded-md font-bold ${
+                          selectedCategory === 'all'
+                            ? 'bg-primary-700 text-white'
+                            : 'bg-[#F5F5F5] text-secondary'
+                        }`}
+                        onClick={() => setSelectedCategory('all')}
                       >
                         <p>All</p>
                       </div>
@@ -118,10 +107,11 @@ function Foods() {
                         categories.map((category) => (
                           <div
                             key={category.id}
-                            className={`flex items-center gap-2 cursor-pointer px-4 py-2 text-xs border border-[#DCDCDC] rounded-md ${selectedCategory === category.id
-                              ? "bg-primary-700 text-white"
-                              : "bg-[#F5F5F5] text-secondary"
-                              }`}
+                            className={`flex items-center gap-2 cursor-pointer px-4 py-2 text-xs border border-[#DCDCDC] rounded-md ${
+                              selectedCategory === category.id
+                                ? 'bg-primary-700 text-white'
+                                : 'bg-[#F5F5F5] text-secondary'
+                            }`}
                             onClick={() => setSelectedCategory(category.id)}
                           >
                             <p>{category.name}</p>
@@ -138,7 +128,6 @@ function Foods() {
                       Add New Food Item
                     </button>
                   </div>
-
                 </div>
 
                 {/* Search Bar */}
@@ -167,12 +156,12 @@ function Foods() {
               </div>
             </>
           ) : (
-            <EmptyState />
+            <EmptyState onProductAdded={handleProductAdded} onCategoryAdded={handleCategoryAdded} />
           )}
         </>
       )}
     </>
-  );
+  )
 }
 
-export default Foods;
+export default Foods
