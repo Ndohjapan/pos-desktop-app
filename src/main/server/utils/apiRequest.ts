@@ -1,22 +1,16 @@
 import axios, { AxiosRequestConfig } from 'axios'
 import CustomError from './customError'
-import Rollbar from 'rollbar'
-
-const rollbar = new Rollbar({
-  accessToken: import.meta.env.MAIN_VITE_ROLLBAR_TOKEN,
-  environment: process.env.NODE_ENV || 'development',
-  captureUncaught: true,
-  captureUnhandledRejections: true
-})
+import { getErrorMessage } from './errors'
+import { rollbar } from './logging'
 
 interface ApiRequestOptions {
   url: string
   method: 'GET' | 'POST'
-  body?: any
+  body?: unknown
   headers?: Record<string, string>
 }
 
-export const makeApiRequest = async ({
+export const makeApiRequest = async <T = unknown>({
   url,
   method,
   body,
@@ -36,18 +30,20 @@ export const makeApiRequest = async ({
       config.data = body
     }
 
-    const response = await axios(config)
+    const response = await axios<T>(config)
     return response.data
   } catch (error) {
+    const apiMessage = axios.isAxiosError(error)
+      ? error.response?.data?.message || 'API request failed'
+      : getErrorMessage(error)
+
     rollbar.log(
-      error,
+      getErrorMessage(error),
       { url, method, body, headers },
       { level: 'error' },
-      `(desktop): ${error.response?.data?.message || 'API request failed'}`
+      `(desktop): ${apiMessage}`
     )
-    if (axios.isAxiosError(error)) {
-      throw new CustomError(error.response?.data?.message || 'API request failed', 500)
-    }
-    throw new CustomError(error.message, 500)
+
+    throw new CustomError(apiMessage, 500)
   }
 }

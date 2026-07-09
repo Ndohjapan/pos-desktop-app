@@ -1,9 +1,19 @@
-// @ts-nocheck
 import CustomError from '../../utils/customError'
+import { getErrorMessage } from '../../utils/errors'
 import db from '../client'
+import { FoodRow, FoodWithCategoryRow } from '../../types'
+
+export interface CreateFoodData {
+  id?: number
+  name: string
+  price: number
+  quantity: number
+  image: string | null
+  categoryId: number
+}
 
 export class FoodRepository {
-  async findAll() {
+  async findAll(): Promise<FoodWithCategoryRow[]> {
     try {
       const foods = db
         .prepare(
@@ -14,35 +24,43 @@ export class FoodRepository {
         WHERE Food.isDeleted = 0
       `
         )
-        .all()
+        .all() as FoodWithCategoryRow[]
       return foods
     } catch (error) {
-      throw new CustomError(error.message, 500)
+      throw new CustomError(getErrorMessage(error), 500)
     }
   }
 
-  async create(data: any) {
+  async create(data: CreateFoodData): Promise<CreateFoodData & { createdAt: string }> {
     try {
       const statement = db.prepare(`
         INSERT INTO Food (id, name, price, quantity, inStock, image, categoryId)
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `)
-      statement.run(data.id, data.name, data.price, data.quantity, 1, data.image, data.categoryId)
+      statement.run(
+        data.id ?? null,
+        data.name,
+        data.price,
+        data.quantity,
+        1,
+        data.image,
+        data.categoryId
+      )
 
       return { ...data, createdAt: new Date().toISOString() }
     } catch (error) {
-      throw new CustomError(error.message, 500)
+      throw new CustomError(getErrorMessage(error), 500)
     }
   }
 
-  async updateById(id: number, data: Record<string, any>) {
+  async updateById(id: number, data: Record<string, string | number | null>) {
     try {
       const setClause = Object.keys(data)
         .map((key) => `${key} = ?`)
         .join(', ')
 
       const statement = db.prepare(`
-        UPDATE Food 
+        UPDATE Food
         SET ${setClause}, updatedAt = datetime('now')
         WHERE id = ? AND isDeleted = 0
       `)
@@ -52,14 +70,14 @@ export class FoodRepository {
 
       return result
     } catch (error) {
-      throw new CustomError(error.message, 500)
+      throw new CustomError(getErrorMessage(error), 500)
     }
   }
 
   async deleteById(id: number) {
     try {
       const statement = db.prepare(`
-        UPDATE Food 
+        UPDATE Food
         SET isDeleted = 1, updatedAt = datetime('now')
         WHERE id = ?
       `)
@@ -67,11 +85,11 @@ export class FoodRepository {
       const result = statement.run(id)
       return result
     } catch (error) {
-      throw new CustomError(error.message, 500)
+      throw new CustomError(getErrorMessage(error), 500)
     }
   }
 
-  async findByFilter(filter: Record<string, any>) {
+  async findByFilter(filter: Record<string, string | number>): Promise<FoodWithCategoryRow[]> {
     try {
       const keys = Object.keys(filter)
       const conditions = keys.map((key) => `${key} = ?`).join(' AND ')
@@ -81,21 +99,20 @@ export class FoodRepository {
         LEFT JOIN Category ON Food.categoryId = Category.id
         WHERE ${conditions} AND Food.isDeleted = 0
       `)
-      const foods = statement.all(...keys.map((k) => filter[k]))
+      const foods = statement.all(...keys.map((k) => filter[k])) as FoodWithCategoryRow[]
       return foods
     } catch (error) {
       console.log(error)
-      throw new CustomError(error.message, 500)
+      throw new CustomError(getErrorMessage(error), 500)
     }
   }
 
-
-  async insertMany(data: any[]) {
+  async insertMany(data: FoodRow[]) {
     const insertStatement = db.prepare(`
       INSERT INTO Food (id, name, price, quantity, inStock, image, categoryId)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `)
-    const transaction = db.transaction((foods) => {
+    const transaction = db.transaction((foods: FoodRow[]) => {
       for (const food of foods) {
         insertStatement.run(
           food.id,
@@ -112,7 +129,7 @@ export class FoodRepository {
       transaction(data)
       return { success: true, count: data.length }
     } catch (error) {
-      throw new CustomError(error.message, 500)
+      throw new CustomError(getErrorMessage(error), 500)
     }
   }
 }

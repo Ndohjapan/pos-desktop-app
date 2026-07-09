@@ -1,23 +1,21 @@
 import { OrderRepository } from '../database/repositories/order.repository'
-import { CategoryService } from './category.service'
 import { FoodService } from './food.service'
 import { makeApiRequest } from '../utils/apiRequest'
-import CustomError from '../utils/customError'
+import { getErrorMessage, toCustomError } from '../utils/errors'
 import { rollbar } from '../utils/logging'
 
 export class UtilService {
   private foodService: FoodService
   private orderRepository: OrderRepository
-  private backupInterval: NodeJS.Timer
+  private backupInterval: NodeJS.Timeout | null = null
 
   constructor() {
-    this.categoryService = new CategoryService()
     this.foodService = new FoodService()
     this.orderRepository = new OrderRepository()
     this.startPeriodicBackup()
   }
 
-  async backupFoods(): Promise<any> {
+  async backupFoods(): Promise<boolean> {
     try {
       const foods = await this.foodService.getAllFoods()
 
@@ -34,15 +32,16 @@ export class UtilService {
       return true
     } catch (error) {
       rollbar.log(
-        error,
-        { foods: error.foods },
+        getErrorMessage(error),
+        {},
         { level: 'error' },
         '(desktop): Failed to upload foods and categories'
       )
-      console.log(`Failed to sync foods and categories: ${error.message}\n`)
-      throw new CustomError(error.message, error.code || 500)
+      console.log(`Failed to sync foods and categories: ${getErrorMessage(error)}\n`)
+      throw toCustomError(error)
     }
   }
+
   async uploadOrdersToCloud() {
     const BATCH_SIZE = 500
     let currentPage = 1
@@ -88,13 +87,13 @@ export class UtilService {
       }
     } catch (error) {
       rollbar.log(
-        error,
+        getErrorMessage(error),
         { currentPage, hasMoreOrders, uploadedCount },
         { level: 'error' },
         '(desktop): Failed to upload orders to cloud'
       )
-      console.log(`Failed to upload orders to cloud: ${error.message}\n`)
-      throw new CustomError(error.message, error.code || 500)
+      console.log(`Failed to upload orders to cloud: ${getErrorMessage(error)}\n`)
+      throw toCustomError(error)
     }
   }
 
@@ -106,7 +105,10 @@ export class UtilService {
           console.log('Scheduled backup: Orders uploaded to cloud successfully')
         })
         .catch((error) => {
-          console.error('Scheduled backup: Error uploading orders to cloud:', error.message)
+          console.error(
+            'Scheduled backup: Error uploading orders to cloud:',
+            getErrorMessage(error)
+          )
         })
     }, 300000)
   }
@@ -114,6 +116,7 @@ export class UtilService {
   public stopPeriodicBackup(): void {
     if (this.backupInterval) {
       clearInterval(this.backupInterval)
+      this.backupInterval = null
     }
   }
 }

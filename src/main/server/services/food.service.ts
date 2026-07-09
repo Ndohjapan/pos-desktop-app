@@ -1,8 +1,9 @@
-//@ts-nocheck
 import { CategoryRepository } from '../database/repositories/category.repository'
 import { FoodRepository } from '../database/repositories/food.repository'
 import CustomError from '../utils/customError'
+import { getErrorMessage, toCustomError } from '../utils/errors'
 import { rollbar } from '../utils/logging'
+import { CreateFoodInput, UpdateFoodInput } from '../types'
 
 export class FoodService {
   private foodRepository: FoodRepository
@@ -18,7 +19,7 @@ export class FoodService {
     return foods
   }
 
-  async createFood(foodData: any) {
+  async createFood(foodData: CreateFoodInput) {
     try {
       const formattedData = {
         name: foodData.name,
@@ -36,7 +37,7 @@ export class FoodService {
         throw new CustomError('Category not found', 404)
       }
 
-      let foodExists = await this.foodRepository.findByFilter({
+      const foodExists = await this.foodRepository.findByFilter({
         foodName: foodData.name
       })
 
@@ -48,12 +49,12 @@ export class FoodService {
       return result
     } catch (error) {
       console.log(error)
-      rollbar.log(error, {}, { level: 'error' }, '(desktop): Failed to create food')
-      throw new CustomError(error.message, error.code || 500)
+      rollbar.log(getErrorMessage(error), {}, { level: 'error' }, '(desktop): Failed to create food')
+      throw toCustomError(error)
     }
   }
 
-  async updateFood(foodId: number, foodData: any) {
+  async updateFood(foodId: number, foodData: UpdateFoodInput) {
     try {
       const newFoodData = {
         price: foodData.price,
@@ -64,8 +65,8 @@ export class FoodService {
       const result = await this.foodRepository.updateById(foodId, newFoodData)
       return result
     } catch (error) {
-      rollbar.log(error, {}, { level: 'error' }, '(desktop): Failed to update food')
-      throw new CustomError(error.message, error.code || 500)
+      rollbar.log(getErrorMessage(error), {}, { level: 'error' }, '(desktop): Failed to update food')
+      throw toCustomError(error)
     }
   }
 
@@ -74,8 +75,8 @@ export class FoodService {
       const result = await this.foodRepository.deleteById(foodId)
       return result
     } catch (error) {
-      rollbar.log(error, {}, { level: 'error' }, '(desktop): Failed to delete food')
-      throw new CustomError(error.message, error.code || 500)
+      rollbar.log(getErrorMessage(error), {}, { level: 'error' }, '(desktop): Failed to delete food')
+      throw toCustomError(error)
     }
   }
 }

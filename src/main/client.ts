@@ -1,12 +1,12 @@
 import axios from 'axios'
+import { CreateOrderInput } from './server/types'
 
-const handleApiError = (error: any) => {
-  if (error.response) {
-    const message = error.response.data.message || 'Something went wrong'
+const handleApiError = (error: unknown): never => {
+  if (axios.isAxiosError(error) && error.response) {
+    const message = error.response.data?.message || 'Something went wrong'
     throw new Error(message)
-  } else {
-    throw new Error('Network error')
   }
+  throw new Error('Network error')
 }
 
 export const foodsApi = {
@@ -27,7 +27,7 @@ export const foodsApi = {
       price: number
       categoryId: string | number
       quantity: number
-      image: string
+      image: string | null
     },
     authToken: string
   ) => {
@@ -104,18 +104,7 @@ export const categoriesApi = {
 }
 
 export const ordersApi = {
-  create: async (
-    baseUrl: string,
-    orderData: {
-      groups: any[]
-      paymentMethod: string
-      total: number,
-      payments: any[],
-      subTotal: number,
-      serviceFee: number
-
-    }
-  ) => {
+  create: async (baseUrl: string, orderData: CreateOrderInput) => {
     try {
       const response = await axios.post(`${baseUrl}/orders`, orderData)
       return response.data

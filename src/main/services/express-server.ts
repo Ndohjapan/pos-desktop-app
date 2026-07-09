@@ -1,9 +1,9 @@
-//@ts-nocheck
 import express from 'express'
 import { Server } from 'http'
 import { Bonjour } from 'bonjour-service'
 import routes from '../server/routes'
 import { initializeDatabase } from '../server/database/client'
+import { getErrorMessage } from '../server/utils/errors'
 
 export class ExpressServer {
   private app: express.Application
@@ -20,7 +20,7 @@ export class ExpressServer {
   private setupMiddleware(): void {
     this.app.use(express.json())
 
-    this.app.use((req, res, next) => {
+    this.app.use((_req, res, next) => {
       res.setHeader(
         'Content-Security-Policy',
         "default-src 'self'; connect-src 'self' http://localhost:3001; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com"
@@ -44,7 +44,7 @@ export class ExpressServer {
   }
 
   private setupRoutes(): void {
-    this.app.get('/health', (req, res) => {
+    this.app.get('/health', (_req, res) => {
       res.json({ status: 'ok' })
     })
     this.app.use('/api', routes)
@@ -60,7 +60,7 @@ export class ExpressServer {
             .listen(attemptPort, () => {
               testServer.close(() => resolve()) // Cleanup server before resolving
             })
-            .on('error', (err: any) => {
+            .on('error', (err: NodeJS.ErrnoException) => {
               if (err.code === 'EADDRINUSE') {
                 console.log(`⚠️ Port ${attemptPort} is in use. Trying port ${attemptPort + 1}...`)
                 attemptPort++ // Increment to next port
@@ -103,7 +103,7 @@ export class ExpressServer {
         port: availablePort
       }
     } catch (error) {
-      console.error('Error starting server:', error.message)
+      console.error('Error starting server:', getErrorMessage(error))
       throw error
     }
   }

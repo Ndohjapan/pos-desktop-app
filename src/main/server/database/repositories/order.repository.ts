@@ -1,17 +1,77 @@
-// @ts-nocheck
 import db from '../client'
 import CustomError from '../../utils/customError'
+import { getErrorMessage, toCustomError } from '../../utils/errors'
+import {
+  CreateOrderInput,
+  OrderFilter,
+  OrderGroupWithItems,
+  OrderItemRow,
+  OrderPaymentRow,
+  OrderRow,
+  OrderWithDetails,
+  PaginatedOrders
+} from '../../types'
+
+interface CountRow {
+  count: number
+}
+
+// Build "createdAt >= ? AND createdAt <= ?" style conditions from a filter object
+function buildWhereClause(filter: OrderFilter): { whereClause: string; values: (string | number)[] } {
+  if (!Object.keys(filter).length) {
+    return { whereClause: '', values: [] }
+  }
+
+  const conditions: string[] = []
+  const values: (string | number)[] = []
+
+  Object.entries(filter).forEach(([key, value]) => {
+    if (value && typeof value === 'object') {
+      if ('gte' in value) {
+        conditions.push(`${key} >= ?`)
+        values.push(value.gte)
+      }
+      if ('lte' in value) {
+        conditions.push(`${key} <= ?`)
+        values.push(value.lte)
+      }
+    } else {
+      conditions.push(`${key} = ?`)
+      values.push(value)
+    }
+  })
+
+  return { whereClause: 'WHERE ' + conditions.join(' AND '), values }
+}
 
 export class OrderRepository {
+  // Attach payments, groups and items to a bare order row
+  private hydrateOrder(order: OrderRow): OrderWithDetails {
+    const payments = db
+      .prepare(`SELECT paymentMethod, amount FROM OrderPayment WHERE orderId = ?`)
+      .all(order.id) as OrderPaymentRow[]
+
+    const groups = db
+      .prepare(`SELECT * FROM OrderGroup WHERE orderId = ?`)
+      .all(order.id) as OrderGroupWithItems[]
+
+    for (const group of groups) {
+      group.items = db
+        .prepare(`SELECT * FROM OrderItem WHERE groupId = ?`)
+        .all(group.id) as OrderItemRow[]
+    }
+
+    return { ...order, payments, groups }
+  }
+
   async findAll(page = 1, limit = 10) {
     try {
       const offset = (page - 1) * limit
 
-      // Fetch orders with pagination
       const orders = db
         .prepare(
           `
-          SELECT 
+          SELECT
             id,
             total,
             subTotal,
@@ -26,47 +86,14 @@ export class OrderRepository {
           LIMIT ? OFFSET ?
       `
         )
-        .all(limit, offset)
+        .all(limit, offset) as OrderRow[]
 
-      // Attach groups and items to each order
-      for (const order of orders) {
-        const payments = db
-          .prepare(
-            `
-          SELECT paymentMethod, amount FROM OrderPayment WHERE orderId = ?
-        `
-          )
-          .all(order.id)
+      const hydrated = orders.map((order) => this.hydrateOrder(order))
 
-        order.payments = payments
-
-        const groups = db
-          .prepare(
-            `
-          SELECT * FROM OrderGroup WHERE orderId = ?
-        `
-          )
-          .all(order.id)
-
-        for (const group of groups) {
-          const items = db
-            .prepare(
-              `
-            SELECT * FROM OrderItem WHERE groupId = ?
-          `
-            )
-            .all(group.id)
-          group.items = items
-        }
-
-        order.groups = groups
-      }
-
-      // Get total count
-      const total = db.prepare(`SELECT COUNT(*) as count FROM "Order"`).get().count
+      const total = (db.prepare(`SELECT COUNT(*) as count FROM "Order"`).get() as CountRow).count
 
       return {
-        orders,
+        orders: hydrated,
         meta: {
           total,
           page,
@@ -74,44 +101,20 @@ export class OrderRepository {
         }
       }
     } catch (error) {
-      throw new CustomError(error.message, error.code || 500)
+      throw toCustomError(error)
     }
   }
 
   // This function gets all the orders including deleted ones
-  async findByFilterAll(page = 1, limit = 10, filter = {}) {
+  async findByFilterAll(page = 1, limit = 10, filter: OrderFilter = {}): Promise<PaginatedOrders> {
     try {
       const offset = (page - 1) * limit
+      const { whereClause, values } = buildWhereClause(filter)
 
-      let whereClause = ''
-      let values = []
-      if (Object.keys(filter).length) {
-        const conditions = []
-
-        Object.entries(filter).forEach(([key, value]) => {
-          if (value && typeof value === 'object') {
-            if ('gte' in value) {
-              conditions.push(`${key} >= ?`)
-              values.push(value.gte)
-            }
-            if ('lte' in value) {
-              conditions.push(`${key} <= ?`)
-              values.push(value.lte)
-            }
-          } else {
-            conditions.push(`${key} = ?`)
-            values.push(value)
-          }
-        })
-
-        whereClause = 'WHERE ' + conditions.join(' AND ')
-      }
-
-      // Fetch filtered orders with pagination
       const orders = db
         .prepare(
           `
-          SELECT 
+          SELECT
             id,
             total,
             subTotal,
@@ -127,55 +130,18 @@ export class OrderRepository {
           LIMIT ? OFFSET ?
       `
         )
-        .all(...values, limit, offset)
+        .all(...values, limit, offset) as OrderRow[]
 
-      // Attach groups and items
-      for (const order of orders) {
-        const payments = db
-          .prepare(
-            `
-          SELECT paymentMethod, amount FROM OrderPayment WHERE orderId = ?
-        `
-          )
-          .all(order.id)
+      const hydrated = orders.map((order) => this.hydrateOrder(order))
 
-        order.payments = payments
-
-        const groups = db
-          .prepare(
-            `
-          SELECT * FROM OrderGroup WHERE orderId = ?
-        `
-          )
-          .all(order.id)
-
-        for (const group of groups) {
-          const items = db
-            .prepare(
-              `
-            SELECT * FROM OrderItem WHERE groupId = ?
-          `
-            )
-            .all(group.id)
-          group.items = items
-        }
-
-        order.groups = groups
-      }
-
-      // Get total count
-      const totalRows = db
-        .prepare(
-          `
-        SELECT COUNT(*) as count FROM "Order" ${whereClause}
-      `
-        )
-        .get(...values).count
+      const totalRows = (
+        db.prepare(`SELECT COUNT(*) as count FROM "Order" ${whereClause}`).get(...values) as CountRow
+      ).count
 
       const totalPages = Math.ceil(totalRows / limit)
 
       return {
-        rows: orders,
+        rows: hydrated,
         totalRows,
         limit,
         totalPages,
@@ -187,43 +153,24 @@ export class OrderRepository {
         nextPage: page < totalPages ? page + 1 : null
       }
     } catch (error) {
-      throw new CustomError(error.message, error.code || 500)
+      throw toCustomError(error)
     }
   }
 
-  async findByFilter(page = 1, limit = 10, filter = {}) {
+  async findByFilter(page = 1, limit = 10, filter: OrderFilter = {}): Promise<PaginatedOrders> {
     try {
       const offset = (page - 1) * limit
+      const { whereClause, values } = buildWhereClause(filter)
 
-      let whereClause = ''
-      let values = []
-      if (Object.keys(filter).length) {
-        const conditions = []
+      // Exclude soft-deleted orders whether or not a filter was supplied
+      const notDeletedClause = whereClause
+        ? `${whereClause} AND isDeleted = 0`
+        : 'WHERE isDeleted = 0'
 
-        Object.entries(filter).forEach(([key, value]) => {
-          if (value && typeof value === 'object') {
-            if ('gte' in value) {
-              conditions.push(`${key} >= ?`)
-              values.push(value.gte)
-            }
-            if ('lte' in value) {
-              conditions.push(`${key} <= ?`)
-              values.push(value.lte)
-            }
-          } else {
-            conditions.push(`${key} = ?`)
-            values.push(value)
-          }
-        })
-
-        whereClause = 'WHERE ' + conditions.join(' AND ')
-      }
-
-      // Fetch filtered orders with pagination
       const orders = db
         .prepare(
           `
-          SELECT 
+          SELECT
             id,
             total,
             subTotal,
@@ -233,60 +180,25 @@ export class OrderRepository {
             datetime(createdAt) || 'Z' as createdAt,
             datetime(updatedAt) || 'Z' as updatedAt
           FROM "Order"
-          ${whereClause} AND isDeleted = 0
+          ${notDeletedClause}
           ORDER BY createdAt DESC
           LIMIT ? OFFSET ?
       `
         )
-        .all(...values, limit, offset)
+        .all(...values, limit, offset) as OrderRow[]
 
-      // Attach groups and items
-      for (const order of orders) {
-        const payments = db
-          .prepare(
-            `
-          SELECT paymentMethod, amount FROM OrderPayment WHERE orderId = ?
-        `
-          )
-          .all(order.id)
+      const hydrated = orders.map((order) => this.hydrateOrder(order))
 
-        order.payments = payments
-
-        const groups = db
-          .prepare(
-            `
-          SELECT * FROM OrderGroup WHERE orderId = ?
-        `
-          )
-          .all(order.id)
-
-        for (const group of groups) {
-          const items = db
-            .prepare(
-              `
-            SELECT * FROM OrderItem WHERE groupId = ?
-          `
-            )
-            .all(group.id)
-          group.items = items
-        }
-
-        order.groups = groups
-      }
-
-      // Get total count
-      const totalRows = db
-        .prepare(
-          `
-        SELECT COUNT(*) as count FROM "Order" ${whereClause}
-      `
-        )
-        .get(...values).count
+      const totalRows = (
+        db
+          .prepare(`SELECT COUNT(*) as count FROM "Order" ${notDeletedClause}`)
+          .get(...values) as CountRow
+      ).count
 
       const totalPages = Math.ceil(totalRows / limit)
 
       return {
-        rows: orders,
+        rows: hydrated,
         totalRows,
         limit,
         totalPages,
@@ -298,22 +210,26 @@ export class OrderRepository {
         nextPage: page < totalPages ? page + 1 : null
       }
     } catch (error) {
-      throw new CustomError(error.message, error.code || 500)
+      throw toCustomError(error)
     }
   }
 
-  async create(orderData) {
+  async create(orderData: CreateOrderInput & { backupStatus?: 0 | 1 }): Promise<OrderWithDetails> {
     try {
-      // Insert order without payment method
       const insertOrder = db.prepare(`
         INSERT INTO "Order" (total, subTotal, specialOrder, serviceFee, backupStatus, createdAt, updatedAt, isDeleted)
         VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'), 0)
       `)
 
-      const orderResult = insertOrder.run(orderData.total, orderData.subTotal, orderData.specialOrder, orderData.serviceFee, orderData.backupStatus || 0)
-      const orderId = orderResult.lastInsertRowid
+      const orderResult = insertOrder.run(
+        orderData.total,
+        orderData.subTotal,
+        orderData.specialOrder,
+        orderData.serviceFee,
+        orderData.backupStatus || 0
+      )
+      const orderId = orderResult.lastInsertRowid as number
 
-      // Insert payments
       const insertPayment = db.prepare(`
         INSERT INTO OrderPayment (orderId, paymentMethod, amount)
         VALUES (?, ?, ?)
@@ -323,7 +239,6 @@ export class OrderRepository {
         insertPayment.run(orderId, payment.paymentMethod, payment.amount)
       }
 
-      // Insert groups and items (existing code)
       const insertGroup = db.prepare(`
         INSERT INTO OrderGroup (orderId, total)
         VALUES (?, ?)
@@ -338,68 +253,23 @@ export class OrderRepository {
         const groupResult = insertGroup.run(orderId, group.total)
         const groupId = groupResult.lastInsertRowid
         for (const item of group.items) {
-          insertItem.run(
-            item.foodName,
-            item.quantity,
-            item.price,
-            item.amount,
-            item.id,
-            groupId
-          )
+          insertItem.run(item.foodName, item.quantity, item.price, item.amount, item.id, groupId)
         }
       }
 
-      // Fetch the complete order with payments, groups and items
-      const newOrder = db
-        .prepare(
-          `
-        SELECT * FROM "Order" WHERE id = ?
-      `
-        )
-        .get(orderId)
+      const newOrder = db.prepare(`SELECT * FROM "Order" WHERE id = ?`).get(orderId) as OrderRow
 
-      // Fetch payments for this order
-      const payments = db
-        .prepare(
-          `
-        SELECT paymentMethod, amount FROM OrderPayment WHERE orderId = ?
-      `
-        )
-        .all(orderId)
-
-      newOrder.payments = payments
-
-      const groups = db
-        .prepare(
-          `
-        SELECT * FROM OrderGroup WHERE orderId = ?
-      `
-        )
-        .all(orderId)
-
-      for (const group of groups) {
-        const items = db
-          .prepare(
-            `
-          SELECT * FROM OrderItem WHERE groupId = ?
-        `
-          )
-          .all(group.id)
-        group.items = items
-      }
-
-      newOrder.groups = groups
-
-      return newOrder
+      return this.hydrateOrder(newOrder)
     } catch (error) {
       console.log(error)
-      throw new CustomError(error.message, error.code || 500)
+      throw toCustomError(error)
     }
   }
-  async count(filter = {}) {
+
+  async count(filter: Record<string, string | number> = {}): Promise<number> {
     try {
       let whereClause = ''
-      let values = []
+      let values: (string | number)[] = []
       if (Object.keys(filter).length) {
         whereClause =
           'WHERE ' +
@@ -409,24 +279,28 @@ export class OrderRepository {
         values = Object.values(filter)
       }
 
-      const count = db
-        .prepare(
-          `
-        SELECT COUNT(*) as count FROM "Order" ${whereClause} AND isDeleted = 0
-      `
-        )
-        .get(...values).count
+      // Exclude soft-deleted orders whether or not a filter was supplied
+      const notDeletedClause = whereClause
+        ? `${whereClause} AND isDeleted = 0`
+        : 'WHERE isDeleted = 0'
+
+      const count = (
+        db.prepare(`SELECT COUNT(*) as count FROM "Order" ${notDeletedClause}`).get(...values) as CountRow
+      ).count
 
       return count
     } catch (error) {
-      throw new CustomError(error.message, error.code || 500)
+      throw toCustomError(error)
     }
   }
 
-  async updateManyByFilter(filter, data) {
+  async updateManyByFilter(
+    filter: Record<string, string | number>,
+    data: Record<string, string | number>
+  ) {
     try {
       let whereClause = ''
-      let values = []
+      let values: (string | number)[] = []
       if (Object.keys(filter).length) {
         whereClause =
           'WHERE ' +
@@ -436,13 +310,13 @@ export class OrderRepository {
         values = Object.values(filter)
       }
 
-      let setClause = Object.keys(data)
+      const setClause = Object.keys(data)
         .map((key) => `${key} = ?`)
         .join(', ')
-      let setValues = Object.values(data)
+      const setValues = Object.values(data)
 
       const updateQuery = `
-        UPDATE "Order" 
+        UPDATE "Order"
         SET ${setClause}, updatedAt = CURRENT_TIMESTAMP
         ${whereClause}
       `
@@ -451,14 +325,14 @@ export class OrderRepository {
 
       return updateResult
     } catch (error) {
-      throw new CustomError(error.message, error.code || 500)
+      throw toCustomError(error)
     }
   }
 
   async deleteById(id: number | string) {
     try {
       const statement = db.prepare(`
-        UPDATE "Order" 
+        UPDATE "Order"
         SET isDeleted = 1, updatedAt = datetime('now'), backupStatus = 0
         WHERE id = ?
       `)
@@ -467,7 +341,7 @@ export class OrderRepository {
       return result
     } catch (error) {
       console.log(error)
-      throw new CustomError(error.message, 500)
+      throw new CustomError(getErrorMessage(error), 500)
     }
   }
 }

@@ -1,8 +1,9 @@
 import { OrderRepository } from '../database/repositories/order.repository'
 import CustomError from '../utils/customError'
+import { getErrorMessage } from '../utils/errors'
 import { rollbar } from '../utils/logging'
 import { UtilService } from './util.service'
-
+import { CreateOrderInput, OrderFilter } from '../types'
 
 export class OrderService {
   private orderRepository: OrderRepository
@@ -23,8 +24,8 @@ export class OrderService {
       return
     } catch (error) {
       console.log(error)
-      rollbar.log(error, {}, { level: 'error' }, '(desktop): Failed to delete order')
-      throw new CustomError(error.message, 500)
+      rollbar.log(getErrorMessage(error), {}, { level: 'error' }, '(desktop): Failed to delete order')
+      throw new CustomError(getErrorMessage(error), 500)
     }
   }
 
@@ -36,7 +37,7 @@ export class OrderService {
       const endOfDay = new Date(date)
       endOfDay.setHours(23, 59, 59, 999)
 
-      const filter = {
+      const filter: OrderFilter = {
         createdAt: {
           gte: startOfDay.toISOString(),
           lte: endOfDay.toISOString()
@@ -48,7 +49,7 @@ export class OrderService {
       return orders
     } catch (error) {
       console.log(error)
-      rollbar.log(error, {}, { level: 'error' }, '(desktop): Failed to get order')
+      rollbar.log(getErrorMessage(error), {}, { level: 'error' }, '(desktop): Failed to get order')
       throw new CustomError('Failed to get order', 500)
     }
   }
@@ -61,7 +62,7 @@ export class OrderService {
       const endOfDay = new Date(date)
       endOfDay.setHours(23, 59, 59, 999)
 
-      const filter = {
+      const filter: OrderFilter = {
         createdAt: {
           gte: startOfDay.toISOString(),
           lte: endOfDay.toISOString()
@@ -76,22 +77,14 @@ export class OrderService {
       const orders = await this.orderRepository.findByFilter(page, limit, filter)
       return orders
     } catch (error) {
-      rollbar.log(error, {}, { level: 'error' }, '(desktop): Failed to search orders')
+      rollbar.log(getErrorMessage(error), {}, { level: 'error' }, '(desktop): Failed to search orders')
       throw new CustomError('Failed to search orders', 500)
     }
   }
 
-  async createOrder(orderData: any) {
+  async createOrder(orderData: CreateOrderInput) {
     try {
-      // Generate orderId (you can implement your own logic)
-      const orderId = `${String(Date.now()).slice(-6)}`
-
-      const data = {
-        ...orderData,
-        orderId
-      }
-
-      const result = await this.orderRepository.create(data)
+      const result = await this.orderRepository.create(orderData)
 
       this.utilService
         .uploadOrdersToCloud()
@@ -99,12 +92,12 @@ export class OrderService {
           console.log('Uploaded orders to cloud')
         })
         .catch((error) => {
-          console.error('Error uploading orders to cloud:', error.message)
+          console.error('Error uploading orders to cloud:', getErrorMessage(error))
         })
 
       return result
     } catch (error) {
-      rollbar.log(error, {}, { level: 'error' }, '(desktop): Failed to create order')
+      rollbar.log(getErrorMessage(error), {}, { level: 'error' }, '(desktop): Failed to create order')
       throw new CustomError('Failed to create order', 500)
     }
   }

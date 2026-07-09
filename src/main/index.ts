@@ -5,11 +5,23 @@ import icon from '../../resources/icon.png?asset'
 import { ExpressServer } from '../main/services/express-server'
 import { Bonjour } from 'bonjour-service'
 import { authApi, categoriesApi, foodsApi, ordersApi, utilsApi } from './client'
-import { generateReceiptHTML } from './receipt-formatting'
+import { generateReceiptHTML, ReceiptOrder } from './receipt-formatting'
+import { getErrorMessage } from './server/utils/errors'
 
 let expressServer: ExpressServer | null = null
 
 const bonjourBrowser = new Bonjour()
+
+// Wrap an IPC handler body so the renderer always gets { success, data | error }
+async function ipcResult<T>(
+  fn: () => Promise<T>
+): Promise<{ success: true; data: T } | { success: false; error: string }> {
+  try {
+    return { success: true, data: await fn() }
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) }
+  }
+}
 
 const options = {
   silent: true,
@@ -113,7 +125,7 @@ ipcMain.handle('start-server', async () => {
       port: serverDetails.port
     }
   } catch (error) {
-    return { success: false, error: error.message }
+    return { success: false, error: getErrorMessage(error) }
   }
 })
 
@@ -126,16 +138,23 @@ ipcMain.handle('stop-server', () => {
   return { success: true }
 })
 
+interface DiscoveredService {
+  name: string
+  port: number
+  host: string
+  ip: string
+}
+
 ipcMain.handle('search-service', () => {
   return new Promise((resolve) => {
-    const discoveredServices = new Map()
+    const discoveredServices = new Map<string, DiscoveredService>()
 
     const browser = bonjourBrowser.find({ type: 'http' }, (service) => {
       discoveredServices.set(service.name, {
         name: service.name,
         port: service.port,
         host: service.host,
-        ip: service.referer.address
+        ip: service.referer?.address ?? service.addresses?.[0] ?? ''
       })
     })
 
@@ -151,178 +170,61 @@ ipcMain.handle('search-service', () => {
   })
 })
 
-ipcMain.handle('create-food', async (event, baseUrl, foodData, authToken) => {
-  try {
-    const food = await foodsApi.create(baseUrl, foodData, authToken)
-    return {
-      success: true,
-      data: food
-    }
-  } catch (error) {
-    return { success: false, error: error.message }
-  }
-})
+ipcMain.handle('create-food', (_event, baseUrl, foodData, authToken) =>
+  ipcResult(() => foodsApi.create(baseUrl, foodData, authToken))
+)
 
-ipcMain.handle('update-food', async (event, baseUrl, foodId, foodData, authToken) => {
-  try {
-    const food = await foodsApi.update(baseUrl, foodId, foodData, authToken)
-    return {
-      success: true,
-      data: food
-    }
-  } catch (error) {
-    console.log(error)
-    return { success: false, error: error.message }
-  }
-})
+ipcMain.handle('update-food', (_event, baseUrl, foodId, foodData, authToken) =>
+  ipcResult(() => foodsApi.update(baseUrl, foodId, foodData, authToken))
+)
 
-ipcMain.handle('delete-food', async (event, baseUrl, foodId, authToken) => {
-  try {
-    const food = await foodsApi.delete(baseUrl, foodId, authToken)
-    return {
-      success: true,
-      data: food
-    }
-  } catch (error) {
-    return { success: false, error: error.message }
-  }
-})
+ipcMain.handle('delete-food', (_event, baseUrl, foodId, authToken) =>
+  ipcResult(() => foodsApi.delete(baseUrl, foodId, authToken))
+)
 
-ipcMain.handle('get-foods', async (event, baseUrl) => {
-  try {
-    const foods = await foodsApi.getAll(baseUrl)
-    return {
-      success: true,
-      data: foods
-    }
-  } catch (error) {
-    return { success: false, error: error.message }
-  }
-})
+ipcMain.handle('get-foods', (_event, baseUrl) => ipcResult(() => foodsApi.getAll(baseUrl)))
 
-ipcMain.handle('get-categories', async (event, baseUrl) => {
-  try {
-    const categories = await categoriesApi.getAll(baseUrl)
-    return {
-      success: true,
-      data: categories
-    }
-  } catch (error) {
-    return { success: false, error: error.message }
-  }
-})
+ipcMain.handle('get-categories', (_event, baseUrl) =>
+  ipcResult(() => categoriesApi.getAll(baseUrl))
+)
 
-ipcMain.handle('create-categories', async (event, baseUrl, categoryData, authToken) => {
-  try {
-    const category = await categoriesApi.create(baseUrl, categoryData, authToken)
-    return {
-      success: true,
-      data: category
-    }
-  } catch (error) {
-    return { success: false, error: error.message }
-  }
-})
+ipcMain.handle('create-categories', (_event, baseUrl, categoryData, authToken) =>
+  ipcResult(() => categoriesApi.create(baseUrl, categoryData, authToken))
+)
 
-ipcMain.handle('create-order', async (event, baseUrl, orderData) => {
-  try {
-    const order = await ordersApi.create(baseUrl, orderData)
-    return {
-      success: true,
-      data: order
-    }
-  } catch (error) {
-    return { success: false, error: error.message }
-  }
-})
+ipcMain.handle('create-order', (_event, baseUrl, orderData) =>
+  ipcResult(() => ordersApi.create(baseUrl, orderData))
+)
 
-ipcMain.handle('delete-order', async (event, baseUrl, orderId, authToken) => {
-  try {
-    const order = await ordersApi.deleteById(baseUrl, orderId, authToken)
-    return {
-      success: true,
-      data: order
-    }
-  } catch (error) {
-    return { success: false, error: error.message }
-  }
-})
+ipcMain.handle('delete-order', (_event, baseUrl, orderId, authToken) =>
+  ipcResult(() => ordersApi.deleteById(baseUrl, orderId, authToken))
+)
 
-ipcMain.handle('get-orders-by-date', async (event, baseUrl, page, limit, date) => {
-  try {
-    const orders = await ordersApi.getByDate(baseUrl, page, limit, date)
-    return {
-      success: true,
-      data: orders
-    }
-  } catch (error) {
-    return { success: false, error: error.message }
-  }
-})
+ipcMain.handle('get-orders-by-date', (_event, baseUrl, page, limit, date) =>
+  ipcResult(() => ordersApi.getByDate(baseUrl, page, limit, date))
+)
 
-ipcMain.handle('search-orders-by-date', async (event, baseUrl, page, limit, date, searchQuery) => {
-  try {
-    const orders = await ordersApi.search(baseUrl, page, limit, date, searchQuery)
-    return {
-      success: true,
-      data: orders
-    }
-  } catch (error) {
-    return { success: false, error: error.message }
-  }
-})
+ipcMain.handle('search-orders-by-date', (_event, baseUrl, page, limit, date, searchQuery) =>
+  ipcResult(() => ordersApi.search(baseUrl, page, limit, date, searchQuery))
+)
 
-ipcMain.handle('backup-orders', async (event, baseUrl) => {
-  try {
-    const result = await utilsApi.backupOrders(baseUrl)
-    return {
-      success: true,
-      data: result
-    }
-  } catch (error) {
-    return { success: false, error: error.message }
-  }
-})
+ipcMain.handle('backup-orders', (_event, baseUrl) => ipcResult(() => utilsApi.backupOrders(baseUrl)))
 
-ipcMain.handle('signup', async (event, baseUrl, adminData) => {
-  try {
-    const result = await authApi.signup(baseUrl, adminData)
-    return {
-      success: true,
-      data: result
-    }
-  } catch (error) {
-    return { success: false, error: error.message }
-  }
-})
+ipcMain.handle('signup', (_event, baseUrl, adminData) =>
+  ipcResult(() => authApi.signup(baseUrl, adminData))
+)
 
-ipcMain.handle('login', async (event, baseUrl, credentials) => {
-  try {
-    const result = await authApi.login(baseUrl, credentials)
-    return {
-      success: true,
-      data: result
-    }
-  } catch (error) {
-    return { success: false, error: error.message }
-  }
-})
+ipcMain.handle('login', (_event, baseUrl, credentials) =>
+  ipcResult(() => authApi.login(baseUrl, credentials))
+)
 
-ipcMain.handle('sync-data', async (event, baseUrl) => {
-  try {
-    const result = await utilsApi.syncData(baseUrl)
-    return {
-      success: true,
-      data: result
-    }
-  } catch (error) {
-    return { success: false, error: error.message }
-  }
-})
+ipcMain.handle('sync-data', (_event, baseUrl) => ipcResult(() => utilsApi.syncData(baseUrl)))
 
-ipcMain.handle('print-receipt', async (event, orderData) => {
+ipcMain.handle('print-receipt', async (_event, orderData: ReceiptOrder) => {
   const printWindow = BrowserWindow.getFocusedWindow()
-  await printWindow.webContents.getPrintersAsync()
+  if (printWindow) {
+    await printWindow.webContents.getPrintersAsync()
+  }
 
   const printContentsWindow = new BrowserWindow({
     show: true,

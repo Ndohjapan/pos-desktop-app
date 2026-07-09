@@ -90,7 +90,9 @@ export const initializeDatabase = () => {
   // Get current schema version from database
   let currentVersion = 0
   try {
-    const versionRow = db.prepare('SELECT version FROM schema_version WHERE id = 1').get()
+    const versionRow = db.prepare('SELECT version FROM schema_version WHERE id = 1').get() as
+      | { version: number }
+      | undefined
     currentVersion = versionRow ? versionRow.version : 0
   } catch (error) {
     console.log('No schema version found, initializing...')
@@ -155,7 +157,7 @@ function synchronizeTable(tableName, schema) {
     console.log(`Created table: ${tableName}`)
   } else {
     // Table exists, check for missing columns
-    const tableInfo = db.prepare(`PRAGMA table_info(${quotedTableName})`).all()
+    const tableInfo = db.prepare(`PRAGMA table_info(${quotedTableName})`).all() as { name: string }[]
     const existingColumns = new Set(tableInfo.map(col => col.name))
     
     // Find columns that need to be added

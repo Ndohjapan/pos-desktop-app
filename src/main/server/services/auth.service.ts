@@ -1,5 +1,7 @@
 import { AdminRepository } from '../database/repositories/admin.repository'
 import CustomError from '../utils/customError'
+import { getErrorMessage, toCustomError } from '../utils/errors'
+import { LoginInput, SignupInput } from '../types'
 import bcrypt from 'bcryptjs'
 
 export class AuthService {
@@ -9,7 +11,7 @@ export class AuthService {
     this.adminRepository = new AdminRepository()
   }
 
-  async signup(adminData: { phoneNumber: string; password: string; fullName: string; }) {
+  async signup(adminData: SignupInput) {
     try {
       const existingAdmin = await this.adminRepository.findByFilter({
         phoneNumber: adminData.phoneNumber
@@ -30,14 +32,15 @@ export class AuthService {
       }
 
       const result = await this.adminRepository.create(formattedData)
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password, ...adminWithoutPassword } = result
       return adminWithoutPassword
     } catch (error) {
-      throw new CustomError(error.message, error.code || 500)
+      throw toCustomError(error, 500)
     }
   }
 
-  async login(credentials: { phoneNumber: string; password: string }) {
+  async login(credentials: LoginInput) {
     try {
       const admin = await this.adminRepository.findByFilter({
         phoneNumber: credentials.phoneNumber
@@ -53,10 +56,11 @@ export class AuthService {
         throw new CustomError('Invalid credentials', 401)
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password, ...adminWithoutPassword } = admin
       return adminWithoutPassword
     } catch (error) {
-      throw new CustomError(error.message, error.code || 500)
+      throw new CustomError(getErrorMessage(error), toCustomError(error).code)
     }
   }
 }

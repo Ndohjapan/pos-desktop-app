@@ -1,4 +1,12 @@
-export function generateReceiptHTML(order): string {
+import { OrderWithDetails } from './server/types'
+
+// The order as printed: what the local server returns after creating an order
+export type ReceiptOrder = Pick<
+  OrderWithDetails,
+  'id' | 'createdAt' | 'total' | 'subTotal' | 'serviceFee' | 'specialOrder' | 'payments' | 'groups'
+>
+
+export function generateReceiptHTML(order: ReceiptOrder): string {
   const date = new Date(order.createdAt).toLocaleString()
 
   const paymentMethodsSection = `
@@ -19,7 +27,7 @@ export function generateReceiptHTML(order): string {
 `
 
   // Calculate subtotal if not directly provided
-  const subtotal = order.subtotal || order.groups.reduce((sum, group) => sum + group.total, 0)
+  const subtotal = order.subTotal || order.groups.reduce((sum, group) => sum + group.total, 0)
   const hasserviceFee = order.serviceFee && order.serviceFee > 0
 
   // Create the summary section with conditional service charge
