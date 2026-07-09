@@ -18,7 +18,11 @@ function assertValidPin(pin: string): void {
 }
 
 export class CashierService {
-  async create(data: { fullName: string; pin: string; role?: CashierRole }): Promise<CashierPublic> {
+  async create(data: {
+    fullName: string
+    pin: string
+    role?: CashierRole
+  }): Promise<CashierPublic> {
     try {
       if (!data.fullName?.trim()) throw new CustomError('Name is required', 400)
       assertValidPin(data.pin)
@@ -44,7 +48,8 @@ export class CashierService {
 
       const patch: Partial<{ fullName: string; pin: string; role: CashierRole; active: 0 | 1 }> = {}
       if (data.fullName !== undefined) patch.fullName = data.fullName.trim()
-      if (data.role !== undefined) patch.role = data.role === 'supervisor' ? 'supervisor' : 'cashier'
+      if (data.role !== undefined)
+        patch.role = data.role === 'supervisor' ? 'supervisor' : 'cashier'
       if (data.active !== undefined) patch.active = data.active ? 1 : 0
       if (data.pin !== undefined && data.pin !== '') {
         assertValidPin(data.pin)

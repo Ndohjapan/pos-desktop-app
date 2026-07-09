@@ -2,6 +2,7 @@ import { RxReload } from 'react-icons/rx'
 import { useState, useRef, useEffect } from 'react'
 import Logo from '@renderer/assets/images/logo.svg'
 import CreateOrder, { CreateOrderHandle, DraftOrderGroup } from './CreateOrder'
+import HeldOrdersBar from './pos/HeldOrdersBar'
 import { categoriesApi, foodsApi } from '@renderer/api/client'
 import { useConnectionStore, useSectionStore } from '@renderer/store/connection'
 import { Food } from '@renderer/types/food'
@@ -139,6 +140,11 @@ function Product() {
     }))
   }
 
+  const handleResume = (draftGroups: DraftOrderGroup[], parkedOrderId: number): void => {
+    createOrderRef.current?.loadDraft(draftGroups, parkedOrderId)
+    handleOrderUpdate(draftGroups, 0)
+  }
+
   // Filtered foods based on selected category
   const filteredFoods = foods.filter(
     (food) =>
@@ -149,6 +155,7 @@ function Product() {
   )
   return (
     <>
+      <HeldOrdersBar onResume={handleResume} />
       <div className="md:grid md:grid-cols-12 w-full py-1 px-8 md:pl-8 mt-7">
         {/* Product Menu */}
         <div className="col-span-8 pr-4">

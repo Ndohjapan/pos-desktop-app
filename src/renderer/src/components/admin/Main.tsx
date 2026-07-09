@@ -3,6 +3,7 @@ import TabsPellete from '@renderer/components/admin/TabsPellete'
 import Foods from './foods/Foods'
 import Orders from './order-analytics/Orders'
 import Staff from './staff/Staff'
+import StoreSettingsPanel from './settings/StoreSettingsPanel'
 
 export default function Main(): JSX.Element {
   const [activeTab, setActiveTab] = useState('Foods')
@@ -15,6 +16,8 @@ export default function Main(): JSX.Element {
         return <Orders />
       case 'Staff':
         return <Staff />
+      case 'Settings':
+        return <StoreSettingsPanel />
       default:
         return <Foods />
     }

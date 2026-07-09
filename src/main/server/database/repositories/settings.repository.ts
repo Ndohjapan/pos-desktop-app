@@ -53,7 +53,8 @@ export class SettingsRepository {
 
       if (partial.branchId !== undefined) write('branchId', partial.branchId)
       if (partial.branchName !== undefined) write('branchName', partial.branchName)
-      if (partial.quickService !== undefined) write('quickService', partial.quickService ? '1' : '0')
+      if (partial.quickService !== undefined)
+        write('quickService', partial.quickService ? '1' : '0')
       if (partial.cashiersEnabled !== undefined)
         write('cashiersEnabled', partial.cashiersEnabled ? '1' : '0')
       if (partial.kitchenPrintingEnabled !== undefined)

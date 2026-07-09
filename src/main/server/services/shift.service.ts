@@ -49,7 +49,8 @@ function buildReport(shift: ShiftRow, countedCash: number | null): ShiftReport {
     byPaymentMethod.find((row) => row.paymentMethod.toLowerCase() === 'cash')?.amount ?? 0
 
   const expectedCash = shift.openingFloat + cashSales
-  const variance = countedCash === null ? null : Math.round((countedCash - expectedCash) * 100) / 100
+  const variance =
+    countedCash === null ? null : Math.round((countedCash - expectedCash) * 100) / 100
 
   return {
     shift,

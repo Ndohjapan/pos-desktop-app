@@ -5,11 +5,20 @@ import { useState } from 'react'
 import { FaCreditCard, FaChevronDown, FaChevronUp } from 'react-icons/fa'
 import { Order } from '@renderer/types/order'
 import { utilsApi } from '@renderer/api/client'
+import { posApi } from '@renderer/api/pos'
+import { useCashierStore } from '@renderer/store/pos'
+import PinPad from './pos/PinPad'
+import toast from 'react-hot-toast'
 import { CgSpinner } from 'react-icons/cg'
 
-const OrderDetails = ({ order }: { order: Order }) => {
+const OrderDetails = ({ order, onVoided }: { order: Order; onVoided?: () => void }) => {
   const [openGroups, setOpenGroups] = useState(new Set<number>())
   const [isPrintingReceipt, setIsPrintingReceipt] = useState(false)
+  const [voidPromptOpen, setVoidPromptOpen] = useState(false)
+  const [voidReason, setVoidReason] = useState('')
+  const [voidPinOpen, setVoidPinOpen] = useState(false)
+  const [voidBusy, setVoidBusy] = useState(false)
+  const cashier = useCashierStore((state) => state.cashier)
 
   // Toggle function for accordions
   const toggleGroup = (groupIndex: number) => {
@@ -34,6 +43,24 @@ const OrderDetails = ({ order }: { order: Order }) => {
       setIsPrintingReceipt(false)
     }
   }
+
+  const handleVoidPin = async (pin: string): Promise<void> => {
+    try {
+      setVoidBusy(true)
+      await posApi.voidOrder(order.id, voidReason.trim(), pin, cashier?.fullName)
+      toast.success(`Order #${order.orderNumber || order.id} voided`)
+      setVoidPinOpen(false)
+      setVoidPromptOpen(false)
+      setVoidReason('')
+      onVoided?.()
+    } catch {
+      // toast shown by api layer
+    } finally {
+      setVoidBusy(false)
+    }
+  }
+
+  const isVoided = order.status === 'voided'
 
   // Calculate subtotal if not provided directly
   const subtotal = order.subTotal || order.groups.reduce((sum, group) => sum + group.total, 0)
@@ -68,6 +95,14 @@ const OrderDetails = ({ order }: { order: Order }) => {
           <div className="mt-2 text-center">
             <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded">
               Special Order
+            </span>
+          </div>
+        )}
+
+        {isVoided && (
+          <div className="mt-2 text-center">
+            <span className="bg-[#F5E6E8] text-[#FD0002] text-xs font-bold px-2.5 py-0.5 rounded">
+              VOIDED{order.voidReason ? ` — ${order.voidReason}` : ''}
             </span>
           </div>
         )}
@@ -149,13 +184,27 @@ const OrderDetails = ({ order }: { order: Order }) => {
         ))}
 
         <div className="mt-4 text-sm">
-          <button
-            className={`group relative w-full flex justify-center p-2 border border-transparent text-sm font-medium rounded-lg text-white ${isPrintingReceipt ? 'bg-primary-500' : 'bg-primary-700'} hover:bg-primary-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 cursor-pointer mb-4`}
-            onClick={handlePrintReceipt}
-            disabled={isPrintingReceipt}
-          >
-            {isPrintingReceipt ? <CgSpinner className="animate-spin text-2xl" /> : 'Print Receipt'}
-          </button>
+          <div className="flex items-center gap-2 mb-4">
+            {!isVoided && (
+              <button
+                className="w-full flex justify-center p-2 text-sm font-medium rounded-lg text-[#FD0002] border-2 border-[#FD0002] hover:bg-[#FFF5F5] cursor-pointer"
+                onClick={() => setVoidPromptOpen(true)}
+              >
+                Void Order
+              </button>
+            )}
+            <button
+              className={`group relative w-full flex justify-center p-2 border border-transparent text-sm font-medium rounded-lg text-white ${isPrintingReceipt ? 'bg-primary-500' : 'bg-primary-700'} hover:bg-primary-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 cursor-pointer`}
+              onClick={handlePrintReceipt}
+              disabled={isPrintingReceipt}
+            >
+              {isPrintingReceipt ? (
+                <CgSpinner className="animate-spin text-2xl" />
+              ) : (
+                'Print Receipt'
+              )}
+            </button>
+          </div>
 
           {/* Order Summary Section */}
           <div className="border-t pt-2 space-y-2">
@@ -181,6 +230,66 @@ const OrderDetails = ({ order }: { order: Order }) => {
           </div>
         </div>
       </div>
+      {voidPromptOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#000]/60">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-lg">
+            <div className="flex justify-between items-center mb-2">
+              <h2 className="text-lg font-bold text-secondary">
+                Void order #{order.orderNumber || order.id}
+              </h2>
+              <button
+                onClick={() => setVoidPromptOpen(false)}
+                className="text-gray-500 hover:text-gray-700 text-xl"
+              >
+                &times;
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 mb-3">
+              The order stays in history but is removed from sales totals.
+            </p>
+            <label className="text-xs font-bold text-secondary block mb-1">Reason</label>
+            <input
+              value={voidReason}
+              onChange={(e) => setVoidReason(e.target.value)}
+              placeholder="e.g. customer cancelled"
+              autoFocus
+              className="w-full px-3 py-2 rounded-lg border border-[#DCDCDC] focus:outline-none focus:border-primary-500"
+            />
+            <button
+              onClick={() => {
+                if (!voidReason.trim()) {
+                  toast.error('A reason is required')
+                  return
+                }
+                setVoidPinOpen(true)
+              }}
+              className="mt-4 w-full py-2 rounded-lg bg-[#FD0002] text-white font-bold hover:opacity-90"
+            >
+              Continue — supervisor approval
+            </button>
+          </div>
+        </div>
+      )}
+
+      {voidPinOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#000]/60">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-lg">
+            <div className="flex justify-between items-center mb-2">
+              <h2 className="text-lg font-bold text-secondary">Supervisor approval</h2>
+              <button
+                onClick={() => setVoidPinOpen(false)}
+                className="text-gray-500 hover:text-gray-700 text-xl"
+              >
+                &times;
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 mb-4">
+              A supervisor must enter their PIN to void this order.
+            </p>
+            <PinPad onSubmit={handleVoidPin} busy={voidBusy} />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

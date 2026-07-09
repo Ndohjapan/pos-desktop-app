@@ -122,7 +122,13 @@ function OrderListPage() {
       <div className="col-span-4 bg-white border-l border-[#DCDCDC]  pl-4">
         {order ? (
           <>
-            <OrderDetails order={order} />
+            <OrderDetails
+              order={order}
+              onVoided={() => {
+                setOrder(null)
+                fetchMoreOrders(1)
+              }}
+            />
           </>
         ) : (
           <>

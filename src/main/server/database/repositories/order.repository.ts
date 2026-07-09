@@ -285,14 +285,7 @@ export class OrderRepository {
           const groupResult = insertGroup.run(newOrderId, group.total)
           const groupId = groupResult.lastInsertRowid
           for (const item of group.items) {
-            insertItem.run(
-              item.foodName,
-              item.quantity,
-              item.price,
-              item.amount,
-              item.id,
-              groupId
-            )
+            insertItem.run(item.foodName, item.quantity, item.price, item.amount, item.id, groupId)
           }
         }
 

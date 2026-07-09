@@ -5,6 +5,7 @@ import { useServiceStore } from '@renderer/store/connection'
 import { useConnectionStore, useSectionStore } from '@renderer/store/connection'
 import { useNavigate } from 'react-router-dom'
 import ConnectionStatus from './ConnectionStatus'
+import CashierBadge from './pos/CashierBadge'
 import { authApi } from '@renderer/api/client'
 import { getAdminToken } from '@renderer/utils/auth'
 
@@ -71,6 +72,7 @@ function Nav() {
         </div>
 
         <div className="flex items-center space-x-4">
+          <CashierBadge />
           <button
             onClick={handleLogout}
             className="bg-[#F5F5F5] border border-[#DCDCDC] text-secondary px-4 py-1 rounded-lg focus:outline-none focus:ring-secondary focus:border-secondary cursor-pointer"

@@ -17,7 +17,10 @@ router.get('/', (_req, res) => {
 // Cashier PIN login at the till.
 router.post('/login', async (req, res) => {
   try {
-    const cashier = await cashierService.login(Number(req.body?.cashierId), String(req.body?.pin ?? ''))
+    const cashier = await cashierService.login(
+      Number(req.body?.cashierId),
+      String(req.body?.pin ?? '')
+    )
     res.json({ data: cashier })
   } catch (error) {
     sendError(res, error)

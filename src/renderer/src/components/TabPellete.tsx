@@ -1,13 +1,14 @@
 import { IoMdGift } from 'react-icons/io'
-import { IoFastFood } from 'react-icons/io5'
-import { FiPackage } from 'react-icons/fi'
+import { IoFastFood, IoListCircleOutline } from 'react-icons/io5'
+import { FiPackage, FiBarChart2 } from 'react-icons/fi'
+import { useSettingsStore } from '@renderer/store/pos'
 
 interface TabsPelleteProps {
   activeTab: string
   onTabChange: (tabName: string) => void
 }
 
-const tabs = [
+const BASE_TABS = [
   {
     name: 'Menu',
     icon: <IoFastFood />
@@ -22,12 +23,29 @@ const tabs = [
   }
 ]
 
-function TabsPellete({ activeTab, onTabChange }: TabsPelleteProps) {
+// Quick-service mode adds the live kitchen queue and the daily summary.
+const QUICK_SERVICE_TABS = [
+  {
+    name: 'Queue',
+    icon: <IoListCircleOutline />
+  },
+  {
+    name: 'Daily Summary',
+    icon: <FiBarChart2 />
+  }
+]
+
+function TabsPellete({ activeTab, onTabChange }: TabsPelleteProps): JSX.Element {
+  const quickService = useSettingsStore((state) => state.settings.quickService)
+  const tabs = quickService
+    ? [BASE_TABS[0], QUICK_SERVICE_TABS[0], BASE_TABS[1], BASE_TABS[2], QUICK_SERVICE_TABS[1]]
+    : BASE_TABS
+
   return (
     <div className="w-full mt-3 bg-white">
       {/* Desktop version */}
       <div className="hidden md:flex justify-between items-center m-auto">
-        <div className="w-[33%] m-auto flex gap-4 justify-around">
+        <div className="m-auto flex gap-4 justify-around">
           {tabs.map((tab, index) => (
             <div
               key={index}

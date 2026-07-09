@@ -7,7 +7,10 @@ const router = Router()
 // Open (or resume) a shift for a cashier with an opening cash float.
 router.post('/open', (req, res) => {
   try {
-    const shift = shiftService.open(Number(req.body?.cashierId), Number(req.body?.openingFloat) || 0)
+    const shift = shiftService.open(
+      Number(req.body?.cashierId),
+      Number(req.body?.openingFloat) || 0
+    )
     res.status(201).json({ data: shift })
   } catch (error) {
     sendError(res, error)

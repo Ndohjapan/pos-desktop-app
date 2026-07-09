@@ -5,6 +5,7 @@ import { useConnectionStore } from '@renderer/store/connection'
 import { getAdminToken } from '@renderer/utils/auth'
 import type { AdminWithoutPassword } from '@renderer/types'
 import BackupsPanel from './BackupsPanel'
+import CashiersPanel from './CashiersPanel'
 
 /**
  * Owner-only staff management: approve (verify) new accounts so they can log in.
@@ -106,6 +107,8 @@ function Staff(): JSX.Element {
           {admins.length === 0 && <p className="text-gray-500 text-sm">No staff accounts yet.</p>}
         </div>
       )}
+
+      <CashiersPanel />
 
       {/* Local database backups only make sense on the Main machine that holds
           the data (backup/restore are local to that device). */}

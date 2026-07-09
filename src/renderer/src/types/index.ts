@@ -15,7 +15,15 @@ export type {
   CreateFoodInput,
   UpdateFoodInput,
   SignupInput,
-  LoginInput
+  LoginInput,
+  CashierPublic,
+  CashierRole,
+  ShiftRow as Shift,
+  ShiftReport,
+  ParkedOrderRow as ParkedOrder,
+  StoreSettings,
+  DailySummary,
+  FulfillmentStatus
 } from '../../../main/server/types'
 
 export type {
