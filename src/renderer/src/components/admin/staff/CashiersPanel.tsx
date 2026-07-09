@@ -70,17 +70,22 @@ function CashiersPanel(): JSX.Element {
     }
   }
 
-  const resetPin = async (cashier: CashierPublic): Promise<void> => {
-    const newPin = window.prompt(`New 4–6 digit PIN for ${cashier.fullName}:`)
-    if (newPin === null) return
+  // window.prompt is not supported inside Electron, so PIN reset uses a modal.
+  const [resetTarget, setResetTarget] = useState<CashierPublic | null>(null)
+  const [newPin, setNewPin] = useState('')
+
+  const confirmResetPin = async (): Promise<void> => {
+    if (!resetTarget) return
     if (!/^\d{4,6}$/.test(newPin)) {
       toast.error('PIN must be 4–6 digits')
       return
     }
     try {
-      setBusyId(cashier.id)
-      await posApi.updateCashier(cashier.id, { pin: newPin })
-      toast.success('PIN updated')
+      setBusyId(resetTarget.id)
+      await posApi.updateCashier(resetTarget.id, { pin: newPin })
+      toast.success(`PIN updated for ${resetTarget.fullName}`)
+      setResetTarget(null)
+      setNewPin('')
     } catch {
       // toast shown by api layer
     } finally {
@@ -165,7 +170,10 @@ function CashiersPanel(): JSX.Element {
                 </div>
                 <div className="flex items-center gap-3 text-sm">
                   <button
-                    onClick={() => resetPin(cashier)}
+                    onClick={() => {
+                      setResetTarget(cashier)
+                      setNewPin('')
+                    }}
                     disabled={busyId === cashier.id}
                     className="text-primary-700 underline hover:text-primary-900 disabled:opacity-50"
                   >
@@ -187,6 +195,37 @@ function CashiersPanel(): JSX.Element {
           </>
         )}
       </div>
+      {resetTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#000]/60">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-lg">
+            <div className="flex justify-between items-center mb-2">
+              <h2 className="text-lg font-bold text-secondary">
+                New PIN for {resetTarget.fullName}
+              </h2>
+              <button
+                onClick={() => setResetTarget(null)}
+                className="text-gray-500 hover:text-gray-700 text-xl"
+              >
+                &times;
+              </button>
+            </div>
+            <input
+              value={newPin}
+              onChange={(e) => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              placeholder="4–6 digits"
+              autoFocus
+              className="w-full px-3 py-2 rounded-lg border border-[#DCDCDC] focus:outline-none focus:border-primary-500"
+            />
+            <button
+              onClick={confirmResetPin}
+              disabled={busyId === resetTarget.id}
+              className="mt-3 w-full py-2 rounded-lg bg-primary-700 text-white font-bold hover:bg-primary-900 disabled:opacity-50"
+            >
+              {busyId === resetTarget.id ? 'Saving…' : 'Save PIN'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
