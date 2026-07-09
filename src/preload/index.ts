@@ -31,7 +31,12 @@ export interface StartServerResult {
   success: boolean
   serviceName?: string
   port?: number
+  ip?: string
   error?: string
+}
+
+export interface HealthResult {
+  ok: boolean
 }
 
 export interface SearchServiceResult {
@@ -46,6 +51,8 @@ const api = {
   startServer: (): Promise<StartServerResult> => ipcRenderer.invoke('start-server'),
   stopServer: (): Promise<{ success: boolean }> => ipcRenderer.invoke('stop-server'),
   searchForService: (): Promise<SearchServiceResult> => ipcRenderer.invoke('search-service'),
+  checkHealth: (host: string, port: number): Promise<HealthResult> =>
+    ipcRenderer.invoke('check-health', host, port),
   getFoods: (baseUrl: string): Promise<IpcResponse<FoodWithCategoryRow[]>> =>
     ipcRenderer.invoke('get-foods', baseUrl),
   createFood: (

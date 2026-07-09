@@ -4,6 +4,7 @@ import Logo from '@renderer/assets/images/logo.svg'
 import { useServiceStore } from '@renderer/store/connection'
 import { useConnectionStore, useSectionStore } from '@renderer/store/connection'
 import { useNavigate } from 'react-router-dom'
+import ConnectionStatus from './ConnectionStatus'
 
 function Nav() {
   const navigate = useNavigate()
@@ -58,7 +59,10 @@ function Nav() {
           <img src={Logo} alt="Amala Oluyole" className="max-w-[30%]" />
         </div>
 
-        <div className="text-lg font-semibold text-secondary">{serviceName}</div>
+        <div className="flex flex-col items-center">
+          <div className="text-lg font-semibold text-secondary">{serviceName}</div>
+          <ConnectionStatus />
+        </div>
 
         <div className="flex items-center space-x-4">
           <button

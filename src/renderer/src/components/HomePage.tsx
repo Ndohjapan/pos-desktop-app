@@ -7,6 +7,7 @@ import Logo from '@renderer/assets/images/logo.svg'
 import ConnectionModal from './modals/ConnectionModal'
 import { useState } from 'react'
 import { useConnectionStore, useServiceStore } from '@renderer/store/connection'
+import toast from 'react-hot-toast'
 
 function HomePage(): JSX.Element {
   const navigate = useNavigate()
@@ -14,6 +15,7 @@ function HomePage(): JSX.Element {
   const [startingServer, setStartingServer] = useState(false)
 
   const setConnectionDetails = useConnectionStore((state) => state.setConnectionDetails)
+  const setHostIp = useConnectionStore((state) => state.setHostIp)
   const setServiceName = useServiceStore((state) => state.setServiceName)
 
   const handleStartServer = async () => {
@@ -22,10 +24,12 @@ function HomePage(): JSX.Element {
     setStartingServer(false)
     if (result.success && result.port != null && result.serviceName) {
       setConnectionDetails('localhost', result.port, 'localhost', 'Main')
+      setHostIp(result.ip ?? '')
       setServiceName(result.serviceName)
       navigate('/main')
     } else {
       console.error('Failed to start server:', result.error)
+      toast.error(result.error ?? 'Failed to start server')
     }
   }
 

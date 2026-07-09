@@ -7,6 +7,8 @@ import { Bonjour } from 'bonjour-service'
 import { authApi, categoriesApi, foodsApi, ordersApi, utilsApi } from './client'
 import { generateReceiptHTML, ReceiptOrder } from './receipt-formatting'
 import { getErrorMessage } from './server/utils/errors'
+import { SERVICE_APP_ID } from './services/network'
+import axios from 'axios'
 
 let expressServer: ExpressServer | null = null
 
@@ -122,7 +124,8 @@ ipcMain.handle('start-server', async () => {
     return {
       success: true,
       serviceName: serverDetails.serviceName,
-      port: serverDetails.port
+      port: serverDetails.port,
+      ip: serverDetails.ip
     }
   } catch (error) {
     return { success: false, error: getErrorMessage(error) }
@@ -150,15 +153,27 @@ ipcMain.handle('search-service', () => {
     const discoveredServices = new Map<string, DiscoveredService>()
 
     const browser = bonjourBrowser.find({ type: 'http' }, (service) => {
+      // Only keep services advertised by *our* app. Consumer networks are full
+      // of printers/routers/NAS boxes advertising _http._tcp — selecting one of
+      // those was a common cause of "connection error" reports.
+      const txt = (service.txt ?? {}) as Record<string, string>
+      const isOurApp = txt.app === SERVICE_APP_ID || service.name?.startsWith('Amala POS')
+      if (!isOurApp) return
+
+      // Prefer the IP the host advertised in its txt record; fall back to the
+      // resolved address. We connect by IP, never the flaky .local hostname.
+      const ip = txt.ip || service.referer?.address || service.addresses?.[0] || ''
+      if (!ip) return
+
       discoveredServices.set(service.name, {
         name: service.name,
         port: service.port,
         host: service.host,
-        ip: service.referer?.address ?? service.addresses?.[0] ?? ''
+        ip
       })
     })
 
-    // After 10 seconds, return all discovered services
+    // After 8 seconds, return all discovered services
     setTimeout(() => {
       browser.stop()
       const services = Array.from(discoveredServices.values())
@@ -166,8 +181,19 @@ ipcMain.handle('search-service', () => {
         found: services.length > 0,
         services: services
       })
-    }, 10000)
+    }, 8000)
   })
+})
+
+// Lightweight reachability probe used by the tills' heartbeat / auto-reconnect.
+// Hits the host's /health (mounted outside /api) with a short timeout.
+ipcMain.handle('check-health', async (_event, host: string, port: number) => {
+  try {
+    const response = await axios.get(`http://${host}:${port}/health`, { timeout: 4000 })
+    return { ok: response.data?.status === 'ok' }
+  } catch {
+    return { ok: false }
+  }
 })
 
 ipcMain.handle('create-food', (_event, baseUrl, foodData, authToken) =>

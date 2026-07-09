@@ -4,6 +4,7 @@ import { Bonjour } from 'bonjour-service'
 import routes from '../server/routes'
 import { initializeDatabase } from '../server/database/client'
 import { getErrorMessage } from '../server/utils/errors'
+import { getLanIp, SERVICE_APP_ID, SERVICE_NAME } from './network'
 
 export class ExpressServer {
   private app: express.Application
@@ -83,24 +84,31 @@ export class ExpressServer {
     throw new Error(' Unexpected error while finding a port')
   }
 
-  public async start(port: number = 3000): Promise<{ serviceName: string; port: number }> {
+  public async start(
+    port: number = 3000
+  ): Promise<{ serviceName: string; port: number; ip: string }> {
     try {
       const availablePort = await this.findAvailablePort(port)
-      const bonjourServiceName = `pos-main-service-${Math.floor(Math.random() * 1000)}`
+      // Stable, identifiable service name (no more random suffix that left
+      // stale entries in mDNS caches). A txt record lets tills filter to us.
+      const bonjourServiceName = SERVICE_NAME
+      const ip = getLanIp()
 
       this.server = await this.app.listen(availablePort, () => {
         this.bonjourInstance.publish({
           name: bonjourServiceName,
           type: 'http',
-          port: availablePort
+          port: availablePort,
+          txt: { app: SERVICE_APP_ID, ip }
         })
 
-        console.log(`Server is running on port ${availablePort}`)
+        console.log(`Server is running on ${ip}:${availablePort}`)
       })
 
       return {
         serviceName: bonjourServiceName,
-        port: availablePort
+        port: availablePort,
+        ip
       }
     } catch (error) {
       console.error('Error starting server:', getErrorMessage(error))
