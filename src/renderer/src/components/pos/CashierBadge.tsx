@@ -78,28 +78,28 @@ function CashierBadge(): JSX.Element | null {
       <div className="relative">
         <button
           onClick={() => setMenuOpen(!menuOpen)}
-          className="flex items-center gap-2 bg-[#F5F5F5] border border-[#DCDCDC] px-3 py-1 rounded-lg text-secondary text-sm"
+          className="flex items-center gap-2 bg-white border border-line px-3 py-2 rounded-control text-ink text-sm font-semibold hover:bg-app transition-colors"
         >
-          <FaUserCircle className="text-primary-700" />
+          <FaUserCircle className="text-primary-700 text-base" />
           {cashier.fullName}
         </button>
         {menuOpen && (
-          <div className="absolute right-0 mt-1 w-44 bg-white border border-[#DCDCDC] rounded-lg shadow-lg z-40 text-sm">
+          <div className="absolute right-0 mt-2 w-48 card shadow-elevated z-40 text-sm overflow-hidden p-1">
             <button
               onClick={showXReport}
-              className="block w-full text-left px-4 py-2 hover:bg-[#F5F5F5]"
+              className="block w-full text-left px-3 py-2 rounded-lg hover:bg-app text-ink font-medium"
             >
               Shift report (X)
             </button>
             <button
               onClick={startCloseShift}
-              className="block w-full text-left px-4 py-2 hover:bg-[#F5F5F5]"
+              className="block w-full text-left px-3 py-2 rounded-lg hover:bg-app text-ink font-medium"
             >
               Close shift (Z)
             </button>
             <button
               onClick={switchCashier}
-              className="block w-full text-left px-4 py-2 hover:bg-[#F5F5F5] text-[#FD0002]"
+              className="block w-full text-left px-3 py-2 rounded-lg hover:bg-danger-50 text-danger-600 font-medium"
             >
               Switch cashier
             </button>
@@ -108,15 +108,15 @@ function CashierBadge(): JSX.Element | null {
       </div>
 
       {report && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#000]/60">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-lg max-h-[85vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-3">
-              <h2 className="text-lg font-bold text-secondary">
+        <div className="overlay">
+          <div className="card w-full max-w-md p-6 shadow-elevated max-h-[85vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-bold text-ink">
                 {closing ? 'Close Shift' : 'Shift Report'}
               </h2>
               <button
                 onClick={() => setReport(null)}
-                className="text-gray-500 hover:text-gray-700 text-xl"
+                className="flex items-center justify-center w-8 h-8 rounded-lg text-muted hover:bg-app hover:text-ink text-xl"
               >
                 &times;
               </button>
@@ -125,10 +125,8 @@ function CashierBadge(): JSX.Element | null {
             <ShiftReportView report={report} />
 
             {closing && (
-              <div className="mt-4 border-t border-[#EEE] pt-3">
-                <label className="text-xs font-bold text-secondary block mb-1">
-                  Cash counted in drawer (₦)
-                </label>
+              <div className="mt-4 border-t border-line pt-4">
+                <label className="label">Cash counted in drawer (₦)</label>
                 <div className="flex gap-2">
                   <input
                     type="number"
@@ -136,12 +134,12 @@ function CashierBadge(): JSX.Element | null {
                     value={counted}
                     onChange={(e) => setCounted(e.target.value)}
                     autoFocus
-                    className="flex-1 px-3 py-2 rounded-lg border border-[#DCDCDC] focus:outline-none focus:border-primary-500"
+                    className="input flex-1"
                   />
                   <button
                     onClick={confirmCloseShift}
                     disabled={busy || counted === ''}
-                    className="px-5 py-2 rounded-lg bg-primary-700 text-white font-bold hover:bg-primary-900 disabled:opacity-50"
+                    className="btn-primary shrink-0"
                   >
                     {busy ? 'Closing…' : 'Close Shift'}
                   </button>

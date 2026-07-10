@@ -54,7 +54,7 @@ function Staff(): JSX.Element {
   return (
     <div className="w-full 2xl:max-w-[2000px] 2xl:m-auto py-1 px-8 md:px-24 mt-7">
       <h1 className="text-xl font-bold text-secondary">Staff Accounts</h1>
-      <p className="text-sm text-gray-600 mt-1">
+      <p className="text-sm text-muted mt-1">
         Approve new staff so they can log in. The owner account is always active.
       </p>
 
@@ -69,7 +69,7 @@ function Staff(): JSX.Element {
           {admins.map((admin) => (
             <div
               key={admin.id}
-              className="flex items-center justify-between bg-[#F6F6F6] rounded-md px-4 py-3"
+              className="flex items-center justify-between bg-app rounded-md px-4 py-3"
             >
               <div>
                 <p className="font-bold text-secondary">
@@ -80,11 +80,11 @@ function Staff(): JSX.Element {
                     </span>
                   ) : null}
                 </p>
-                <p className="text-xs text-gray-500">{admin.phoneNumber}</p>
+                <p className="text-xs text-muted">{admin.phoneNumber}</p>
               </div>
               <div className="flex items-center gap-3">
                 <span
-                  className={`text-xs font-medium px-2 py-1 rounded ${admin.verified ? 'bg-[#DDFFFC] text-[#01A920]' : 'bg-[#F5E6E8] text-[#FD0002]'}`}
+                  className={`text-xs font-medium px-2 py-1 rounded ${admin.verified ? 'bg-success-50 text-success-700' : 'bg-danger-50 text-danger-600'}`}
                 >
                   {admin.verified ? 'Active' : 'Pending'}
                 </span>
@@ -94,7 +94,7 @@ function Staff(): JSX.Element {
                     disabled={busyId === admin.id}
                     className={`text-sm font-bold px-3 py-1 rounded-md disabled:opacity-50 ${
                       admin.verified
-                        ? 'border border-[#FD0002] text-[#FD0002]'
+                        ? 'border border-danger-500 text-danger-600'
                         : 'bg-primary-700 text-white'
                     }`}
                   >
@@ -104,7 +104,7 @@ function Staff(): JSX.Element {
               </div>
             </div>
           ))}
-          {admins.length === 0 && <p className="text-gray-500 text-sm">No staff accounts yet.</p>}
+          {admins.length === 0 && <p className="text-muted text-sm">No staff accounts yet.</p>}
         </div>
       )}
 

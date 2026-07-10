@@ -1,4 +1,5 @@
 import { RxReload } from 'react-icons/rx'
+import { FiSearch } from 'react-icons/fi'
 import { useState, useRef, useEffect } from 'react'
 import Logo from '@renderer/assets/images/logo.svg'
 import CreateOrder, { CreateOrderHandle, DraftOrderGroup } from './CreateOrder'
@@ -94,7 +95,7 @@ function SpecialOrder() {
   }
 
   const FoodCardSkeleton = () => (
-    <div className="mt-3 bg-[#F5F5F533] rounded-lg p-3 border border-[#DCDCDC] animate-pulse">
+    <div className="mt-3 bg-[#F5F5F533] rounded-lg p-3 border border-line animate-pulse">
       <div className="w-full flex items-center justify-center">
         <div className="w-24 h-24 bg-gray-200 rounded-full" />
       </div>
@@ -149,131 +150,128 @@ function SpecialOrder() {
   )
   return (
     <>
-      <div className="md:grid md:grid-cols-12 w-full py-1 px-8 md:pl-8 mt-7">
+      <div className="grid grid-cols-1 lg:grid-cols-12 w-full gap-6 px-6 md:px-10 pt-5 pb-8">
         {/* Product Menu */}
-        <div className="col-span-8 pr-4">
-          <div className="flex items-center flex-col">
-            <div className="flex-auto w-full">
-              <h1 className="text-xl font-bold text-secondary">Menu: </h1>
-              {categoryLoading ? (
-                <>
-                  <CategorySkeleton />
-                </>
-              ) : (
-                <>
-                  <div className="flex items-start mt-3 flex-wrap gap-3">
-                    <div
-                      className={`flex items-center gap-2 cursor-pointer px-4 py-2 text-xs border border-[#DCDCDC] rounded-md font-bold ${
-                        selectedCategory === 'all'
-                          ? 'bg-primary-700 text-white'
-                          : 'bg-[#F5F5F5] text-secondary'
-                      }`}
-                      onClick={() => setSelectedCategory('all')}
-                    >
-                      <p>All</p>
-                    </div>
-                    {categories.map((category) => (
-                      <div
-                        key={category.id}
-                        className={`flex items-center gap-2 cursor-pointer px-4 py-2 text-xs border border-[#DCDCDC] rounded-md ${
-                          selectedCategory === category.id
-                            ? 'bg-primary-700 text-white'
-                            : 'bg-[#F5F5F5] text-secondary'
-                        }`}
-                        onClick={() => setSelectedCategory(category.id)}
-                      >
-                        <p>{category.name}</p>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
+        <div className="lg:col-span-8">
+          <div className="flex items-center justify-between gap-4 mb-4">
+            <div>
+              <h1 className="text-lg font-bold text-ink">Special Order</h1>
+              <p className="text-xs text-muted">Add a service charge for catering & events</p>
             </div>
-            {/* Search Bar */}
-            <div className="grid grid-cols-12 gap-2 w-full mt-5">
-              <input
-                type="search"
-                placeholder="Search menu..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="col-span-9 md:col-span-10 w-full px-4 py-2 rounded-md border border-[#DCDCDC] bg-[#F5F5F5DD] placeholder-[#828080] text-[#828080] focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-              />
-
+            <div className="flex items-center gap-2 flex-1 max-w-md">
+              <div className="relative flex-1">
+                <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-muted text-base" />
+                <input
+                  type="search"
+                  placeholder="Search menu…"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="input pl-9"
+                />
+              </div>
               <button
                 type="button"
                 onClick={refreshData}
-                className="col-span-3 md:col-span-2 w-full flex items-center justify-center space-x-3 rounded-lg border border-transparent px-4 py-2 text-sm font-bold text-white shadow-sm bg-primary-700 hover:bg-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:ring-offset-2 sm:w-auto"
+                title="Refresh"
+                className="flex items-center justify-center w-11 h-11 shrink-0 rounded-control border border-line bg-white text-muted hover:bg-app hover:text-ink transition-colors"
               >
-                <span>Refresh</span> <RxReload className="text-xl" />
+                <RxReload className="text-lg" />
               </button>
             </div>
           </div>
 
-          {/* Food Cards Section */}
-          {foodLoading ? (
-            <>
-              <FoodCardSkeleton />
-            </>
+          {categoryLoading ? (
+            <CategorySkeleton />
           ) : (
-            <>
-              <div className="grid grid-cols-5 gap-4 mt-6">
-                {filteredFoods.length > 0 ? (
-                  filteredFoods.map((food) => (
+            <div className="flex items-center flex-wrap gap-2">
+              <button
+                className={`px-4 py-1.5 text-xs font-semibold rounded-full border transition-colors ${
+                  selectedCategory === 'all'
+                    ? 'bg-primary-700 text-white border-primary-700'
+                    : 'bg-white text-muted border-line hover:text-ink hover:border-primary-200'
+                }`}
+                onClick={() => setSelectedCategory('all')}
+              >
+                All
+              </button>
+              {categories.map((category) => (
+                <button
+                  key={category.id}
+                  className={`px-4 py-1.5 text-xs font-semibold rounded-full border transition-colors ${
+                    selectedCategory === category.id
+                      ? 'bg-primary-700 text-white border-primary-700'
+                      : 'bg-white text-muted border-line hover:text-ink hover:border-primary-200'
+                  }`}
+                  onClick={() => setSelectedCategory(category.id)}
+                >
+                  {category.name}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {foodLoading ? (
+            <FoodCardSkeleton />
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4 mt-5">
+              {filteredFoods.length > 0 ? (
+                filteredFoods.map((food) => {
+                  const alreadyAdded = !!selectedFoods[activeGroupIndex]?.[food.id]
+                  const disabled = !food.inStock || alreadyAdded
+                  return (
                     <div
                       key={food.id}
-                      className="bg-[#F5F5F533] rounded-lg p-3 border border-[#DCDCDC]"
+                      className="card p-3 flex flex-col transition-shadow hover:shadow-elevated"
                     >
-                      <div className="w-full flex items-center justify-center">
+                      <div className="relative w-full aspect-square rounded-xl bg-app overflow-hidden flex items-center justify-center mb-2">
                         <img
-                          src={imageError[food.id] ? Logo : (food.image ?? undefined)}
+                          src={imageError[food.id] || !food.image ? Logo : food.image}
                           alt={food.name}
-                          className="object-cover rounded-full"
+                          className="w-full h-full object-cover"
                           onError={() => setImageError((prev) => ({ ...prev, [food.id]: true }))}
                         />
+                        {!food.inStock && (
+                          <span className="absolute top-2 left-2 pill bg-danger-50 text-danger-600">
+                            Out of stock
+                          </span>
+                        )}
                       </div>
-                      <h2 className="text-sm text-[#1C1C1E] font-bold mt-2 text-center">
+                      <h2 className="text-sm text-ink font-semibold text-center line-clamp-1">
                         {food.name}
                       </h2>
                       <p
-                        className={`text-base/6 font-semibold mt-1 text-center text-secondary ${food.inStock ? '' : 'line-through'}`}
+                        className={`text-base font-bold mt-0.5 text-center ${food.inStock ? 'text-primary-700' : 'text-muted line-through'}`}
                       >
                         ₦{food.price.toLocaleString()}
                       </p>
-                      <p className="text-center text-xs text-[#FD0002]">
-                        {food.inStock ? '' : 'Out of Stock'}
-                      </p>
                       <button
-                        className={`w-full ${
-                          food.inStock && !selectedFoods[activeGroupIndex]?.[food.id]
-                            ? 'bg-[#EEE] text-primary-700 py-2 rounded-md mt-2 hover:text-primary-500 font-bold text-sm cursor-pointer'
-                            : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                        className={`w-full mt-2 py-2 rounded-control text-sm font-semibold transition-colors ${
+                          disabled
+                            ? 'bg-app text-muted cursor-not-allowed'
+                            : 'bg-primary-50 text-primary-700 hover:bg-primary-100'
                         }`}
-                        onClick={() =>
-                          food.inStock &&
-                          !selectedFoods[activeGroupIndex]?.[food.id] &&
-                          handleAddToOrder(food)
-                        }
-                        disabled={!food.inStock || selectedFoods[activeGroupIndex]?.[food.id]}
+                        onClick={() => !disabled && handleAddToOrder(food)}
+                        disabled={disabled}
                       >
-                        Add to Order
+                        {alreadyAdded ? 'Added' : 'Add to order'}
                       </button>
                     </div>
-                  ))
-                ) : (
-                  <p className="text-center col-span-full text-gray-600">No food items available</p>
-                )}
-              </div>
-            </>
+                  )
+                })
+              ) : (
+                <div className="col-span-full flex flex-col items-center justify-center py-16 text-center">
+                  <p className="text-muted text-sm">No food items found</p>
+                </div>
+              )}
+            </div>
           )}
         </div>
 
         {/* Order Details */}
-        <div className="col-span-4 bg-white border-l border-[#DCDCDC] pl-4">
-          <CreateOrder
-            ref={createOrderRef}
-            onOrderUpdate={handleOrderUpdate}
-            showServiceFee={true}
-          />
+        <div className="lg:col-span-4">
+          <div className="lg:sticky lg:top-24">
+            <CreateOrder ref={createOrderRef} onOrderUpdate={handleOrderUpdate} showServiceFee={true} />
+          </div>
         </div>
       </div>
     </>

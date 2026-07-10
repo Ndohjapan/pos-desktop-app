@@ -27,37 +27,25 @@ const tabs = [
 
 function TabsPellete({ activeTab, onTabChange }: TabsPelleteProps) {
   return (
-    <div className="w-full mt-3 bg-white">
-      {/* Desktop version */}
-      <div className="hidden md:flex justify-between items-center m-auto">
-        <div className="w-[33%] m-auto flex gap-4 justify-around">
-          {tabs.map((tab, index) => (
-            <div
+    <div className="w-full flex justify-center px-6 pt-5">
+      <div className="inline-flex items-center gap-1 rounded-full border border-line bg-surface p-1 shadow-card overflow-x-auto max-w-full">
+        {tabs.map((tab, index) => {
+          const active = activeTab === tab.name
+          return (
+            <button
               key={index}
               onClick={() => onTabChange(tab.name)}
-              className={`flex items-center gap-2 cursor-pointer px-4 py-2 text-sm border border-[#DCDCDC] rounded-full ${activeTab === tab.name ? 'bg-primary-700 shadow-lg text-white' : 'text-secondary'}`}
+              className={`flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                active
+                  ? 'bg-primary-700 text-white shadow-sm'
+                  : 'text-muted hover:text-ink hover:bg-app'
+              }`}
             >
-              {tab.icon}
-              <p>{tab.name}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Mobile version */}
-      <div className="flex md:hidden">
-        <div className="w-full flex gap-2 justify-around">
-          {tabs.map((tab, index) => (
-            <div
-              key={index}
-              onClick={() => onTabChange(tab.name)}
-              className={`flex flex-col items-center gap-1 cursor-pointer px-3 py-2 border border-[#DCDCDC] rounded-lg ${activeTab === tab.name ? 'bg-primary-700 shadow-lg text-white' : 'text-secondary'}`}
-            >
-              {tab.icon}
-              <p className="text-xs">{tab.name}</p>
-            </div>
-          ))}
-        </div>
+              <span className="text-base">{tab.icon}</span>
+              <span>{tab.name}</span>
+            </button>
+          )
+        })}
       </div>
     </div>
   )

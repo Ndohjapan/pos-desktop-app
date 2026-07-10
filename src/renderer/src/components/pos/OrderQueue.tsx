@@ -61,33 +61,33 @@ function OrderQueue(): JSX.Element {
 
     return (
       <div
-        className={`rounded-xl border-2 p-4 bg-white ${
-          isReady ? 'border-[#01A920]' : minutes >= 15 ? 'border-[#FD0002]' : 'border-[#DCDCDC]'
+        className={`rounded-card border p-4 bg-surface shadow-card ${
+          isReady ? 'border-success-500' : minutes >= 15 ? 'border-danger-500' : 'border-line'
         }`}
       >
         <div className="flex justify-between items-start">
-          <span className="text-3xl font-extrabold text-secondary">{ticketNo(order)}</span>
+          <span className="text-3xl font-extrabold text-ink tracking-tight">{ticketNo(order)}</span>
           <span
-            className={`text-xs px-2 py-1 rounded ${minutes >= 15 ? 'bg-[#F5E6E8] text-[#FD0002]' : 'bg-[#F5F5F5] text-gray-600'}`}
+            className={`pill ${minutes >= 15 ? 'bg-danger-50 text-danger-600' : 'bg-app text-muted'}`}
           >
             {minutes}m
           </span>
         </div>
-        {order.cashierName && <p className="text-xs text-gray-400 mt-0.5">{order.cashierName}</p>}
-        <div className="mt-2 space-y-0.5 max-h-32 overflow-y-auto">
+        {order.cashierName && <p className="text-xs text-muted mt-0.5">{order.cashierName}</p>}
+        <div className="mt-2.5 space-y-1 max-h-32 overflow-y-auto">
           {items.map((item, index) => (
-            <p key={index} className="text-sm text-secondary">
-              <b>{item.quantity}×</b> {item.foodName}
+            <p key={index} className="text-sm text-ink">
+              <b className="text-primary-700">{item.quantity}×</b> {item.foodName}
             </p>
           ))}
         </div>
         <button
           onClick={() => advance(order, isReady ? 'served' : 'ready')}
           disabled={busyId === order.id}
-          className={`mt-3 w-full py-2 rounded-lg font-bold text-sm disabled:opacity-50 ${
+          className={`mt-3 w-full py-2.5 rounded-control font-semibold text-sm disabled:opacity-50 transition-colors ${
             isReady
-              ? 'bg-[#01A920] text-white hover:opacity-90'
-              : 'bg-primary-700 text-white hover:bg-primary-900'
+              ? 'bg-success-600 text-white hover:bg-success-700'
+              : 'bg-primary-700 text-white hover:bg-primary-800'
           }`}
         >
           {busyId === order.id ? '…' : isReady ? 'Served — clear' : 'Mark Ready'}
@@ -97,7 +97,7 @@ function OrderQueue(): JSX.Element {
   }
 
   return (
-    <div className="w-full py-4 px-8">
+    <div className="w-full py-5 px-6 md:px-10">
       {loading ? (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
           {[...Array(4)].map((_, i) => (
@@ -107,28 +107,28 @@ function OrderQueue(): JSX.Element {
       ) : (
         <div className="grid md:grid-cols-2 gap-6">
           <div>
-            <h2 className="font-bold text-secondary mb-3">
-              Preparing <span className="text-gray-400">({preparing.length})</span>
+            <h2 className="font-bold text-ink mb-3">
+              Preparing <span className="text-muted">({preparing.length})</span>
             </h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
               {preparing.map((order) => (
                 <OrderCard key={order.id} order={order} />
               ))}
               {preparing.length === 0 && (
-                <p className="text-sm text-gray-400 col-span-full">Nothing being prepared</p>
+                <p className="text-sm text-muted col-span-full">Nothing being prepared</p>
               )}
             </div>
           </div>
           <div>
-            <h2 className="font-bold text-secondary mb-3">
-              Ready for pickup <span className="text-gray-400">({ready.length})</span>
+            <h2 className="font-bold text-ink mb-3">
+              Ready for pickup <span className="text-muted">({ready.length})</span>
             </h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
               {ready.map((order) => (
                 <OrderCard key={order.id} order={order} />
               ))}
               {ready.length === 0 && (
-                <p className="text-sm text-gray-400 col-span-full">Nothing waiting</p>
+                <p className="text-sm text-muted col-span-full">Nothing waiting</p>
               )}
             </div>
           </div>

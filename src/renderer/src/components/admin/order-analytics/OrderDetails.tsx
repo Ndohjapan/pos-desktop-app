@@ -70,7 +70,7 @@ const OrderDetails = ({ order, onDeleteOrder }: { order: Order; onDeleteOrder: (
               ({order.groups.flat().length} items)
             </span>
           </h2>
-          <p className="text-gray-600 text-sm">Order #{order.id}</p>
+          <p className="text-muted text-sm">Order #{order.id}</p>
         </div>
         <p className="text-center w-full text-secondary text-xs  mt-2">
           {new Date(order.createdAt).toLocaleString('en-US', {
@@ -181,7 +181,7 @@ const OrderDetails = ({ order, onDeleteOrder }: { order: Order; onDeleteOrder: (
             </button>
             <button
               // onClick={handlePrint}
-              className={`group relative w-full flex justify-center p-2 border border-transparent text-sm font-medium rounded-lg text-white ${isPrintingReceipt ? 'bg-primary-500' : 'bg-primary-700'} hover:bg-primary-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 cursor-pointer mb-4`}
+              className={`group relative w-full flex justify-center p-2 border border-transparent text-sm font-medium rounded-lg text-white ${isPrintingReceipt ? 'bg-primary-500' : 'bg-primary-700'} hover:bg-primary-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 cursor-pointer mb-4`}
               onClick={handlePrintReceipt}
               disabled={isPrintingReceipt}
             >
@@ -197,14 +197,14 @@ const OrderDetails = ({ order, onDeleteOrder }: { order: Order; onDeleteOrder: (
           <div className="border-t pt-2 space-y-2">
             {/* Subtotal */}
             <div className="flex justify-between">
-              <span className="text-gray-600">Subtotal</span>
+              <span className="text-muted">Subtotal</span>
               <span className="font-medium">₦{subtotal.toLocaleString()}</span>
             </div>
 
             {/* Service Charge - only show if present */}
             {hasServiceCharge && (
               <div className="flex justify-between">
-                <span className="text-gray-600">Service Charge</span>
+                <span className="text-muted">Service Charge</span>
                 <span className="font-medium">₦{order.serviceFee.toLocaleString()}</span>
               </div>
             )}

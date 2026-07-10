@@ -16,10 +16,10 @@ function Toggle({
   onChange: (value: boolean) => void
 }): JSX.Element {
   return (
-    <label className="flex items-start justify-between gap-4 py-3 border-b border-[#F0F0F0] cursor-pointer">
+    <label className="flex items-start justify-between gap-4 py-3 border-b border-line cursor-pointer">
       <span>
-        <span className="block font-medium text-secondary text-sm">{label}</span>
-        <span className="block text-xs text-gray-500">{hint}</span>
+        <span className="block font-semibold text-ink text-sm">{label}</span>
+        <span className="block text-xs text-muted">{hint}</span>
       </span>
       <span className="relative inline-flex items-center shrink-0">
         <input
@@ -82,18 +82,19 @@ function StoreSettingsPanel(): JSX.Element {
   }
 
   return (
-    <div className="w-full max-w-2xl px-8 md:px-24 mt-7 pb-10">
-      <h1 className="text-xl font-bold text-secondary">Store Settings</h1>
+    <div className="w-full max-w-2xl px-6 md:px-10 py-7">
+      <div className="card p-6 md:p-8">
+      <h1 className="text-xl font-bold text-ink">Store Settings</h1>
 
       {/* Which store this machine is was chosen once at setup (not editable here
           on purpose — it can't be changed by accident). Shown read-only for
           reference. */}
       <div className="mt-4 flex items-center gap-2 text-sm">
-        <span className="text-gray-500">This computer&apos;s store:</span>
-        <span className="font-bold text-secondary">{form.branchName || 'Not set'}</span>
+        <span className="text-muted">This computer&apos;s store:</span>
+        <span className="font-bold text-ink">{form.branchName || 'Not set'}</span>
       </div>
 
-      <h2 className="mt-6 text-sm font-bold text-secondary">Service mode</h2>
+      <h2 className="mt-6 text-sm font-bold text-ink">Service mode</h2>
       <Toggle
         label="Quick-Service mode (walk-in store)"
         hint="Adds the order queue, big ticket numbers, kitchen flow and daily summary — built for high-frequency service"
@@ -107,7 +108,7 @@ function StoreSettingsPanel(): JSX.Element {
         onChange={(value) => setForm({ ...form, cashiersEnabled: value })}
       />
 
-      <h2 className="mt-6 text-sm font-bold text-secondary">Kitchen printing</h2>
+      <h2 className="mt-6 text-sm font-bold text-ink">Kitchen printing</h2>
       <Toggle
         label="Print kitchen tickets automatically"
         hint="The moment an order is paid, a slip prints in the kitchen (no prices, big quantities)"
@@ -116,11 +117,11 @@ function StoreSettingsPanel(): JSX.Element {
       />
       {form.kitchenPrintingEnabled && (
         <div className="mt-3">
-          <label className="text-xs font-bold text-secondary block mb-1">Kitchen printer</label>
+          <label className="label">Kitchen printer</label>
           <select
             value={form.kitchenPrinterName}
             onChange={(e) => setForm({ ...form, kitchenPrinterName: e.target.value })}
-            className="w-full px-3 py-2 rounded-lg border border-[#DCDCDC] text-sm bg-white focus:outline-none focus:border-primary-500"
+            className="input"
           >
             <option value="">System default printer</option>
             {printers.map((printer) => (
@@ -130,19 +131,16 @@ function StoreSettingsPanel(): JSX.Element {
               </option>
             ))}
           </select>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-muted mt-1">
             Printers are read from this computer — set the kitchen printer up in Windows first.
           </p>
         </div>
       )}
 
-      <button
-        onClick={save}
-        disabled={saving}
-        className="mt-8 px-8 py-3 rounded-lg bg-primary-700 text-white font-bold hover:bg-primary-900 disabled:opacity-50"
-      >
+      <button onClick={save} disabled={saving} className="btn-primary mt-8 px-8 py-3">
         {saving ? 'Saving…' : 'Save Settings'}
       </button>
+      </div>
     </div>
   )
 }

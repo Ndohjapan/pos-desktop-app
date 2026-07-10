@@ -17,7 +17,7 @@ function ShiftReportView({ report }: { report: ShiftReport }): JSX.Element {
 
   return (
     <div className="text-sm">
-      <div className="flex justify-between text-xs text-gray-500 mb-3">
+      <div className="flex justify-between text-xs text-muted mb-3">
         <span>
           {report.shift.cashierName} · opened {openedAt}
         </span>
@@ -25,12 +25,12 @@ function ShiftReportView({ report }: { report: ShiftReport }): JSX.Element {
       </div>
 
       <div className="grid grid-cols-2 gap-2 mb-4">
-        <div className="bg-[#F6F6F6] rounded-md p-3">
-          <p className="text-xs text-gray-500">Orders</p>
+        <div className="bg-app rounded-md p-3">
+          <p className="text-xs text-muted">Orders</p>
           <p className="text-xl font-bold text-secondary">{report.orderCount}</p>
         </div>
-        <div className="bg-[#F6F6F6] rounded-md p-3">
-          <p className="text-xs text-gray-500">Gross Sales</p>
+        <div className="bg-app rounded-md p-3">
+          <p className="text-xs text-muted">Gross Sales</p>
           <p className="text-xl font-bold text-secondary">{formatNaira(report.grossSales)}</p>
         </div>
       </div>
@@ -38,15 +38,15 @@ function ShiftReportView({ report }: { report: ShiftReport }): JSX.Element {
       <h4 className="font-bold text-secondary text-xs mb-1">Sales by payment method</h4>
       <div className="mb-3">
         {report.byPaymentMethod.map((row) => (
-          <div key={row.paymentMethod} className="flex justify-between py-1 border-b border-[#EEE]">
+          <div key={row.paymentMethod} className="flex justify-between py-1 border-b border-line">
             <span>
-              {row.paymentMethod} <span className="text-gray-400">×{row.count}</span>
+              {row.paymentMethod} <span className="text-muted">×{row.count}</span>
             </span>
             <span className="font-medium">{formatNaira(row.amount)}</span>
           </div>
         ))}
         {report.byPaymentMethod.length === 0 && (
-          <p className="text-xs text-gray-400 py-1">No sales yet</p>
+          <p className="text-xs text-muted py-1">No sales yet</p>
         )}
       </div>
 
@@ -54,21 +54,21 @@ function ShiftReportView({ report }: { report: ShiftReport }): JSX.Element {
         <div className="mb-3 text-xs">
           {report.totalDiscount > 0 && (
             <div className="flex justify-between py-1">
-              <span className="text-gray-600">Discounts given</span>
-              <span className="text-[#FD0002]">-{formatNaira(report.totalDiscount)}</span>
+              <span className="text-muted">Discounts given</span>
+              <span className="text-danger-600">-{formatNaira(report.totalDiscount)}</span>
             </div>
           )}
           {report.voidCount > 0 && (
             <div className="flex justify-between py-1">
-              <span className="text-gray-600">Voided orders ({report.voidCount})</span>
-              <span className="text-[#FD0002]">{formatNaira(report.voidedAmount)}</span>
+              <span className="text-muted">Voided orders ({report.voidCount})</span>
+              <span className="text-danger-600">{formatNaira(report.voidedAmount)}</span>
             </div>
           )}
         </div>
       )}
 
       <h4 className="font-bold text-secondary text-xs mb-1">Cash drawer</h4>
-      <div className="bg-[#F6F6F6] rounded-md p-3 space-y-1">
+      <div className="bg-app rounded-md p-3 space-y-1">
         <div className="flex justify-between">
           <span>Opening float</span>
           <span>{formatNaira(report.shift.openingFloat)}</span>
@@ -90,10 +90,10 @@ function ShiftReportView({ report }: { report: ShiftReport }): JSX.Element {
             <div
               className={`flex justify-between font-bold ${
                 (report.variance ?? 0) === 0
-                  ? 'text-[#01A920]'
+                  ? 'text-success-700'
                   : (report.variance ?? 0) > 0
                     ? 'text-yellow-600'
-                    : 'text-[#FD0002]'
+                    : 'text-danger-600'
               }`}
             >
               <span>Variance</span>

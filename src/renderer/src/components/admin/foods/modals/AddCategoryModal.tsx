@@ -47,7 +47,7 @@ const AddCategoryModal = ({
       <div className="bg-white rounded-2xl p-6 w-full md:min-w-[400px] max-w-md shadow-lg">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold">Add New Category</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+          <button onClick={onClose} className="text-muted hover:text-gray-700">
             &times;
           </button>
         </div>

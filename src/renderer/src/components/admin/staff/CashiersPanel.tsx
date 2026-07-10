@@ -94,9 +94,9 @@ function CashiersPanel(): JSX.Element {
   }
 
   return (
-    <div className="mt-10 border-t border-[#EEE] pt-6">
+    <div className="mt-10 border-t border-line pt-6">
       <h2 className="text-lg font-bold text-secondary">Cashiers &amp; PINs</h2>
-      <p className="text-sm text-gray-600">
+      <p className="text-sm text-muted">
         Cashiers sign in at the till with their PIN. Supervisors approve voids and discounts.
       </p>
 
@@ -108,7 +108,7 @@ function CashiersPanel(): JSX.Element {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Bola"
-            className="px-3 py-2 rounded-lg border border-[#DCDCDC] text-sm focus:outline-none focus:border-primary-500"
+            className="px-3 py-2 rounded-lg border border-line text-sm focus:outline-none focus:border-primary-500"
           />
         </div>
         <div>
@@ -117,7 +117,7 @@ function CashiersPanel(): JSX.Element {
             value={pin}
             onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
             placeholder="e.g. 2468"
-            className="w-32 px-3 py-2 rounded-lg border border-[#DCDCDC] text-sm focus:outline-none focus:border-primary-500"
+            className="w-32 px-3 py-2 rounded-lg border border-line text-sm focus:outline-none focus:border-primary-500"
           />
         </div>
         <div>
@@ -125,7 +125,7 @@ function CashiersPanel(): JSX.Element {
           <select
             value={role}
             onChange={(e) => setRole(e.target.value === 'supervisor' ? 'supervisor' : 'cashier')}
-            className="px-3 py-2 rounded-lg border border-[#DCDCDC] text-sm bg-white focus:outline-none focus:border-primary-500"
+            className="px-3 py-2 rounded-lg border border-line text-sm bg-white focus:outline-none focus:border-primary-500"
           >
             <option value="cashier">Cashier</option>
             <option value="supervisor">Supervisor</option>
@@ -134,7 +134,7 @@ function CashiersPanel(): JSX.Element {
         <button
           onClick={add}
           disabled={adding}
-          className="px-5 py-2 rounded-lg bg-primary-700 text-white text-sm font-bold hover:bg-primary-900 disabled:opacity-50"
+          className="px-5 py-2 rounded-lg bg-primary-700 text-white text-sm font-bold hover:bg-primary-800 disabled:opacity-50"
         >
           {adding ? 'Adding…' : 'Add Cashier'}
         </button>
@@ -151,7 +151,7 @@ function CashiersPanel(): JSX.Element {
             {cashiers.map((cashier) => (
               <div
                 key={cashier.id}
-                className="flex items-center justify-between bg-[#F6F6F6] rounded-md px-4 py-2"
+                className="flex items-center justify-between bg-app rounded-md px-4 py-2"
               >
                 <div>
                   <p className="font-bold text-secondary text-sm">
@@ -162,7 +162,7 @@ function CashiersPanel(): JSX.Element {
                       </span>
                     )}
                     {!cashier.active && (
-                      <span className="ml-2 text-[10px] bg-[#F5E6E8] text-[#FD0002] px-2 py-0.5 rounded">
+                      <span className="ml-2 text-[10px] bg-danger-50 text-danger-600 px-2 py-0.5 rounded">
                         Disabled
                       </span>
                     )}
@@ -182,7 +182,7 @@ function CashiersPanel(): JSX.Element {
                   <button
                     onClick={() => toggleActive(cashier)}
                     disabled={busyId === cashier.id}
-                    className={`underline disabled:opacity-50 ${cashier.active ? 'text-[#FD0002]' : 'text-[#01A920]'}`}
+                    className={`underline disabled:opacity-50 ${cashier.active ? 'text-danger-600' : 'text-success-700'}`}
                   >
                     {cashier.active ? 'Disable' : 'Enable'}
                   </button>
@@ -190,13 +190,13 @@ function CashiersPanel(): JSX.Element {
               </div>
             ))}
             {cashiers.length === 0 && (
-              <p className="text-sm text-gray-500">No cashiers yet — add the team above.</p>
+              <p className="text-sm text-muted">No cashiers yet — add the team above.</p>
             )}
           </>
         )}
       </div>
       {resetTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#000]/60">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-lg">
             <div className="flex justify-between items-center mb-2">
               <h2 className="text-lg font-bold text-secondary">
@@ -204,7 +204,7 @@ function CashiersPanel(): JSX.Element {
               </h2>
               <button
                 onClick={() => setResetTarget(null)}
-                className="text-gray-500 hover:text-gray-700 text-xl"
+                className="text-muted hover:text-gray-700 text-xl"
               >
                 &times;
               </button>
@@ -214,12 +214,12 @@ function CashiersPanel(): JSX.Element {
               onChange={(e) => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
               placeholder="4–6 digits"
               autoFocus
-              className="w-full px-3 py-2 rounded-lg border border-[#DCDCDC] focus:outline-none focus:border-primary-500"
+              className="w-full px-3 py-2 rounded-lg border border-line focus:outline-none focus:border-primary-500"
             />
             <button
               onClick={confirmResetPin}
               disabled={busyId === resetTarget.id}
-              className="mt-3 w-full py-2 rounded-lg bg-primary-700 text-white font-bold hover:bg-primary-900 disabled:opacity-50"
+              className="mt-3 w-full py-2 rounded-lg bg-primary-700 text-white font-bold hover:bg-primary-800 disabled:opacity-50"
             >
               {busyId === resetTarget.id ? 'Saving…' : 'Save PIN'}
             </button>

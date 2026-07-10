@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import ConncetionIcon from '@renderer/assets/icons/connection.svg'
 import { BsFillHddNetworkFill } from 'react-icons/bs'
+import { CgSpinner } from 'react-icons/cg'
 import { useConnectionStore, useServiceStore } from '../../store/connection'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
@@ -51,13 +52,18 @@ function ConnectionModal({
   if (!isOpen) return <></>
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-[#000]/50">
-      <div className="bg-white rounded-2xl p-6 w-full md:min-w-[400px] max-w-md shadow-lg">
-        <div className="flex justify-between items-center mb-4">
-          <img src={ConncetionIcon} alt="Connection Icon" className="" />
+    <div className="overlay">
+      <div className="card w-full max-w-md p-6 shadow-elevated">
+        <div className="flex justify-between items-center mb-5">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary-50">
+              <img src={ConncetionIcon} alt="" className="w-5" />
+            </div>
+            <h2 className="text-base font-bold text-ink">Connect to main device</h2>
+          </div>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 cursor-pointer text-xl"
+            className="flex items-center justify-center w-8 h-8 rounded-lg text-muted hover:bg-app hover:text-ink transition-colors text-xl"
           >
             &times;
           </button>
@@ -89,14 +95,22 @@ function SearchingState(): JSX.Element {
     return (): void => clearInterval(interval)
   }, [])
 
-  return <p className="text-secondary font-bold">Searching for main device{dots}</p>
+  return (
+    <div className="flex items-center gap-3 py-2">
+      <CgSpinner className="animate-spin text-primary-700 text-xl" />
+      <p className="text-ink font-medium text-sm">Searching for main device{dots}</p>
+    </div>
+  )
 }
 
 function NotFoundState({ onRetry }: { onRetry: () => void }): JSX.Element {
   return (
-    <div className="flex items-center justify-between">
-      <p className="text-secondary font-bold">Unable to locate main device</p>
-      <button onClick={onRetry} className="text-red-500 font-medium hover:underline cursor-pointer">
+    <div className="flex items-center justify-between rounded-control bg-warning-50 border border-warning-100 px-4 py-3">
+      <p className="text-warning-700 font-medium text-sm">Unable to locate main device</p>
+      <button
+        onClick={onRetry}
+        className="text-sm font-semibold text-primary-700 hover:text-primary-800"
+      >
         &#x21bb; Retry
       </button>
     </div>
@@ -112,26 +126,28 @@ function DeviceFoundState({
 }): JSX.Element {
   return (
     <div>
-      <p className="text-secondary font-bold">{services.length} device(s) found</p>
-      <p className="text-secondary text-xs">Select device to connect</p>
+      <p className="text-sm font-semibold text-ink">{services.length} device(s) found</p>
+      <p className="text-muted text-xs">Select a device to connect</p>
       <div className="mt-3 flex flex-col gap-2">
         {services.map((service, index) => (
-          <div
+          <button
             key={index}
-            className="p-3 bg-[#F6F6F6] rounded-md flex justify-between items-center cursor-pointer hover:bg-[#EFEFEF]"
             onClick={() => onSelect(service)}
+            className="w-full p-3 rounded-control border border-line bg-white flex justify-between items-center cursor-pointer hover:border-primary-300 hover:bg-primary-50/40 transition-colors text-left"
           >
-            <div className="flex flex-col gap-1">
-              <BsFillHddNetworkFill className="text-secondary text-lg" />
-              <h3 className="text-secondary text-sm">{service.name}</h3>
-              <span className="text-secondary/60 text-xs">
-                {service.ip}:{service.port}
-              </span>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-app text-primary-700">
+                <BsFillHddNetworkFill className="text-base" />
+              </div>
+              <div className="flex flex-col">
+                <h3 className="text-ink text-sm font-semibold">{service.name}</h3>
+                <span className="text-muted text-xs">
+                  {service.ip}:{service.port}
+                </span>
+              </div>
             </div>
-            <div className="px-2 rounded-md bg-[#F5E6E8]">
-              <span className="text-sm font-medium text-[#FD0002]">Not connected</span>
-            </div>
-          </div>
+            <span className="pill bg-app text-muted">Tap to connect</span>
+          </button>
         ))}
       </div>
     </div>
@@ -161,27 +177,24 @@ function ManualConnect({
   }
 
   return (
-    <div className="mt-4 border-t border-[#EEE] pt-3">
-      <p className="text-secondary text-xs font-semibold mb-2">
-        Or connect manually (ask for the Host device IP shown on its screen)
+    <div className="mt-5 border-t border-line pt-4">
+      <p className="text-muted text-xs font-semibold mb-2">
+        Or connect manually — ask for the Host device IP shown on its screen
       </p>
       <div className="flex items-center gap-2">
         <input
           value={ip}
           onChange={(e) => setIp(e.target.value)}
           placeholder="192.168.0.12"
-          className="flex-1 px-3 py-2 rounded-md border border-[#DCDCDC] text-sm focus:outline-none focus:border-primary-500"
+          className="input flex-1"
         />
         <input
           value={port}
           onChange={(e) => setPort(e.target.value)}
           placeholder="3000"
-          className="w-20 px-3 py-2 rounded-md border border-[#DCDCDC] text-sm focus:outline-none focus:border-primary-500"
+          className="input w-20"
         />
-        <button
-          onClick={handleManual}
-          className="px-4 py-2 bg-primary-700 text-white text-sm font-bold rounded-md hover:bg-primary-800"
-        >
+        <button onClick={handleManual} className="btn-primary shrink-0">
           Connect
         </button>
       </div>

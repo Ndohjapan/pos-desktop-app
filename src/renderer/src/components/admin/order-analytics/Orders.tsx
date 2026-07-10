@@ -165,7 +165,7 @@ function Orders() {
               id="date"
               defaultValue={currentDate}
               onChange={(e) => setCurrentDate(e.target.value)}
-              className="ml-3 px-7 py-2 rounded-sm border border-[#DCDCDC] bg-[#F0F1F2] text-[#6B7280] text-xs"
+              className="ml-3 px-7 py-2 rounded-sm border border-line bg-app text-[#6B7280] text-xs"
             />
           </div>
           <div className="flex items-center justify-between space-x-3">
@@ -186,17 +186,17 @@ function Orders() {
 
         {/* Sync status bar — shows real backup health at a glance */}
         {syncStatus && (
-          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-md bg-[#F6F6F6] px-3 py-2 text-xs">
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-md bg-app px-3 py-2 text-xs">
             <span className="text-secondary">
               Last backup: <b>{formatLastSync(syncStatus.lastSyncAt)}</b>
             </span>
-            <span className={syncStatus.pending > 0 ? 'text-yellow-600' : 'text-[#01A920]'}>
+            <span className={syncStatus.pending > 0 ? 'text-yellow-600' : 'text-success-700'}>
               {syncStatus.pending} pending
             </span>
             {syncStatus.isSyncing && <span className="text-primary-700">syncing…</span>}
             {syncStatus.failed > 0 && (
               <>
-                <span className="text-[#FD0002] font-medium">{syncStatus.failed} failed</span>
+                <span className="text-danger-600 font-medium">{syncStatus.failed} failed</span>
                 <button
                   onClick={handleRetryFailed}
                   disabled={isRetrying}
@@ -220,7 +220,7 @@ function Orders() {
                 searchForOrder()
               }
             }}
-            className="col-span-9 md:col-span-10 w-full px-4 py-2 rounded-md border border-[#DCDCDC] bg-[#F5F5F5DD] placeholder-[#828080] text-[#828080] focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+            className="col-span-9 md:col-span-10 w-full px-4 py-2 rounded-md border border-line bg-[#F5F5F5DD] placeholder-[#828080] text-[#828080] focus:outline-none focus:ring-primary-500 focus:border-primary-500"
           />
 
           <button
@@ -249,7 +249,7 @@ function Orders() {
       </div>
 
       {/* Order Details Section (30%) */}
-      <div className="col-span-4 bg-white border-l border-[#DCDCDC]  pl-4">
+      <div className="col-span-4 bg-white border-l border-line  pl-4">
         {order ? (
           <>
             <OrderDetails order={order} onDeleteOrder={handleOrderDelete} />
@@ -260,7 +260,7 @@ function Orders() {
               Order Details
             </h2>
             <div className="h-full flex flex-col items-center justify-center">
-              <p className="text-sm text-gray-600">Select an order to see the details here</p>
+              <p className="text-sm text-muted">Select an order to see the details here</p>
             </div>
           </>
         )}

@@ -30,41 +30,41 @@ function PinPad({
 
   return (
     <div className="w-full max-w-[260px] mx-auto">
-      <div className="flex justify-center items-center h-10 mb-3 gap-2">
+      <div className="flex justify-center items-center h-9 mb-4 gap-2.5">
         {pin.length === 0 ? (
-          <span className="text-gray-400 text-sm">Enter PIN</span>
+          <span className="text-muted text-sm">Enter PIN</span>
         ) : (
           Array.from(pin).map((_, i) => (
-            <span key={i} className="w-3 h-3 rounded-full bg-secondary inline-block" />
+            <span key={i} className="w-3 h-3 rounded-full bg-primary-700 inline-block" />
           ))
         )}
       </div>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-2.5">
         {keys.map((key) => (
           <button
             key={key}
             onClick={() => press(key)}
-            className="py-4 rounded-lg bg-[#F5F5F5] text-secondary text-xl font-bold hover:bg-[#ECECEC] active:bg-[#e0e0e0]"
+            className="h-14 rounded-control bg-white border border-line text-ink text-xl font-semibold hover:bg-app active:bg-line transition-colors"
           >
             {key}
           </button>
         ))}
         <button
           onClick={() => setPin(pin.slice(0, -1))}
-          className="py-4 rounded-lg bg-[#F5F5F5] text-secondary flex items-center justify-center hover:bg-[#ECECEC]"
+          className="h-14 rounded-control bg-white border border-line text-muted flex items-center justify-center hover:bg-app hover:text-ink transition-colors"
         >
           <FaBackspace />
         </button>
         <button
           onClick={() => press('0')}
-          className="py-4 rounded-lg bg-[#F5F5F5] text-secondary text-xl font-bold hover:bg-[#ECECEC]"
+          className="h-14 rounded-control bg-white border border-line text-ink text-xl font-semibold hover:bg-app active:bg-line transition-colors"
         >
           0
         </button>
         <button
           onClick={submit}
           disabled={pin.length < 4 || busy}
-          className="py-4 rounded-lg bg-primary-700 text-white text-xl font-bold hover:bg-primary-900 disabled:opacity-40"
+          className="h-14 rounded-control bg-primary-700 text-white text-xl font-bold hover:bg-primary-800 disabled:opacity-40 transition-colors"
         >
           ✓
         </button>

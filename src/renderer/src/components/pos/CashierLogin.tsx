@@ -69,83 +69,81 @@ function CashierLogin(): JSX.Element {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-white flex flex-col items-center justify-center p-6">
-      <img src={Logo} alt="Amala Oluyole" className="max-w-[140px] mb-4" />
+    <div className="fixed inset-0 z-50 bg-app flex flex-col items-center justify-center p-6">
+      <div className="card w-full max-w-md p-8 flex flex-col items-center text-center">
+        <img src={Logo} alt="Amala Oluyole" className="w-24 mb-5" />
 
-      {stage === 'pick' && (
-        <>
-          <h2 className="text-lg font-bold text-secondary mb-1">Who is on the register?</h2>
-          <p className="text-xs text-gray-500 mb-4">Select your name to sign in</p>
-          <div className="flex flex-wrap justify-center gap-3 max-w-lg">
-            {cashiers.map((cashier) => (
-              <button
-                key={cashier.id}
-                onClick={() => {
-                  setSelected(cashier)
-                  setStage('pin')
-                }}
-                className="px-6 py-4 rounded-xl bg-[#F5F5F5] hover:bg-[#ECECEC] text-secondary font-bold min-w-[140px]"
-              >
-                {cashier.fullName}
-                {cashier.role === 'supervisor' && (
-                  <span className="block text-[10px] font-medium text-yellow-700 mt-1">
-                    Supervisor
-                  </span>
-                )}
-              </button>
-            ))}
-            {cashiers.length === 0 && (
-              <p className="text-sm text-gray-500 max-w-xs text-center">
-                No cashier accounts yet. The owner can add them in Admin → Staff.
-              </p>
-            )}
-          </div>
-        </>
-      )}
+        {stage === 'pick' && (
+          <>
+            <h2 className="text-lg font-bold text-ink mb-1">Who is on the register?</h2>
+            <p className="text-xs text-muted mb-5">Select your name to sign in</p>
+            <div className="flex flex-wrap justify-center gap-2.5 w-full">
+              {cashiers.map((cashier) => (
+                <button
+                  key={cashier.id}
+                  onClick={() => {
+                    setSelected(cashier)
+                    setStage('pin')
+                  }}
+                  className="px-5 py-3.5 rounded-control bg-white border border-line hover:border-primary-300 hover:bg-primary-50/40 text-ink font-semibold min-w-[130px] transition-colors"
+                >
+                  {cashier.fullName}
+                  {cashier.role === 'supervisor' && (
+                    <span className="block text-[10px] font-medium text-warning-700 mt-0.5">
+                      Supervisor
+                    </span>
+                  )}
+                </button>
+              ))}
+              {cashiers.length === 0 && (
+                <p className="text-sm text-muted max-w-xs">
+                  No cashier accounts yet. The owner can add them in Admin → Staff.
+                </p>
+              )}
+            </div>
+          </>
+        )}
 
-      {stage === 'pin' && selected && (
-        <>
-          <h2 className="text-lg font-bold text-secondary mb-4">Hi {selected.fullName}</h2>
-          <PinPad onSubmit={handlePin} busy={busy} />
-          <button
-            onClick={() => {
-              setSelected(null)
-              setStage('pick')
-            }}
-            className="mt-4 text-sm text-primary-700 underline"
-          >
-            Not you? Go back
-          </button>
-        </>
-      )}
+        {stage === 'pin' && selected && (
+          <>
+            <h2 className="text-lg font-bold text-ink mb-5">Hi {selected.fullName}</h2>
+            <PinPad onSubmit={handlePin} busy={busy} />
+            <button
+              onClick={() => {
+                setSelected(null)
+                setStage('pick')
+              }}
+              className="mt-4 text-sm font-medium text-primary-700 hover:text-primary-800"
+            >
+              Not you? Go back
+            </button>
+          </>
+        )}
 
-      {stage === 'float' && pendingCashier && (
-        <>
-          <h2 className="text-lg font-bold text-secondary mb-1">Open your shift</h2>
-          <p className="text-xs text-gray-500 mb-4">
-            Count the cash currently in the drawer (your float)
-          </p>
-          <div className="flex items-center gap-2">
-            <span className="text-secondary font-bold">₦</span>
-            <input
-              type="number"
-              min="0"
-              value={float}
-              onChange={(e) => setFloat(e.target.value)}
-              placeholder="0"
-              autoFocus
-              className="w-40 px-3 py-3 text-lg rounded-lg border border-[#DCDCDC] focus:outline-none focus:border-primary-500"
-            />
-          </div>
-          <button
-            onClick={handleOpenShift}
-            disabled={busy}
-            className="mt-4 px-8 py-3 rounded-lg bg-primary-700 text-white font-bold hover:bg-primary-900 disabled:opacity-50"
-          >
-            {busy ? 'Opening…' : 'Start Shift'}
-          </button>
-        </>
-      )}
+        {stage === 'float' && pendingCashier && (
+          <>
+            <h2 className="text-lg font-bold text-ink mb-1">Open your shift</h2>
+            <p className="text-xs text-muted mb-5">
+              Count the cash currently in the drawer (your float)
+            </p>
+            <div className="flex items-center gap-2">
+              <span className="text-muted font-bold text-lg">₦</span>
+              <input
+                type="number"
+                min="0"
+                value={float}
+                onChange={(e) => setFloat(e.target.value)}
+                placeholder="0"
+                autoFocus
+                className="w-40 px-3 py-3 text-lg text-center rounded-control border border-line focus:outline-none focus:border-primary-500 focus:shadow-focus"
+              />
+            </div>
+            <button onClick={handleOpenShift} disabled={busy} className="btn-primary mt-5 px-8 py-3">
+              {busy ? 'Opening…' : 'Start Shift'}
+            </button>
+          </>
+        )}
+      </div>
     </div>
   )
 }

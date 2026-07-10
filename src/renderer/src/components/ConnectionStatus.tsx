@@ -2,13 +2,13 @@ import { useConnectionHealth } from '@renderer/hooks/useConnectionHealth'
 import { useConnectionStore } from '@renderer/store/connection'
 
 const STATUS_STYLES = {
-  connected: { dot: 'bg-[#01A920]', text: 'text-[#01A920]', label: 'Connected' },
+  connected: { dot: 'bg-success-600', text: 'text-success-700', label: 'Connected' },
   reconnecting: {
-    dot: 'bg-yellow-500 animate-pulse',
-    text: 'text-yellow-600',
+    dot: 'bg-warning-600 animate-pulse',
+    text: 'text-warning-700',
     label: 'Reconnecting…'
   },
-  offline: { dot: 'bg-[#FD0002]', text: 'text-[#FD0002]', label: 'Disconnected' }
+  offline: { dot: 'bg-danger-600', text: 'text-danger-600', label: 'Disconnected' }
 } as const
 
 /**
@@ -25,16 +25,14 @@ function ConnectionStatus(): JSX.Element {
   const isMain = type === 'Main'
 
   return (
-    <div className="flex items-center gap-2 text-xs">
-      <span className={`inline-block w-2.5 h-2.5 rounded-full ${style.dot}`} />
+    <div className="flex items-center gap-1.5 text-xs mt-0.5">
+      <span className={`inline-block w-2 h-2 rounded-full ${style.dot}`} />
       <span className={`font-medium ${style.text}`}>{style.label}</span>
       {isMain && hostIp ? (
-        <span className="text-secondary/70 hidden md:inline">· This device: {hostIp}</span>
+        <span className="text-muted hidden lg:inline">· This device {hostIp}</span>
       ) : (
         !isMain &&
-        mainSystemIP && (
-          <span className="text-secondary/70 hidden md:inline">· Host: {mainSystemIP}</span>
-        )
+        mainSystemIP && <span className="text-muted hidden lg:inline">· Host {mainSystemIP}</span>
       )}
     </div>
   )

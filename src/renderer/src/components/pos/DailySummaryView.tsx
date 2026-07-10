@@ -30,14 +30,14 @@ function DailySummaryView(): JSX.Element {
   }, [load])
 
   return (
-    <div className="w-full py-4 px-8 max-w-4xl">
+    <div className="w-full py-5 px-6 md:px-10 max-w-5xl">
       <div className="flex items-center gap-3">
-        <h1 className="text-xl font-bold text-secondary">Daily Summary</h1>
+        <h1 className="text-xl font-bold text-ink">Daily Summary</h1>
         <input
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className="px-4 py-2 rounded-sm border border-[#DCDCDC] bg-[#F0F1F2] text-[#6B7280] text-xs"
+          className="input w-auto py-2"
         />
       </div>
 
@@ -50,23 +50,23 @@ function DailySummaryView(): JSX.Element {
       ) : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5">
-            <div className="bg-[#F6F6F6] rounded-md p-4">
-              <p className="text-xs text-gray-500">Orders</p>
-              <p className="text-2xl font-bold text-secondary">{summary.orderCount}</p>
+            <div className="card p-4">
+              <p className="text-xs text-muted">Orders</p>
+              <p className="text-2xl font-extrabold text-ink tracking-tight">{summary.orderCount}</p>
             </div>
-            <div className="bg-[#F6F6F6] rounded-md p-4">
-              <p className="text-xs text-gray-500">Gross Sales</p>
-              <p className="text-2xl font-bold text-secondary">{formatNaira(summary.grossSales)}</p>
+            <div className="card p-4">
+              <p className="text-xs text-muted">Gross Sales</p>
+              <p className="text-2xl font-extrabold text-ink tracking-tight">{formatNaira(summary.grossSales)}</p>
             </div>
-            <div className="bg-[#F6F6F6] rounded-md p-4">
-              <p className="text-xs text-gray-500">Discounts</p>
-              <p className="text-2xl font-bold text-[#FD0002]">
+            <div className="card p-4">
+              <p className="text-xs text-muted">Discounts</p>
+              <p className="text-2xl font-bold text-danger-600">
                 {formatNaira(summary.totalDiscount)}
               </p>
             </div>
-            <div className="bg-[#F6F6F6] rounded-md p-4">
-              <p className="text-xs text-gray-500">Voided ({summary.voidCount})</p>
-              <p className="text-2xl font-bold text-[#FD0002]">
+            <div className="card p-4">
+              <p className="text-xs text-muted">Voided ({summary.voidCount})</p>
+              <p className="text-2xl font-bold text-danger-600">
                 {formatNaira(summary.voidedAmount)}
               </p>
             </div>
@@ -74,39 +74,39 @@ function DailySummaryView(): JSX.Element {
 
           <div className="grid md:grid-cols-2 gap-6 mt-6">
             <div>
-              <h2 className="font-bold text-secondary text-sm mb-2">Sales by payment method</h2>
-              <div className="bg-white border border-[#EEE] rounded-md divide-y divide-[#F0F0F0]">
+              <h2 className="font-bold text-ink text-sm mb-2">Sales by payment method</h2>
+              <div className="card divide-y divide-line overflow-hidden">
                 {summary.byPaymentMethod.map((row) => (
                   <div key={row.paymentMethod} className="flex justify-between px-4 py-2 text-sm">
                     <span>
-                      {row.paymentMethod} <span className="text-gray-400">×{row.count}</span>
+                      {row.paymentMethod} <span className="text-muted">×{row.count}</span>
                     </span>
                     <span className="font-medium">{formatNaira(row.amount)}</span>
                   </div>
                 ))}
                 {summary.byPaymentMethod.length === 0 && (
-                  <p className="px-4 py-3 text-sm text-gray-400">No sales</p>
+                  <p className="px-4 py-3 text-sm text-muted">No sales</p>
                 )}
               </div>
             </div>
 
             <div>
-              <h2 className="font-bold text-secondary text-sm mb-2">Top sellers</h2>
-              <div className="bg-white border border-[#EEE] rounded-md divide-y divide-[#F0F0F0]">
+              <h2 className="font-bold text-ink text-sm mb-2">Top sellers</h2>
+              <div className="card divide-y divide-line overflow-hidden">
                 {summary.topItems.map((item, index) => (
                   <div key={item.foodName} className="flex justify-between px-4 py-2 text-sm">
                     <span>
-                      <span className="text-gray-400 mr-2">{index + 1}.</span>
+                      <span className="text-muted mr-2">{index + 1}.</span>
                       {item.foodName}
                     </span>
                     <span>
                       <b>{item.quantity}</b>
-                      <span className="text-gray-400 ml-2">{formatNaira(item.amount)}</span>
+                      <span className="text-muted ml-2">{formatNaira(item.amount)}</span>
                     </span>
                   </div>
                 ))}
                 {summary.topItems.length === 0 && (
-                  <p className="px-4 py-3 text-sm text-gray-400">No items sold</p>
+                  <p className="px-4 py-3 text-sm text-muted">No items sold</p>
                 )}
               </div>
             </div>

@@ -190,7 +190,7 @@ export default function FoodTable({
                           </div>
                         </div>
                       </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-muted">
                         <input
                           type="number"
                           className="w-20 p-1 border rounded"
@@ -198,7 +198,7 @@ export default function FoodTable({
                           onChange={(e) => handleChange(food.id, 'quantity', e.target.value)}
                         />
                       </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-muted">
                         <input
                           type="number"
                           className="w-20 p-1 border rounded"
@@ -206,7 +206,7 @@ export default function FoodTable({
                           onChange={(e) => handleChange(food.id, 'price', e.target.value)}
                         />
                       </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-muted">
                         <label className="relative inline-flex items-center cursor-pointer">
                           <input
                             type="checkbox"
@@ -231,7 +231,7 @@ export default function FoodTable({
                             className={`px-10 py-2 text-sm font-bold rounded-md ${
                               modifiedRows[food.id]?.isModified
                                 ? 'bg-primary-700 text-white'
-                                : 'bg-[#EEEEEE] text-gray-400 cursor-not-allowed'
+                                : 'bg-[#EEEEEE] text-muted cursor-not-allowed'
                             }`}
                             disabled={!modifiedRows[food.id]?.isModified || isUpdating[food.id]}
                             onClick={() => handleUpdateFood(food.id)}

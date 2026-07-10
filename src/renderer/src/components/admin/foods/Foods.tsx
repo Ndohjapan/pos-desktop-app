@@ -94,10 +94,10 @@ function Foods() {
                     <h1 className="text-xl font-bold text-secondary">Categories: </h1>
                     <div className="flex items-start mt-3 flex-wrap gap-3">
                       <div
-                        className={`flex items-center gap-2 cursor-pointer px-4 py-2 text-xs border border-[#DCDCDC] rounded-md font-bold ${
+                        className={`flex items-center gap-2 cursor-pointer px-4 py-2 text-xs border border-line rounded-md font-bold ${
                           selectedCategory === 'all'
                             ? 'bg-primary-700 text-white'
-                            : 'bg-[#F5F5F5] text-secondary'
+                            : 'bg-app text-secondary'
                         }`}
                         onClick={() => setSelectedCategory('all')}
                       >
@@ -107,10 +107,10 @@ function Foods() {
                         categories.map((category) => (
                           <div
                             key={category.id}
-                            className={`flex items-center gap-2 cursor-pointer px-4 py-2 text-xs border border-[#DCDCDC] rounded-md ${
+                            className={`flex items-center gap-2 cursor-pointer px-4 py-2 text-xs border border-line rounded-md ${
                               selectedCategory === category.id
                                 ? 'bg-primary-700 text-white'
-                                : 'bg-[#F5F5F5] text-secondary'
+                                : 'bg-app text-secondary'
                             }`}
                             onClick={() => setSelectedCategory(category.id)}
                           >
@@ -137,7 +137,7 @@ function Foods() {
                     placeholder="Search menu..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full px-4 py-2 rounded-md border border-[#DCDCDC] bg-[#F5F5F5DD] placeholder-[#828080] text-[#828080] focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                    className="w-full px-4 py-2 rounded-md border border-line bg-[#F5F5F5DD] placeholder-[#828080] text-[#828080] focus:outline-none focus:ring-primary-500 focus:border-primary-500"
                   />
                 </div>
 

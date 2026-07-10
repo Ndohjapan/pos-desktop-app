@@ -52,52 +52,60 @@ export const PaymentMethodManager = ({ total, onPaymentsChange }: PaymentMethodM
 
   return (
     <div>
-      <h3 className="text-secondary text-xs font-semibold mb-2">Payment methods:</h3>
+      <h3 className="text-ink text-xs font-semibold mb-2">Payment method</h3>
 
-      <div className="grid grid-cols-4 gap-2 mb-4">
-        {PAYMENT_METHODS.map(({ name, icon: Icon }) => (
-          <button
-            key={name}
-            onClick={() => handleMethodSelect(name)}
-            className={`border rounded-lg p-3 flex flex-col items-center ${
-              payments.some((p) => p.paymentMethod === name)
-                ? 'bg-blue-100 border-blue-500'
-                : 'bg-gray-100 border-gray-300'
-            }`}
-          >
-            <Icon className="text-secondary text-lg" />
-            <span className="text-xs mt-1">{name}</span>
-          </button>
-        ))}
+      <div className="grid grid-cols-4 gap-2 mb-3">
+        {PAYMENT_METHODS.map(({ name, icon: Icon }) => {
+          const selected = payments.some((p) => p.paymentMethod === name)
+          return (
+            <button
+              key={name}
+              onClick={() => handleMethodSelect(name)}
+              className={`rounded-control border p-2.5 flex flex-col items-center gap-1 transition-colors ${
+                selected
+                  ? 'bg-primary-50 border-primary-300 text-primary-700'
+                  : 'bg-white border-line text-muted hover:border-primary-200 hover:text-ink'
+              }`}
+            >
+              <Icon className="text-lg" />
+              <span className="text-[11px] font-medium">{name}</span>
+            </button>
+          )
+        })}
       </div>
 
       {payments.map(({ paymentMethod, amount }) => (
-        <div key={paymentMethod} className="mb-3 p-3 bg-gray-50 rounded-lg">
+        <div key={paymentMethod} className="mb-2 p-3 rounded-control bg-app border border-line">
           <div className="flex items-center justify-between">
-            <span className="font-medium text-sm">{paymentMethod}</span>
+            <span className="font-semibold text-sm text-ink">{paymentMethod}</span>
             <button
               onClick={() => removePaymentMethod(paymentMethod)}
-              className="text-red-500 text-sm"
+              className="text-xs font-semibold text-danger-600 hover:text-danger-700"
             >
               Remove
             </button>
           </div>
-          <div className="mt-2">
+          <div className="mt-2 flex items-center gap-1">
+            <span className="text-muted text-sm">₦</span>
             <input
               type="text"
               value={amount || ''} // This change will remove the sticky zero
               onChange={(e) => handleAmountChange(paymentMethod, Number(e.target.value))}
-              className="w-full p-2 border rounded"
+              className="w-full rounded-lg border border-line bg-white px-2.5 py-1.5 text-sm focus:outline-none focus:border-primary-500"
               max={total}
             />
           </div>
         </div>
       ))}
 
-      <div className="mt-2 text-sm font-medium">
-        <div className="flex justify-between text-gray-600">
-          <span>Remaining:</span>
-          <span>₦{remainingAmount.toLocaleString()}</span>
+      <div className="mt-1 text-sm">
+        <div className="flex justify-between text-muted">
+          <span>Remaining</span>
+          <span
+            className={`font-semibold ${remainingAmount === 0 ? 'text-success-700' : 'text-ink'}`}
+          >
+            ₦{remainingAmount.toLocaleString()}
+          </span>
         </div>
       </div>
     </div>

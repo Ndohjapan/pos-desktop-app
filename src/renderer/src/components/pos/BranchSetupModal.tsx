@@ -52,38 +52,36 @@ function BranchSetupModal(): JSX.Element {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-white flex flex-col items-center justify-center p-6">
-      <img src={Logo} alt="Amala Oluyole" className="max-w-[140px] mb-4" />
-      <h2 className="text-lg font-bold text-secondary">Which store is this computer in?</h2>
-      <p className="text-xs text-gray-500 mb-5 max-w-sm text-center">
-        Choose once during setup. Every sale from this computer is recorded under this store on the
-        dashboard.
-      </p>
+    <div className="fixed inset-0 z-50 bg-app flex flex-col items-center justify-center p-6">
+      <div className="card w-full max-w-md p-8 flex flex-col items-center text-center">
+        <img src={Logo} alt="Amala Oluyole" className="w-24 mb-5" />
+        <h2 className="text-lg font-bold text-ink">Which store is this computer in?</h2>
+        <p className="text-xs text-muted mb-6 max-w-sm">
+          Choose once during setup. Every sale from this computer is recorded under this store on
+          the dashboard.
+        </p>
 
-      {loading ? (
-        <div className="h-11 w-72 bg-gray-200 animate-pulse rounded-lg" />
-      ) : (
-        <div className="w-72">
-          <select
-            value={selected}
-            onChange={(e) => setSelected(e.target.value)}
-            className="w-full px-3 py-3 rounded-lg border border-[#DCDCDC] bg-white text-secondary focus:outline-none focus:border-primary-500"
-          >
-            {branches.map((branch) => (
-              <option key={branch.branchId} value={branch.branchId}>
-                {branch.branchName}
-              </option>
-            ))}
-          </select>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="mt-4 w-full py-3 rounded-lg bg-primary-700 text-white font-bold hover:bg-primary-900 disabled:opacity-50"
-          >
-            {saving ? 'Saving…' : 'Confirm store'}
-          </button>
-        </div>
-      )}
+        {loading ? (
+          <div className="h-12 w-full bg-app animate-pulse rounded-control" />
+        ) : (
+          <div className="w-full">
+            <select
+              value={selected}
+              onChange={(e) => setSelected(e.target.value)}
+              className="input py-3 text-base"
+            >
+              {branches.map((branch) => (
+                <option key={branch.branchId} value={branch.branchId}>
+                  {branch.branchName}
+                </option>
+              ))}
+            </select>
+            <button onClick={handleSave} disabled={saving} className="btn-primary w-full mt-4 py-3">
+              {saving ? 'Saving…' : 'Confirm store'}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

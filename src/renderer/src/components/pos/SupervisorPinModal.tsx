@@ -33,15 +33,18 @@ function SupervisorPinModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#000]/60">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-lg">
+    <div className="overlay">
+      <div className="card w-full max-w-sm p-6 shadow-elevated">
         <div className="flex justify-between items-center mb-2">
-          <h2 className="text-lg font-bold text-secondary">{title}</h2>
-          <button onClick={onCancel} className="text-gray-500 hover:text-gray-700 text-xl">
+          <h2 className="text-lg font-bold text-ink">{title}</h2>
+          <button
+            onClick={onCancel}
+            className="flex items-center justify-center w-8 h-8 rounded-lg text-muted hover:bg-app hover:text-ink text-xl"
+          >
             &times;
           </button>
         </div>
-        <p className="text-xs text-gray-500 mb-4">A supervisor must enter their PIN to approve.</p>
+        <p className="text-xs text-muted mb-4">A supervisor must enter their PIN to approve.</p>
         <PinPad onSubmit={handlePin} busy={busy} />
       </div>
     </div>

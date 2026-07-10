@@ -77,7 +77,7 @@ const OrderDetails = ({ order, onVoided }: { order: Order; onVoided?: () => void
               ({order.groups.flat().length} items)
             </span>
           </h2>
-          <p className="text-gray-600 text-sm">Order #{order.id}</p>
+          <p className="text-muted text-sm">Order #{order.id}</p>
         </div>
         <p className="text-center w-full text-secondary text-xs  mt-2">
           {new Date(order.createdAt).toLocaleString('en-US', {
@@ -101,7 +101,7 @@ const OrderDetails = ({ order, onVoided }: { order: Order; onVoided?: () => void
 
         {isVoided && (
           <div className="mt-2 text-center">
-            <span className="bg-[#F5E6E8] text-[#FD0002] text-xs font-bold px-2.5 py-0.5 rounded">
+            <span className="bg-danger-50 text-danger-600 text-xs font-bold px-2.5 py-0.5 rounded">
               VOIDED{order.voidReason ? ` — ${order.voidReason}` : ''}
             </span>
           </div>
@@ -187,14 +187,14 @@ const OrderDetails = ({ order, onVoided }: { order: Order; onVoided?: () => void
           <div className="flex items-center gap-2 mb-4">
             {!isVoided && (
               <button
-                className="w-full flex justify-center p-2 text-sm font-medium rounded-lg text-[#FD0002] border-2 border-[#FD0002] hover:bg-[#FFF5F5] cursor-pointer"
+                className="w-full flex justify-center p-2 text-sm font-medium rounded-lg text-danger-600 border-2 border-danger-500 hover:bg-[#FFF5F5] cursor-pointer"
                 onClick={() => setVoidPromptOpen(true)}
               >
                 Void Order
               </button>
             )}
             <button
-              className={`group relative w-full flex justify-center p-2 border border-transparent text-sm font-medium rounded-lg text-white ${isPrintingReceipt ? 'bg-primary-500' : 'bg-primary-700'} hover:bg-primary-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 cursor-pointer`}
+              className={`group relative w-full flex justify-center p-2 border border-transparent text-sm font-medium rounded-lg text-white ${isPrintingReceipt ? 'bg-primary-500' : 'bg-primary-700'} hover:bg-primary-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 cursor-pointer`}
               onClick={handlePrintReceipt}
               disabled={isPrintingReceipt}
             >
@@ -210,14 +210,14 @@ const OrderDetails = ({ order, onVoided }: { order: Order; onVoided?: () => void
           <div className="border-t pt-2 space-y-2">
             {/* Subtotal */}
             <div className="flex justify-between">
-              <span className="text-gray-600">Subtotal</span>
+              <span className="text-muted">Subtotal</span>
               <span className="font-medium">₦{subtotal.toLocaleString()}</span>
             </div>
 
             {/* Service Charge - only show if present */}
             {hasServiceCharge && (
               <div className="flex justify-between">
-                <span className="text-gray-600">Service Charge</span>
+                <span className="text-muted">Service Charge</span>
                 <span className="font-medium">₦{order.serviceFee.toLocaleString()}</span>
               </div>
             )}
@@ -231,7 +231,7 @@ const OrderDetails = ({ order, onVoided }: { order: Order; onVoided?: () => void
         </div>
       </div>
       {voidPromptOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#000]/60">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-lg">
             <div className="flex justify-between items-center mb-2">
               <h2 className="text-lg font-bold text-secondary">
@@ -239,12 +239,12 @@ const OrderDetails = ({ order, onVoided }: { order: Order; onVoided?: () => void
               </h2>
               <button
                 onClick={() => setVoidPromptOpen(false)}
-                className="text-gray-500 hover:text-gray-700 text-xl"
+                className="text-muted hover:text-gray-700 text-xl"
               >
                 &times;
               </button>
             </div>
-            <p className="text-xs text-gray-500 mb-3">
+            <p className="text-xs text-muted mb-3">
               The order stays in history but is removed from sales totals.
             </p>
             <label className="text-xs font-bold text-secondary block mb-1">Reason</label>
@@ -253,7 +253,7 @@ const OrderDetails = ({ order, onVoided }: { order: Order; onVoided?: () => void
               onChange={(e) => setVoidReason(e.target.value)}
               placeholder="e.g. customer cancelled"
               autoFocus
-              className="w-full px-3 py-2 rounded-lg border border-[#DCDCDC] focus:outline-none focus:border-primary-500"
+              className="w-full px-3 py-2 rounded-lg border border-line focus:outline-none focus:border-primary-500"
             />
             <button
               onClick={() => {
@@ -263,7 +263,7 @@ const OrderDetails = ({ order, onVoided }: { order: Order; onVoided?: () => void
                 }
                 setVoidPinOpen(true)
               }}
-              className="mt-4 w-full py-2 rounded-lg bg-[#FD0002] text-white font-bold hover:opacity-90"
+              className="mt-4 w-full py-2 rounded-lg bg-danger-600 text-white font-bold hover:opacity-90"
             >
               Continue — supervisor approval
             </button>
@@ -272,18 +272,18 @@ const OrderDetails = ({ order, onVoided }: { order: Order; onVoided?: () => void
       )}
 
       {voidPinOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#000]/60">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-lg">
             <div className="flex justify-between items-center mb-2">
               <h2 className="text-lg font-bold text-secondary">Supervisor approval</h2>
               <button
                 onClick={() => setVoidPinOpen(false)}
-                className="text-gray-500 hover:text-gray-700 text-xl"
+                className="text-muted hover:text-gray-700 text-xl"
               >
                 &times;
               </button>
             </div>
-            <p className="text-xs text-gray-500 mb-4">
+            <p className="text-xs text-muted mb-4">
               A supervisor must enter their PIN to void this order.
             </p>
             <PinPad onSubmit={handleVoidPin} busy={voidBusy} />

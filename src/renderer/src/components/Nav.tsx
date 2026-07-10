@@ -60,37 +60,41 @@ function Nav() {
   }
 
   return (
-    <>
-      <div className="w-full 2xl:max-w-[2000px] 2xl:m-auto flex justify-between items-center py-1 px-8 md:px-24 shadow-md ">
-        <div>
-          <img src={Logo} alt="Amala Oluyole" className="max-w-[30%]" />
+    <header className="sticky top-0 z-30 w-full bg-surface/90 backdrop-blur border-b border-line">
+      <div className="w-full 2xl:max-w-[2000px] 2xl:mx-auto flex justify-between items-center h-16 px-6 md:px-10">
+        {/* Brand */}
+        <div className="flex items-center gap-3 min-w-0">
+          <img src={Logo} alt="Amala Oluyole" className="h-9 w-auto" />
         </div>
 
-        <div className="flex flex-col items-center">
-          <div className="text-lg font-semibold text-secondary">{serviceName}</div>
+        {/* Centre: device name + live connection */}
+        <div className="hidden md:flex flex-col items-center leading-tight">
+          {serviceName && <div className="text-sm font-semibold text-ink truncate max-w-[280px]">{serviceName}</div>}
           <ConnectionStatus />
         </div>
 
-        <div className="flex items-center space-x-4">
+        {/* Actions */}
+        <div className="flex items-center gap-2.5">
           <CashierBadge />
+
           <button
-            onClick={handleLogout}
-            className="bg-[#F5F5F5] border border-[#DCDCDC] text-secondary px-4 py-1 rounded-lg focus:outline-none focus:ring-secondary focus:border-secondary cursor-pointer"
+            onClick={changeSection}
+            className="flex items-center gap-1.5 rounded-control border border-line bg-white px-3 py-2 text-sm font-semibold text-ink hover:bg-app transition-colors"
           >
-            Logout
-            <IoLogOut className="inline-block text-lg ml-2 text-[#FD0002]" />
+            <AiOutlineUser className="text-base text-muted" />
+            <span>{getOppositeSection()}</span>
           </button>
 
           <button
-            className="flex items-center rounded-full p-2 bg-[#F5F5F5] border-[#DCDCDC] border border-secondary focus:outline-none focus:ring-secondary focus:border-secondary cursor-pointer h-10"
-            onClick={changeSection}
+            onClick={handleLogout}
+            className="flex items-center gap-1.5 rounded-control border border-line bg-white px-3 py-2 text-sm font-semibold text-ink hover:bg-danger-50 hover:border-danger-100 hover:text-danger-600 transition-colors"
           >
-            <AiOutlineUser className="text-secondary text-xl" />
-            <span className="text-xs text-secondary font-bold">{getOppositeSection()}</span>
+            Logout
+            <IoLogOut className="text-base" />
           </button>
         </div>
       </div>
-    </>
+    </header>
   )
 }
 

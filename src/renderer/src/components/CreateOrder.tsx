@@ -312,85 +312,93 @@ const CreateOrder = forwardRef<CreateOrderHandle, CreateOrderProps>(
     return (
       <>
         {groups[0].items.length === 0 && groups.length === 1 ? (
-          <>
-            <h2 className="text-lg font-bold text-secondary mb-4 border-b border-[7474746B]">
-              Order Details
-            </h2>
-            <div className="bg-[#F5F5F5] border-[#7474748F] rounded-2xl flex items-center justify-center flex-col py-20 px-28  border-dashed border-2 space-y-4 h-full">
-              <img src={ShoppingBag} alt="Shopping bag" width={100} />
-              <h1 className="text-center text-secondary">No order yet!</h1>
+          <div className="card p-5">
+            <h2 className="text-base font-bold text-ink mb-4">Current order</h2>
+            <div className="rounded-card border-2 border-dashed border-line bg-app/60 flex items-center justify-center flex-col py-16 px-6 gap-4">
+              <img src={ShoppingBag} alt="" width={72} className="opacity-80" />
+              <p className="text-center text-muted text-sm">
+                No items yet — tap a menu item to start.
+              </p>
             </div>
-          </>
+          </div>
         ) : (
-          <div className="w-full max-h-[100vh] bg-gray-100 p-5 rounded-lg flex flex-col">
-            <div className="flex justify-between items-center mb-4">
-              <button
-                onClick={createNewGroup}
-                className="px-3 py-2 bg-primary-700 text-white rounded-lg flex items-center cursor-pointer text-sm"
-              >
-                <FaPlus className="mr-2" /> New Group
-              </button>
-
+          <div className="card flex flex-col max-h-[calc(100vh-7rem)] overflow-hidden">
+            <div className="flex justify-between items-center px-4 py-3 border-b border-line">
+              <h2 className="text-base font-bold text-ink">Current order</h2>
               <div className="flex items-center gap-1">
+                <button
+                  onClick={createNewGroup}
+                  className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-primary-700 hover:bg-primary-50 transition-colors"
+                >
+                  <FaPlus className="text-[10px]" /> Group
+                </button>
                 {hasItems && !isPaid && (
                   <button
                     onClick={() => setHoldPromptOpen(true)}
-                    className="px-3 py-2 text-secondary hover:text-primary-700 font-medium flex items-center cursor-pointer text-sm"
+                    className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-muted hover:bg-app hover:text-ink transition-colors"
                     title="Hold this order and serve the next customer"
                   >
-                    <FaPause className="mr-1" /> Hold
+                    <FaPause className="text-[10px]" /> Hold
                   </button>
                 )}
                 <button
                   onClick={clearOrder}
-                  className="px-3 py-2 text-red-600 hover:text-red-700 font-medium flex items-center cursor-pointer text-sm"
+                  className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-danger-600 hover:bg-danger-50 transition-colors"
                 >
                   Clear
                 </button>
               </div>
             </div>
 
-            <div className="flex-grow overflow-auto">
+            <div className="flex-grow overflow-auto p-3 space-y-2.5">
               {groups.map((group, index) => (
                 <div
                   key={index}
-                  className={`bg-white rounded-lg shadow-sm mb-3 ${
-                    index === activeGroupIndex ? 'border-2 border-primary-700' : ''
+                  className={`rounded-control border transition-colors ${
+                    index === activeGroupIndex
+                      ? 'border-primary-300 bg-primary-50/30'
+                      : 'border-line bg-white'
                   }`}
                 >
                   <button
-                    className="w-full flex justify-between items-center px-4 py-3 bg-gray-200 rounded-lg"
+                    className="w-full flex justify-between items-center px-3.5 py-2.5"
                     onClick={() => handleAccordionClick(index)}
                   >
-                    <span className="font-bold">
-                      {group.items.length} items - ₦{group.total.toLocaleString()}
+                    <span className="text-sm font-semibold text-ink">
+                      {group.items.length} {group.items.length === 1 ? 'item' : 'items'} ·{' '}
+                      <span className="text-primary-700">₦{group.total.toLocaleString()}</span>
                     </span>
-                    {openGroups.has(index) ? <FaChevronUp /> : <FaChevronDown />}
+                    {openGroups.has(index) ? (
+                      <FaChevronUp className="text-muted text-xs" />
+                    ) : (
+                      <FaChevronDown className="text-muted text-xs" />
+                    )}
                   </button>
 
                   {openGroups.has(index) && (
-                    <div className="p-4" onClick={() => setActiveGroup(index)}>
+                    <div className="px-3.5 pb-3 space-y-2.5" onClick={() => setActiveGroup(index)}>
                       {group.items.map((item) => (
                         <div
                           key={item.id}
-                          className="flex justify-between items-center border-b pb-2 mb-2"
+                          className="flex justify-between items-center gap-2 border-t border-line pt-2.5"
                         >
-                          <div>
-                            <p className="text-sm text-gray-900 font-bold">
-                              {item.foodName}{' '}
-                              <span className="font-normal">- ₦{item.price.toLocaleString()}</span>
+                          <div className="min-w-0">
+                            <p className="text-sm text-ink font-semibold truncate">
+                              {item.foodName}
                             </p>
-                            <p className="text-xs text-gray-900 font-bold">
-                              <span className="font-normal">Total:</span>₦
-                              {item.amount.toLocaleString()}
+                            <p className="text-xs text-muted">
+                              ₦{item.price.toLocaleString()} ·{' '}
+                              <span className="font-semibold text-ink">
+                                ₦{item.amount.toLocaleString()}
+                              </span>
                             </p>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1.5 shrink-0">
                             <button
                               onClick={() => updateItemQuantity(index, item.id, item.quantity - 1)}
-                              className="bg-primary-700 text-white w-8 h-8 rounded-md"
+                              className="flex items-center justify-center bg-app text-ink w-8 h-8 rounded-lg hover:bg-line transition-colors font-bold"
                             >
-                              -
+                              −
                             </button>
                             <input
                               type="number"
@@ -399,11 +407,11 @@ const CreateOrder = forwardRef<CreateOrderHandle, CreateOrderProps>(
                               onChange={(e) =>
                                 updateItemQuantity(index, item.id, parseInt(e.target.value) || 0)
                               }
-                              className="w-16 text-center border rounded-md"
+                              className="w-12 h-8 text-center text-sm rounded-lg border border-line focus:outline-none focus:border-primary-500"
                             />
                             <button
                               onClick={() => updateItemQuantity(index, item.id, item.quantity + 1)}
-                              className="bg-primary-700 text-white w-8 h-8 rounded-md"
+                              className="flex items-center justify-center bg-primary-700 text-white w-8 h-8 rounded-lg hover:bg-primary-800 transition-colors font-bold"
                             >
                               +
                             </button>
@@ -416,16 +424,16 @@ const CreateOrder = forwardRef<CreateOrderHandle, CreateOrderProps>(
               ))}
             </div>
 
-            <div className="bg-white rounded-lg px-4 py-5 shadow-sm mt-auto">
+            <div className="border-t border-line px-4 py-4 bg-app/40">
               {isPaid && createdOrder ? (
-                <div className="text-center mb-3">
-                  <p className="text-xs text-gray-500">Order number</p>
-                  <p className="text-5xl font-extrabold text-primary-700 leading-tight">
+                <div className="rounded-card bg-success-50 border border-success-100 py-4 mb-3 text-center">
+                  <p className="text-xs font-medium text-success-700">Order number</p>
+                  <p className="text-5xl font-extrabold text-success-700 leading-tight tracking-tight">
                     #{String(createdOrder.orderNumber || createdOrder.id).padStart(3, '0')}
                   </p>
                   {createdOrder.changeDue > 0 && (
-                    <p className="mt-1 text-lg font-bold text-[#01A920]">
-                      Change: ₦{createdOrder.changeDue.toLocaleString()}
+                    <p className="mt-1 text-base font-bold text-success-700">
+                      Change ₦{createdOrder.changeDue.toLocaleString()}
                     </p>
                   )}
                 </div>
@@ -440,60 +448,62 @@ const CreateOrder = forwardRef<CreateOrderHandle, CreateOrderProps>(
 
               {/* Cash tendered / change — shown when part of the payment is cash */}
               {!isPaid && cashPortion > 0 && (
-                <div className="mt-3 p-3 bg-[#F6FFF6] border border-[#CDEACD] rounded-lg text-sm">
+                <div className="mt-3 p-3 rounded-control bg-success-50 border border-success-100 text-sm">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium text-secondary">Cash received</span>
+                    <span className="font-semibold text-ink">Cash received</span>
                     <div className="flex items-center gap-1">
-                      <span>₦</span>
+                      <span className="text-muted">₦</span>
                       <input
                         type="number"
                         min="0"
                         value={tendered}
                         onChange={(e) => setTendered(e.target.value)}
                         placeholder={String(cashPortion)}
-                        className={`w-28 text-right border rounded-md p-1 ${tenderedTooLow ? 'border-[#FD0002]' : ''}`}
+                        className={`w-28 text-right rounded-lg border px-2 py-1 bg-white focus:outline-none ${tenderedTooLow ? 'border-danger-500' : 'border-line focus:border-primary-500'}`}
                       />
                     </div>
                   </div>
                   <div className="flex justify-between mt-2 font-bold">
-                    <span>Change</span>
-                    <span className={tenderedTooLow ? 'text-[#FD0002]' : 'text-[#01A920]'}>
+                    <span className="text-ink">Change</span>
+                    <span className={tenderedTooLow ? 'text-danger-600' : 'text-success-700'}>
                       {tenderedTooLow ? 'Not enough cash' : `₦${changeDue.toLocaleString()}`}
                     </span>
                   </div>
                 </div>
               )}
 
-              <div className="mt-4 text-sm">
-                <div className="flex justify-between mt-2 border-t pt-2">
-                  <span className="font-bold">Subtotal</span>
-                  <span className="font-bold">₦{getSubtotalAmount().toLocaleString()}</span>
+              <div className="mt-4 text-sm space-y-2">
+                <div className="flex justify-between text-muted">
+                  <span>Subtotal</span>
+                  <span className="font-medium text-ink">
+                    ₦{getSubtotalAmount().toLocaleString()}
+                  </span>
                 </div>
 
                 {showServiceFee && (
-                  <div className="flex justify-between items-center mt-2">
-                    <span className="font-bold">Service Fee</span>
-                    <div className="flex items-center">
-                      <span className="mr-2">₦</span>
+                  <div className="flex justify-between items-center text-muted">
+                    <span>Service Fee</span>
+                    <div className="flex items-center gap-1">
+                      <span>₦</span>
                       <input
                         type="number"
                         min="0"
                         value={serviceFee}
                         onChange={handleServiceFeeChange}
-                        className="w-24 text-right border rounded-md p-1"
+                        className="w-24 text-right rounded-lg border border-line px-2 py-1 bg-white focus:outline-none focus:border-primary-500"
                       />
                     </div>
                   </div>
                 )}
 
                 {!isPaid && (
-                  <div className="flex justify-between items-center mt-2">
+                  <div className="flex justify-between items-center">
                     {discount > 0 ? (
                       <>
-                        <span className="font-bold text-[#FD0002] flex items-center gap-1">
-                          <FaTag /> Discount ({discountReason})
+                        <span className="font-semibold text-danger-600 flex items-center gap-1.5">
+                          <FaTag className="text-xs" /> Discount ({discountReason})
                         </span>
-                        <span className="font-bold text-[#FD0002]">
+                        <span className="font-semibold text-danger-600 flex items-center">
                           -₦{discount.toLocaleString()}
                           <button
                             onClick={() => {
@@ -501,7 +511,7 @@ const CreateOrder = forwardRef<CreateOrderHandle, CreateOrderProps>(
                               setDiscountReason('')
                               setSupervisorPin('')
                             }}
-                            className="ml-2 text-gray-400 hover:text-gray-600"
+                            className="ml-1.5 text-muted hover:text-ink"
                             title="Remove discount"
                           >
                             &times;
@@ -515,47 +525,42 @@ const CreateOrder = forwardRef<CreateOrderHandle, CreateOrderProps>(
                           setPendingReason('')
                           setDiscountPromptOpen(true)
                         }}
-                        className="text-xs text-primary-700 underline flex items-center gap-1"
+                        className="text-xs font-semibold text-primary-700 hover:text-primary-800 flex items-center gap-1.5"
                       >
-                        <FaTag /> Add discount (needs supervisor)
+                        <FaTag className="text-xs" /> Add discount
                       </button>
                     )}
                   </div>
                 )}
 
-                <div className="flex justify-between mt-2 border-t pt-2">
-                  <span className="font-bold">Total</span>
-                  <span className="font-bold text-primary-700">
+                <div className="flex justify-between items-center border-t border-line pt-2.5">
+                  <span className="font-bold text-ink">Total</span>
+                  <span className="text-lg font-extrabold text-primary-700">
                     ₦{getTotalOrderAmount().toLocaleString()}
                   </span>
                 </div>
 
                 {!isPaid && (
-                  <div className="mt-4">
-                    <button
-                      className={`group relative w-full flex justify-center p-2 border border-transparent text-sm font-medium rounded-lg text-white bg-primary-700 hover:bg-primary-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:bg-blue-300 disabled:opacity-50 cursor-pointer`}
-                      onClick={handleCreateOrder}
-                      disabled={isCreatingOrder || !arePaymentsValid() || tenderedTooLow}
-                    >
-                      {isCreatingOrder ? <CgSpinner className="animate-spin text-2xl" /> : 'Paid'}
-                    </button>
-                  </div>
+                  <button
+                    className="btn-primary w-full py-3 mt-2 text-base"
+                    onClick={handleCreateOrder}
+                    disabled={isCreatingOrder || !arePaymentsValid() || tenderedTooLow}
+                  >
+                    {isCreatingOrder ? <CgSpinner className="animate-spin text-xl" /> : 'Mark as Paid'}
+                  </button>
                 )}
                 {isPaid && (
-                  <div className="mt-4 flex items-center justify-between space-x-3">
-                    <button
-                      className="group relative w-full flex justify-center p-2 text-sm font-medium rounded-lg text-primary-700 border-2 border-primary-700 hover:border-primary-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 cursor-pointer"
-                      onClick={clearOrder}
-                    >
+                  <div className="mt-2 flex items-center gap-2.5">
+                    <button className="btn-secondary flex-1 py-3" onClick={clearOrder}>
                       New Order
                     </button>
                     <button
-                      className={`group relative w-full flex justify-center p-2 border border-transparent text-sm font-medium rounded-lg text-white ${isPrintingReceipt ? 'bg-primary-500' : 'bg-primary-700'} hover:bg-primary-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 cursor-pointer`}
+                      className="btn-primary flex-1 py-3"
                       onClick={handlePrintReceipt}
                       disabled={isPrintingReceipt}
                     >
                       {isPrintingReceipt ? (
-                        <CgSpinner className="animate-spin text-2xl" />
+                        <CgSpinner className="animate-spin text-xl" />
                       ) : (
                         'Print Receipt'
                       )}
@@ -569,32 +574,28 @@ const CreateOrder = forwardRef<CreateOrderHandle, CreateOrderProps>(
 
         {/* Hold prompt */}
         {holdPromptOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#000]/60">
-            <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-lg">
-              <div className="flex justify-between items-center mb-2">
-                <h2 className="text-lg font-bold text-secondary">Hold order</h2>
+          <div className="overlay">
+            <div className="card w-full max-w-sm p-6 shadow-elevated">
+              <div className="flex justify-between items-center mb-1">
+                <h2 className="text-lg font-bold text-ink">Hold order</h2>
                 <button
                   onClick={() => setHoldPromptOpen(false)}
-                  className="text-gray-500 hover:text-gray-700 text-xl"
+                  className="flex items-center justify-center w-8 h-8 rounded-lg text-muted hover:bg-app hover:text-ink text-xl"
                 >
                   &times;
                 </button>
               </div>
-              <p className="text-xs text-gray-500 mb-3">
-                Give it a name so you can find it again (e.g. customer&apos;s name)
+              <p className="text-xs text-muted mb-4">
+                Give it a name so you can find it again (e.g. the customer&apos;s name)
               </p>
               <input
                 value={holdLabel}
                 onChange={(e) => setHoldLabel(e.target.value)}
                 placeholder="e.g. Mama Tosin"
                 autoFocus
-                className="w-full px-3 py-2 rounded-lg border border-[#DCDCDC] focus:outline-none focus:border-primary-500"
+                className="input"
               />
-              <button
-                onClick={handleHold}
-                disabled={isHolding}
-                className="mt-3 w-full py-2 rounded-lg bg-primary-700 text-white font-bold hover:bg-primary-900 disabled:opacity-50"
-              >
+              <button onClick={handleHold} disabled={isHolding} className="btn-primary w-full mt-4">
                 {isHolding ? 'Holding…' : 'Hold Order'}
               </button>
             </div>
@@ -603,34 +604,35 @@ const CreateOrder = forwardRef<CreateOrderHandle, CreateOrderProps>(
 
         {/* Discount prompt (amount + reason), then supervisor PIN */}
         {discountPromptOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#000]/60">
-            <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-lg">
-              <div className="flex justify-between items-center mb-2">
-                <h2 className="text-lg font-bold text-secondary">Discount</h2>
+          <div className="overlay">
+            <div className="card w-full max-w-sm p-6 shadow-elevated">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-bold text-ink">Add discount</h2>
                 <button
                   onClick={() => setDiscountPromptOpen(false)}
-                  className="text-gray-500 hover:text-gray-700 text-xl"
+                  className="flex items-center justify-center w-8 h-8 rounded-lg text-muted hover:bg-app hover:text-ink text-xl"
                 >
                   &times;
                 </button>
               </div>
-              <label className="text-xs font-bold text-secondary block mb-1">Amount (₦)</label>
+              <label className="label">Amount (₦)</label>
               <input
                 type="number"
                 min="0"
                 value={pendingDiscount}
                 onChange={(e) => setPendingDiscount(e.target.value)}
                 autoFocus
-                className="w-full px-3 py-2 rounded-lg border border-[#DCDCDC] focus:outline-none focus:border-primary-500"
+                className="input"
               />
-              <label className="text-xs font-bold text-secondary block mb-1 mt-3">Reason</label>
+              <label className="label mt-3">Reason</label>
               <input
                 value={pendingReason}
                 onChange={(e) => setPendingReason(e.target.value)}
                 placeholder="e.g. customer complaint"
-                className="w-full px-3 py-2 rounded-lg border border-[#DCDCDC] focus:outline-none focus:border-primary-500"
+                className="input"
               />
               <button
+                className="btn-primary w-full mt-5"
                 onClick={() => {
                   const amount = round2(parseFloat(pendingDiscount) || 0)
                   if (amount <= 0) {
@@ -648,7 +650,6 @@ const CreateOrder = forwardRef<CreateOrderHandle, CreateOrderProps>(
                   setDiscountPromptOpen(false)
                   setPinModalOpen(true)
                 }}
-                className="mt-4 w-full py-2 rounded-lg bg-primary-700 text-white font-bold hover:bg-primary-900"
               >
                 Continue — supervisor approval
               </button>
@@ -719,15 +720,18 @@ function PinModalShell({
   busy: boolean
 }): JSX.Element {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#000]/60">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-lg">
+    <div className="overlay">
+      <div className="card w-full max-w-sm p-6 shadow-elevated">
         <div className="flex justify-between items-center mb-2">
-          <h2 className="text-lg font-bold text-secondary">{title}</h2>
-          <button onClick={onCancel} className="text-gray-500 hover:text-gray-700 text-xl">
+          <h2 className="text-lg font-bold text-ink">{title}</h2>
+          <button
+            onClick={onCancel}
+            className="flex items-center justify-center w-8 h-8 rounded-lg text-muted hover:bg-app hover:text-ink text-xl"
+          >
             &times;
           </button>
         </div>
-        <p className="text-xs text-gray-500 mb-4">A supervisor must enter their PIN to approve.</p>
+        <p className="text-xs text-muted mb-4">A supervisor must enter their PIN to approve.</p>
         <PinPad onSubmit={onPin} busy={busy} />
       </div>
     </div>

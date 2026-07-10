@@ -19,7 +19,7 @@ function EmptyState({
     <>
       <div className="w-full mt-44 md:mt-32 flex items-center justify-center">
         <div className="flex justify-center items-center flex-col gap-3">
-          <div className="bg-[#F5F5F5] border-[#7474748F] rounded-2xl flex items-center justify-center flex-col py-20 px-28  border-dashed border-2 space-y-4">
+          <div className="bg-app border-[#7474748F] rounded-2xl flex items-center justify-center flex-col py-20 px-28  border-dashed border-2 space-y-4">
             <img src={ShoppingBags} alt="Shopping bags" width={100} height={100} />
             <h1 className="text-center text-secondary">No food yet!</h1>
           </div>

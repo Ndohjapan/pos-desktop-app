@@ -57,18 +57,18 @@ function BackupsPanel(): JSX.Element {
     })
 
   return (
-    <div className="mt-10 border-t border-[#EEE] pt-6">
+    <div className="mt-10 border-t border-line pt-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold text-secondary">Database Backups</h2>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted">
             Automatic nightly snapshots of this device&apos;s data (last 7 kept).
           </p>
         </div>
         <button
           onClick={handleBackupNow}
           disabled={busy}
-          className="px-4 py-2 rounded-lg bg-primary-700 text-white text-sm font-bold hover:bg-primary-900 disabled:opacity-50"
+          className="px-4 py-2 rounded-lg bg-primary-700 text-white text-sm font-bold hover:bg-primary-800 disabled:opacity-50"
         >
           {busy ? 'Backing up…' : 'Back up now'}
         </button>
@@ -78,11 +78,11 @@ function BackupsPanel(): JSX.Element {
         {backups.map((backup) => (
           <div
             key={backup.name}
-            className="flex items-center justify-between bg-[#F6F6F6] rounded-md px-4 py-2 text-sm"
+            className="flex items-center justify-between bg-app rounded-md px-4 py-2 text-sm"
           >
             <div>
               <p className="text-secondary font-medium">{formatDate(backup.createdAt)}</p>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted">
                 {backup.name} · {backup.sizeKb} KB
               </p>
             </div>
@@ -95,7 +95,7 @@ function BackupsPanel(): JSX.Element {
           </div>
         ))}
         {backups.length === 0 && (
-          <p className="text-gray-500 text-sm">No backups yet — one runs automatically each day.</p>
+          <p className="text-muted text-sm">No backups yet — one runs automatically each day.</p>
         )}
       </div>
     </div>

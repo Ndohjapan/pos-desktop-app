@@ -95,10 +95,10 @@ export default function OrderTable({
                           </div>
                         </div>
                       </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-muted">
                         {order.groups.length}
                       </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-muted">
                         {new Date(order.createdAt).toLocaleString('en-US', {
                           month: 'numeric',
                           day: 'numeric',
@@ -108,17 +108,17 @@ export default function OrderTable({
                           hour12: true
                         })}
                       </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-muted">
                         ₦{order.total.toLocaleString()}
                       </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-muted">
                         {order.payments.map((payment, index) => (
                           <div key={index} className="flex justify-evenly space-x-2 items-center">
                             <span>{payment.paymentMethod}</span>
                           </div>
                         ))}
                       </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-muted">
                         {order.specialOrder ? (
                           <span className="text-yellow-800 bg-yellow-100 rounded-md p-1 text-xs">
                             Special Order
@@ -127,13 +127,13 @@ export default function OrderTable({
                           <span className="text-[#7b7b7b]  rounded-md p-1 text-xs">Nil</span>
                         )}
                       </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-muted">
                         {order.backupStatus ? (
-                          <span className="text-[#01A920] bg-[#DDFFFC] rounded-md p-1 text-xs">
+                          <span className="text-success-700 bg-success-50 rounded-md p-1 text-xs">
                             True
                           </span>
                         ) : (
-                          <span className="text-[#FD0002] bg-[#F5E6E8] rounded-md p-1 text-xs">
+                          <span className="text-danger-600 bg-danger-50 rounded-md p-1 text-xs">
                             False
                           </span>
                         )}

@@ -61,90 +61,80 @@ export default function SignUp() {
         className="w-full h-full bg-cover bg-no-repeat bg-center flex items-center justify-center"
         style={{ backgroundImage: `url(${Background})` }}
       >
-        <div className="max-w-[520px] w-full p-4 bg-[#F5F5F533] rounded-[36px]">
-          <div className="max-w-[500px] w-full p-7 bg-white rounded-[20px] ">
-            <div>
-              <img src={Logo} alt="Amala Oluyole" width={100} height={100} className="" />
-            </div>
-            <div>
-              <h2 className="font-bold text-xl">Create an admin account</h2>
-            </div>
-            <form className="mt-7 space-y-6" onSubmit={handleSubmit}>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between space-x-2">
-                  <div className="space-y-2 w-full">
-                    <label htmlFor="fullname" className="font-medium text-xs text-secondary">
-                      Full Name
-                    </label>
-                    <input
-                      id="fullname"
-                      name="fullname"
-                      type="text"
-                      placeholder="Full Name"
-                      required
-                      className="appearance-none text-xs rounded-lg relative block w-full px-3 py-3 border border-[#DCDCDC] placeholder-[#828080] text-[#828080] focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                    />
-                  </div>
-                  <div className="space-y-2 w-full">
-                    <label htmlFor="phoneNumber" className="font-medium text-xs text-secondary">
-                      Phone Number
-                    </label>
-                    <input
-                      id="phoneNumber"
-                      name="phoneNumber"
-                      type="text"
-                      placeholder="Phone Number"
-                      required
-                      className="appearance-none text-xs rounded-lg relative block w-full px-3 py-3 border border-[#DCDCDC] placeholder-[#828080] text-[#828080] focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label htmlFor="password" className="font-medium text-xs text-secondary">
-                    Password
+        <div className="w-full max-w-[460px] card shadow-elevated p-8">
+          <img src={Logo} alt="Amala Oluyole" className="w-20 mb-5" />
+          <h2 className="font-bold text-xl text-ink">Create an admin account</h2>
+          <p className="text-sm text-muted mt-1">The first account becomes the owner</p>
+          <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="fullname" className="label">
+                    Full Name
                   </label>
                   <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    placeholder="Password"
+                    id="fullname"
+                    name="fullname"
+                    type="text"
+                    placeholder="Full name"
                     required
-                    className="appearance-none text-xs rounded-lg relative block w-full p-3 border border-[#DCDCDC] placeholder-[#828080] text-[#828080] focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                    className="input"
                   />
                 </div>
-                <div className="space-y-2">
-                  <label htmlFor="password" className="font-medium text-xs text-secondary">
-                    Confirm Password
+                <div>
+                  <label htmlFor="phoneNumber" className="label">
+                    Phone Number
                   </label>
                   <input
-                    id="confirm_password"
-                    name="confirm_password"
-                    type="password"
-                    placeholder="Confirm Password"
+                    id="phoneNumber"
+                    name="phoneNumber"
+                    type="text"
+                    placeholder="08012345678"
                     required
-                    className="appearance-none text-xs rounded-lg relative block w-full p-3 border border-[#DCDCDC] placeholder-[#828080] text-[#828080] focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                    className="input"
                   />
                 </div>
               </div>
-
-              <div className="flex flex-col space-y-3">
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="group relative w-full flex justify-center p-3 border border-transparent text-sm font-medium rounded-lg text-white bg-primary-700 hover:bg-primary-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isLoading ? 'Creating Account in...' : 'Create Account'}
-                </button>
-
-                <Link
-                  to="/admin/login"
-                  className="text-primary-700 text-center text-sm cursor-pointer"
-                >
-                  Login
-                </Link>
+              <div>
+                <label htmlFor="password" className="label">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  placeholder="At least 6 characters"
+                  required
+                  className="input"
+                />
               </div>
-            </form>
-          </div>
+              <div>
+                <label htmlFor="confirm_password" className="label">
+                  Confirm Password
+                </label>
+                <input
+                  id="confirm_password"
+                  name="confirm_password"
+                  type="password"
+                  placeholder="Re-enter password"
+                  required
+                  className="input"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3 pt-1">
+              <button type="submit" disabled={isLoading} className="btn-primary w-full py-3">
+                {isLoading ? 'Creating account…' : 'Create Account'}
+              </button>
+              <Link
+                to="/admin/login"
+                className="text-primary-700 text-center text-sm font-medium hover:text-primary-800"
+              >
+                Back to login
+              </Link>
+            </div>
+          </form>
         </div>
       </div>
     </div>

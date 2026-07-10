@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { FaPlay, FaTrash } from 'react-icons/fa'
+import { FaPlay, FaTrash, FaPause } from 'react-icons/fa'
 import { posApi } from '@renderer/api/pos'
 import type { ParkedOrder } from '@renderer/types'
 import type { DraftOrderGroup } from '../CreateOrder'
@@ -73,29 +73,29 @@ function HeldOrdersBar({
   if (parked.length === 0) return null
 
   return (
-    <div className="w-full px-8 mt-3">
-      <div className="flex items-center gap-2 overflow-x-auto py-2">
-        <span className="text-xs font-bold text-secondary whitespace-nowrap">
-          On hold ({parked.length}):
+    <div className="w-full px-6 md:px-10 pt-4">
+      <div className="flex items-center gap-2 overflow-x-auto pb-1">
+        <span className="flex items-center gap-1.5 text-xs font-bold text-warning-700 whitespace-nowrap">
+          <FaPause className="text-[10px]" /> On hold ({parked.length})
         </span>
         {parked.map((order) => (
           <div
             key={order.id}
-            className="flex items-center gap-2 bg-[#FFF8E7] border border-[#EED9A0] rounded-full pl-3 pr-1 py-1 whitespace-nowrap"
+            className="flex items-center gap-2 bg-warning-50 border border-warning-100 rounded-full pl-3 pr-1 py-1 whitespace-nowrap"
           >
-            <span className="text-sm text-secondary font-medium">{order.label}</span>
-            <span className="text-xs text-gray-500">{ageLabel(order.createdAt)}</span>
+            <span className="text-sm text-ink font-semibold">{order.label}</span>
+            <span className="text-xs text-muted">{ageLabel(order.createdAt)}</span>
             <button
               onClick={() => resume(order)}
               title="Resume this order"
-              className="w-7 h-7 flex items-center justify-center rounded-full bg-primary-700 text-white hover:bg-primary-900"
+              className="w-7 h-7 flex items-center justify-center rounded-full bg-primary-700 text-white hover:bg-primary-800 transition-colors"
             >
               <FaPlay className="text-[10px]" />
             </button>
             <button
               onClick={() => discard(order)}
               title="Discard"
-              className="w-7 h-7 flex items-center justify-center rounded-full text-gray-400 hover:text-[#FD0002]"
+              className="w-7 h-7 flex items-center justify-center rounded-full text-muted hover:text-danger-600 hover:bg-white transition-colors"
             >
               <FaTrash className="text-[10px]" />
             </button>

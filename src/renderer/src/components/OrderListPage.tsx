@@ -83,7 +83,7 @@ function OrderListPage() {
               id="date"
               defaultValue={currentDate}
               onChange={(e) => setCurrentDate(e.target.value)}
-              className="ml-3 px-7 py-2 rounded-sm border border-[#DCDCDC] bg-[#F0F1F2] text-[#6B7280] text-xs"
+              className="ml-3 px-7 py-2 rounded-sm border border-line bg-app text-[#6B7280] text-xs"
             />
           </div>
           <div className="flex items-center justify-between space-x-3">
@@ -119,7 +119,7 @@ function OrderListPage() {
       </div>
 
       {/* Order Details Section (30%) */}
-      <div className="col-span-4 bg-white border-l border-[#DCDCDC]  pl-4">
+      <div className="col-span-4 bg-white border-l border-line  pl-4">
         {order ? (
           <>
             <OrderDetails
@@ -136,7 +136,7 @@ function OrderListPage() {
               Order Details
             </h2>
             <div className="h-full flex flex-col items-center justify-center">
-              <p className="text-sm text-gray-600">Select an order to see the details here</p>
+              <p className="text-sm text-muted">Select an order to see the details here</p>
             </div>
           </>
         )}
