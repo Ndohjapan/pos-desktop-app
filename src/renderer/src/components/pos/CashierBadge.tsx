@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { FaUserCircle } from 'react-icons/fa'
 import toast from 'react-hot-toast'
 import { posApi } from '@renderer/api/pos'
@@ -107,48 +108,53 @@ function CashierBadge(): JSX.Element | null {
         )}
       </div>
 
-      {report && (
-        <div className="overlay">
-          <div className="card w-full max-w-md p-6 shadow-elevated max-h-[85vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-bold text-ink">
-                {closing ? 'Close Shift' : 'Shift Report'}
-              </h2>
-              <button
-                onClick={() => setReport(null)}
-                className="flex items-center justify-center w-8 h-8 rounded-lg text-muted hover:bg-app hover:text-ink text-xl"
-              >
-                &times;
-              </button>
-            </div>
-
-            <ShiftReportView report={report} />
-
-            {closing && (
-              <div className="mt-4 border-t border-line pt-4">
-                <label className="label">Cash counted in drawer (₦)</label>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    min="0"
-                    value={counted}
-                    onChange={(e) => setCounted(e.target.value)}
-                    autoFocus
-                    className="input flex-1"
-                  />
-                  <button
-                    onClick={confirmCloseShift}
-                    disabled={busy || counted === ''}
-                    className="btn-primary shrink-0"
-                  >
-                    {busy ? 'Closing…' : 'Close Shift'}
-                  </button>
-                </div>
+      {report &&
+        createPortal(
+          <div className="overlay" onClick={() => setReport(null)}>
+            <div
+              className="card w-full max-w-md p-6 shadow-elevated max-h-[85vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-bold text-ink">
+                  {closing ? 'Close Shift' : 'Shift Report'}
+                </h2>
+                <button
+                  onClick={() => setReport(null)}
+                  className="flex items-center justify-center w-8 h-8 rounded-lg text-muted hover:bg-app hover:text-ink text-xl"
+                >
+                  &times;
+                </button>
               </div>
-            )}
-          </div>
-        </div>
-      )}
+
+              <ShiftReportView report={report} />
+
+              {closing && (
+                <div className="mt-4 border-t border-line pt-4">
+                  <label className="label">Cash counted in drawer (₦)</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      value={counted}
+                      onChange={(e) => setCounted(e.target.value)}
+                      autoFocus
+                      className="input flex-1"
+                    />
+                    <button
+                      onClick={confirmCloseShift}
+                      disabled={busy || counted === ''}
+                      className="btn-primary shrink-0"
+                    >
+                      {busy ? 'Closing…' : 'Close Shift'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>,
+          document.body
+        )}
     </>
   )
 }
