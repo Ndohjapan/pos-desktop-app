@@ -139,30 +139,30 @@ export default function FoodTable({
         <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
           <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
             <div className="overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-300">
-                <thead className="bg-gray-50 border-b shadow-sm">
+              <table className="min-w-full divide-y divide-line">
+                <thead className="bg-app border-b shadow-sm">
                   <tr>
                     <th
                       scope="col"
-                      className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6"
+                      className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-ink sm:pl-6"
                     >
                       Items
                     </th>
                     <th
                       scope="col"
-                      className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                      className="px-3 py-3.5 text-left text-sm font-semibold text-ink"
                     >
                       Quantity
                     </th>
                     <th
                       scope="col"
-                      className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                      className="px-3 py-3.5 text-left text-sm font-semibold text-ink"
                     >
                       Price(₦)
                     </th>
                     <th
                       scope="col"
-                      className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                      className="px-3 py-3.5 text-left text-sm font-semibold text-ink"
                     >
                       In stock
                     </th>
@@ -171,7 +171,7 @@ export default function FoodTable({
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 bg-white py-4">
+                <tbody className="divide-y divide-line bg-white py-4">
                   {foods.map((food) => (
                     <tr key={food.id}>
                       <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm sm:pl-6">
@@ -214,7 +214,7 @@ export default function FoodTable({
                             checked={toggleStates[food.id] ?? false}
                             onChange={() => handleToggle(food.id)}
                           />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-line after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                         </label>
                       </td>
                       <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
@@ -225,7 +225,7 @@ export default function FoodTable({
                             }}
                             className="border border-secondary rounded-md py-1 px-2"
                           >
-                            <HiTrash className="w-5 h-5 text-red-500" />
+                            <HiTrash className="w-5 h-5 text-danger-600" />
                           </button>
                           <button
                             className={`px-10 py-2 text-sm font-bold rounded-md ${

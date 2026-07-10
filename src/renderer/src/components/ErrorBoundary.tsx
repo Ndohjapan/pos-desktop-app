@@ -63,7 +63,7 @@ class ErrorBoundary extends Component<Props, State> {
             </button>
             <button
               onClick={this.handleDisableGpu}
-              className="w-full py-2 rounded-lg border border-line text-secondary text-sm hover:bg-gray-50"
+              className="w-full py-2 rounded-lg border border-line text-secondary text-sm hover:bg-app"
             >
               Keeps happening? Disable graphics acceleration &amp; restart
             </button>

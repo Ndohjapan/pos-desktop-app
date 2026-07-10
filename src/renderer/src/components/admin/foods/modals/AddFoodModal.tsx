@@ -138,29 +138,34 @@ const AddFoodModal = ({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-[#000000db]">
-      <div className="bg-white rounded-2xl p-6 w-full md:min-w-[540px] max-w-md shadow-lg">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-bold">New Item</h2>
-          <button onClick={onClose}>✖</button>
+    <div className="overlay">
+      <div className="card w-full md:min-w-[540px] max-w-md p-6 shadow-elevated">
+        <div className="flex justify-between items-center mb-5">
+          <h2 className="text-lg font-bold text-ink">New Item</h2>
+          <button
+            onClick={onClose}
+            className="flex items-center justify-center w-8 h-8 rounded-lg text-muted hover:bg-app hover:text-ink"
+          >
+            ✖
+          </button>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="font-medium text-xs text-secondary">Food Name</label>
+            <div>
+              <label className="label">Food Name</label>
               <input
                 type="text"
-                placeholder="Food Name"
+                placeholder="Food name"
                 required
                 value={productName}
                 onChange={(e) => setProductName(e.target.value)}
-                className="text-xs rounded-lg w-full px-3 py-3 border border-secondary"
+                className="input"
               />
             </div>
 
-            <div className="space-y-2 relative">
-              <label className="font-medium text-xs text-secondary">Category</label>
+            <div className="relative">
+              <label className="label">Category</label>
               <SelectCategoryDropDown
                 categories={categories}
                 onSelect={setCategory}
@@ -168,43 +173,43 @@ const AddFoodModal = ({
               />
             </div>
 
-            <div className="space-y-2">
-              <label className="font-medium text-xs text-secondary">Price (₦)</label>
+            <div>
+              <label className="label">Price (₦)</label>
               <input
                 type="number"
-                placeholder="Price (₦)"
+                placeholder="0"
                 value={price}
                 required
                 onChange={(e) => setPrice(e.target.value)}
-                className="text-xs rounded-lg w-full px-3 py-3 border border-secondary"
+                className="input"
               />
             </div>
 
-            <div className="space-y-2">
-              <label className="font-medium text-xs text-secondary">Quantity</label>
+            <div>
+              <label className="label">Quantity</label>
               <input
                 type="number"
-                placeholder="Quantity"
+                placeholder="0"
                 value={quantity}
                 required
                 onChange={(e) => setQuantity(e.target.value)}
-                className="text-xs rounded-lg w-full px-3 py-3 border border-secondary"
+                className="input"
               />
             </div>
           </div>
 
-          <div className="flex items-center space-x-4">
-            <label className="bg-gray-200 py-2 px-4 rounded cursor-pointer flex flex-col">
+          <div className="flex items-center gap-4">
+            <label className="btn-secondary cursor-pointer flex-col items-start py-2.5">
               <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
               Add Image
-              <span className="text-xs">(Max size: 500KB)</span>
+              <span className="text-[10px] text-muted font-normal">Max size: 500KB</span>
             </label>
             {preview && (
               <div className="relative">
                 <img src={preview} alt="Preview" width={100} height={100} className="rounded" />
                 <button
                   onClick={handleRemoveImage}
-                  className="absolute top-0 right-0 bg-red-500 text-white p-1 rounded-full text-xs"
+                  className="absolute top-0 right-0 bg-danger-500 text-white p-1 rounded-full text-xs"
                 >
                   ✖
                 </button>
@@ -212,14 +217,8 @@ const AddFoodModal = ({
             )}
           </div>
 
-          <button
-            className={`${
-              isLoading ? 'bg-primary-500' : 'bg-primary-700'
-            } w-full text-white px-4 py-4 rounded-lg font-bold text-sm`}
-            disabled={isLoading}
-            onClick={handleSubmit}
-          >
-            {isLoading ? 'Creating...' : 'Create Food'}
+          <button className="btn-primary w-full py-3.5" disabled={isLoading} onClick={handleSubmit}>
+            {isLoading ? 'Creating…' : 'Create Food'}
           </button>
         </div>
       </div>

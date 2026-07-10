@@ -270,7 +270,11 @@ function SpecialOrder() {
         {/* Order Details */}
         <div className="lg:col-span-4">
           <div className="lg:sticky lg:top-24">
-            <CreateOrder ref={createOrderRef} onOrderUpdate={handleOrderUpdate} showServiceFee={true} />
+            <CreateOrder
+              ref={createOrderRef}
+              onOrderUpdate={handleOrderUpdate}
+              showServiceFee={true}
+            />
           </div>
         </div>
       </div>

@@ -157,7 +157,7 @@ function CashiersPanel(): JSX.Element {
                   <p className="font-bold text-secondary text-sm">
                     {cashier.fullName}
                     {cashier.role === 'supervisor' && (
-                      <span className="ml-2 text-[10px] bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">
+                      <span className="ml-2 text-[10px] bg-warning-50 text-warning-700 px-2 py-0.5 rounded">
                         Supervisor
                       </span>
                     )}
@@ -204,7 +204,7 @@ function CashiersPanel(): JSX.Element {
               </h2>
               <button
                 onClick={() => setResetTarget(null)}
-                className="text-muted hover:text-gray-700 text-xl"
+                className="text-muted hover:text-ink text-xl"
               >
                 &times;
               </button>

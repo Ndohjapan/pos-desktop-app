@@ -43,27 +43,26 @@ const AddCategoryModal = ({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-[#000000db]">
-      <div className="bg-white rounded-2xl p-6 w-full md:min-w-[400px] max-w-md shadow-lg">
+    <div className="overlay">
+      <div className="card w-full md:min-w-[400px] max-w-md p-6 shadow-elevated">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold">Add New Category</h2>
-          <button onClick={onClose} className="text-muted hover:text-gray-700">
+          <h2 className="text-lg font-bold text-ink">Add New Category</h2>
+          <button
+            onClick={onClose}
+            className="flex items-center justify-center w-8 h-8 rounded-lg text-muted hover:bg-app hover:text-ink text-xl"
+          >
             &times;
           </button>
         </div>
         <input
           type="text"
-          placeholder="Category Name"
+          placeholder="Category name"
           value={categoryName}
           onChange={(e) => setCategoryName(e.target.value)}
-          className="w-full px-3 py-2 border border-secondary rounded-lg mb-4"
+          className="input mb-4"
         />
-        <button
-          onClick={handleAddCategory}
-          className={`w-full ${isLoading ? 'bg-primary-500' : 'bg-primary-700'} text-white py-2 rounded-lg`}
-          disabled={isLoading}
-        >
-          {isLoading ? 'Adding...' : 'Add Category'}
+        <button onClick={handleAddCategory} className="btn-primary w-full" disabled={isLoading}>
+          {isLoading ? 'Adding…' : 'Add Category'}
         </button>
       </div>
     </div>

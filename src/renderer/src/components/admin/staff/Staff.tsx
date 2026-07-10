@@ -75,7 +75,7 @@ function Staff(): JSX.Element {
                 <p className="font-bold text-secondary">
                   {admin.fullName}
                   {admin.isSuperAdmin ? (
-                    <span className="ml-2 text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">
+                    <span className="ml-2 text-xs bg-warning-50 text-warning-700 px-2 py-0.5 rounded">
                       Owner
                     </span>
                   ) : null}

@@ -29,8 +29,8 @@ export default function OrderTable({
         <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
           <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
             <div className="overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-300">
-                <thead className="bg-gray-50 border-b shadow-sm">
+              <table className="min-w-full divide-y divide-line">
+                <thead className="bg-app border-b shadow-sm">
                   <tr>
                     <th
                       scope="col"
@@ -76,12 +76,12 @@ export default function OrderTable({
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 bg-white py-4">
+                <tbody className="divide-y divide-line bg-white py-4">
                   {orders.rows.map((order) => (
                     <tr
                       key={order.id}
                       onClick={() => handleOrderClick(order)}
-                      className={`cursor-pointer ${selectedOrderId === order.id ? 'bg-gray-100' : ''}`}
+                      className={`cursor-pointer ${selectedOrderId === order.id ? 'bg-app' : ''}`}
                     >
                       <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm sm:pl-6">
                         <div className="flex items-center">
@@ -120,7 +120,7 @@ export default function OrderTable({
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-muted">
                         {order.specialOrder ? (
-                          <span className="text-yellow-800 bg-yellow-100 rounded-md p-1 text-xs">
+                          <span className="text-warning-700 bg-warning-50 rounded-md p-1 text-xs">
                             Special Order
                           </span>
                         ) : (
@@ -152,7 +152,7 @@ export default function OrderTable({
             if (orders.prevPage != null) fetchMoreOrders(orders.prevPage)
           }}
           disabled={!orders.hasPrevPage}
-          className="px-4 py-2 border rounded-md disabled:bg-gray-100"
+          className="px-4 py-2 border rounded-md disabled:bg-app"
         >
           Previous
         </button>
@@ -164,7 +164,7 @@ export default function OrderTable({
             if (orders.nextPage != null) fetchMoreOrders(orders.nextPage)
           }}
           disabled={!orders.hasNextPage}
-          className="px-4 py-2 border rounded-md disabled:bg-gray-100"
+          className="px-4 py-2 border rounded-md disabled:bg-app"
         >
           Next
         </button>

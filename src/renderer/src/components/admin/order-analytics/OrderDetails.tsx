@@ -60,7 +60,7 @@ const OrderDetails = ({ order, onDeleteOrder }: { order: Order; onDeleteOrder: (
   const hasServiceCharge = order.serviceFee > 0
 
   return (
-    <div className="w-full h-full max-h-[100vh] bg-gray-100 p-5 rounded-lg flex flex-col">
+    <div className="w-full h-full max-h-[100vh] bg-app p-5 rounded-lg flex flex-col">
       {/* Order Header */}
       <div className="flex flex-col border-b pb-2 mb-4">
         <div className="flex justify-between items-center">
@@ -86,7 +86,7 @@ const OrderDetails = ({ order, onDeleteOrder }: { order: Order; onDeleteOrder: (
         {/* Display special order badge if applicable */}
         {order.specialOrder > 0 && (
           <div className="mt-2 text-center">
-            <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded">
+            <span className="bg-warning-50 text-warning-700 text-xs font-medium px-2.5 py-0.5 rounded">
               Special Order
             </span>
           </div>
@@ -103,7 +103,7 @@ const OrderDetails = ({ order, onDeleteOrder }: { order: Order; onDeleteOrder: (
             <div key={groupIndex} className="bg-white rounded-lg shadow-sm mb-3">
               {/* Accordion Header */}
               <button
-                className="w-full flex justify-between items-center px-4 py-3 bg-gray-200 rounded-lg text-gray-700 text-sm font-semibold focus:outline-none"
+                className="w-full flex justify-between items-center px-4 py-3 bg-gray-200 rounded-lg text-ink text-sm font-semibold focus:outline-none"
                 onClick={() => toggleGroup(groupIndex)}
               >
                 <span>
@@ -125,12 +125,12 @@ const OrderDetails = ({ order, onDeleteOrder }: { order: Order; onDeleteOrder: (
                           <p className="text-xs text-secondary">
                             {item.foodName} - ₦{item.price.toLocaleString()}
                           </p>
-                          <p className="text-gray-700 text-sm font-bold">
+                          <p className="text-ink text-sm font-bold">
                             - ₦{item.amount.toLocaleString()}
                           </p>
                         </div>
                       </div>
-                      <span className="font-bold text-sm text-gray-700">{item.quantity}</span>
+                      <span className="font-bold text-sm text-ink">{item.quantity}</span>
                     </div>
                   ))}
                 </div>
@@ -171,7 +171,7 @@ const OrderDetails = ({ order, onDeleteOrder }: { order: Order; onDeleteOrder: (
         <div className="mt-4 text-sm">
           <div className="flex items-center justify-between space-x-2">
             <button
-              className={`group relative w-full flex justify-center p-2 border border-transparent text-sm font-medium rounded-lg text-white ${isPrintingReceipt ? 'bg-red-500' : 'bg-red-700'} hover:bg-red-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 cursor-pointer mb-4`}
+              className={`group relative w-full flex justify-center p-2 border border-transparent text-sm font-medium rounded-lg text-white ${isPrintingReceipt ? 'bg-danger-500' : 'bg-danger-600'} hover:bg-danger-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 cursor-pointer mb-4`}
               onClick={() => {
                 handleDeleteOrder(order.id)
               }}

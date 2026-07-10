@@ -69,7 +69,11 @@ function Nav() {
 
         {/* Centre: device name + live connection */}
         <div className="hidden md:flex flex-col items-center leading-tight">
-          {serviceName && <div className="text-sm font-semibold text-ink truncate max-w-[280px]">{serviceName}</div>}
+          {serviceName && (
+            <div className="text-sm font-semibold text-ink truncate max-w-[280px]">
+              {serviceName}
+            </div>
+          )}
           <ConnectionStatus />
         </div>
 

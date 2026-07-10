@@ -52,11 +52,15 @@ function DailySummaryView(): JSX.Element {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5">
             <div className="card p-4">
               <p className="text-xs text-muted">Orders</p>
-              <p className="text-2xl font-extrabold text-ink tracking-tight">{summary.orderCount}</p>
+              <p className="text-2xl font-extrabold text-ink tracking-tight">
+                {summary.orderCount}
+              </p>
             </div>
             <div className="card p-4">
               <p className="text-xs text-muted">Gross Sales</p>
-              <p className="text-2xl font-extrabold text-ink tracking-tight">{formatNaira(summary.grossSales)}</p>
+              <p className="text-2xl font-extrabold text-ink tracking-tight">
+                {formatNaira(summary.grossSales)}
+              </p>
             </div>
             <div className="card p-4">
               <p className="text-xs text-muted">Discounts</p>

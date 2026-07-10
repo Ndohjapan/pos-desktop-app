@@ -138,7 +138,11 @@ function CashierLogin(): JSX.Element {
                 className="w-40 px-3 py-3 text-lg text-center rounded-control border border-line focus:outline-none focus:border-primary-500 focus:shadow-focus"
               />
             </div>
-            <button onClick={handleOpenShift} disabled={busy} className="btn-primary mt-5 px-8 py-3">
+            <button
+              onClick={handleOpenShift}
+              disabled={busy}
+              className="btn-primary mt-5 px-8 py-3"
+            >
               {busy ? 'Opening…' : 'Start Shift'}
             </button>
           </>

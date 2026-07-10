@@ -84,62 +84,62 @@ function StoreSettingsPanel(): JSX.Element {
   return (
     <div className="w-full max-w-2xl px-6 md:px-10 py-7">
       <div className="card p-6 md:p-8">
-      <h1 className="text-xl font-bold text-ink">Store Settings</h1>
+        <h1 className="text-xl font-bold text-ink">Store Settings</h1>
 
-      {/* Which store this machine is was chosen once at setup (not editable here
+        {/* Which store this machine is was chosen once at setup (not editable here
           on purpose — it can't be changed by accident). Shown read-only for
           reference. */}
-      <div className="mt-4 flex items-center gap-2 text-sm">
-        <span className="text-muted">This computer&apos;s store:</span>
-        <span className="font-bold text-ink">{form.branchName || 'Not set'}</span>
-      </div>
-
-      <h2 className="mt-6 text-sm font-bold text-ink">Service mode</h2>
-      <Toggle
-        label="Quick-Service mode (walk-in store)"
-        hint="Adds the order queue, big ticket numbers, kitchen flow and daily summary — built for high-frequency service"
-        checked={form.quickService}
-        onChange={(value) => setForm({ ...form, quickService: value })}
-      />
-      <Toggle
-        label="Cashier accounts & shifts"
-        hint="Cashiers sign in with a PIN, open/close shifts with cash counts, and every order records who sold it"
-        checked={form.cashiersEnabled}
-        onChange={(value) => setForm({ ...form, cashiersEnabled: value })}
-      />
-
-      <h2 className="mt-6 text-sm font-bold text-ink">Kitchen printing</h2>
-      <Toggle
-        label="Print kitchen tickets automatically"
-        hint="The moment an order is paid, a slip prints in the kitchen (no prices, big quantities)"
-        checked={form.kitchenPrintingEnabled}
-        onChange={(value) => setForm({ ...form, kitchenPrintingEnabled: value })}
-      />
-      {form.kitchenPrintingEnabled && (
-        <div className="mt-3">
-          <label className="label">Kitchen printer</label>
-          <select
-            value={form.kitchenPrinterName}
-            onChange={(e) => setForm({ ...form, kitchenPrinterName: e.target.value })}
-            className="input"
-          >
-            <option value="">System default printer</option>
-            {printers.map((printer) => (
-              <option key={printer.name} value={printer.name}>
-                {printer.name}
-                {printer.isDefault ? ' (default)' : ''}
-              </option>
-            ))}
-          </select>
-          <p className="text-xs text-muted mt-1">
-            Printers are read from this computer — set the kitchen printer up in Windows first.
-          </p>
+        <div className="mt-4 flex items-center gap-2 text-sm">
+          <span className="text-muted">This computer&apos;s store:</span>
+          <span className="font-bold text-ink">{form.branchName || 'Not set'}</span>
         </div>
-      )}
 
-      <button onClick={save} disabled={saving} className="btn-primary mt-8 px-8 py-3">
-        {saving ? 'Saving…' : 'Save Settings'}
-      </button>
+        <h2 className="mt-6 text-sm font-bold text-ink">Service mode</h2>
+        <Toggle
+          label="Quick-Service mode (walk-in store)"
+          hint="Adds the order queue, big ticket numbers, kitchen flow and daily summary — built for high-frequency service"
+          checked={form.quickService}
+          onChange={(value) => setForm({ ...form, quickService: value })}
+        />
+        <Toggle
+          label="Cashier accounts & shifts"
+          hint="Cashiers sign in with a PIN, open/close shifts with cash counts, and every order records who sold it"
+          checked={form.cashiersEnabled}
+          onChange={(value) => setForm({ ...form, cashiersEnabled: value })}
+        />
+
+        <h2 className="mt-6 text-sm font-bold text-ink">Kitchen printing</h2>
+        <Toggle
+          label="Print kitchen tickets automatically"
+          hint="The moment an order is paid, a slip prints in the kitchen (no prices, big quantities)"
+          checked={form.kitchenPrintingEnabled}
+          onChange={(value) => setForm({ ...form, kitchenPrintingEnabled: value })}
+        />
+        {form.kitchenPrintingEnabled && (
+          <div className="mt-3">
+            <label className="label">Kitchen printer</label>
+            <select
+              value={form.kitchenPrinterName}
+              onChange={(e) => setForm({ ...form, kitchenPrinterName: e.target.value })}
+              className="input"
+            >
+              <option value="">System default printer</option>
+              {printers.map((printer) => (
+                <option key={printer.name} value={printer.name}>
+                  {printer.name}
+                  {printer.isDefault ? ' (default)' : ''}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-muted mt-1">
+              Printers are read from this computer — set the kitchen printer up in Windows first.
+            </p>
+          </div>
+        )}
+
+        <button onClick={save} disabled={saving} className="btn-primary mt-8 px-8 py-3">
+          {saving ? 'Saving…' : 'Save Settings'}
+        </button>
       </div>
     </div>
   )

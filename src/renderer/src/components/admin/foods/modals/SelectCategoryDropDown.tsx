@@ -48,7 +48,7 @@ const SelectCategoryDropDown = ({
             filteredCategories.map((cat) => (
               <div
                 key={cat.id}
-                className="px-3 py-2 cursor-pointer hover:bg-gray-100"
+                className="px-3 py-2 cursor-pointer hover:bg-app"
                 onClick={() => {
                   onSelect(cat)
                   setSearchTerm(cat.name)
@@ -63,7 +63,7 @@ const SelectCategoryDropDown = ({
           )}
         </div>
       )}
-      <button className="text-blue-500 text-xs mt-2" onClick={onAddNew}>
+      <button className="text-primary-700 text-xs mt-2" onClick={onAddNew}>
         + Add New Category
       </button>
     </div>

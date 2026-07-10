@@ -546,7 +546,11 @@ const CreateOrder = forwardRef<CreateOrderHandle, CreateOrderProps>(
                     onClick={handleCreateOrder}
                     disabled={isCreatingOrder || !arePaymentsValid() || tenderedTooLow}
                   >
-                    {isCreatingOrder ? <CgSpinner className="animate-spin text-xl" /> : 'Mark as Paid'}
+                    {isCreatingOrder ? (
+                      <CgSpinner className="animate-spin text-xl" />
+                    ) : (
+                      'Mark as Paid'
+                    )}
                   </button>
                 )}
                 {isPaid && (
