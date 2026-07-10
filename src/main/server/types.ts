@@ -147,10 +147,18 @@ export interface AuditLogRow {
 export interface StoreSettings {
   branchId: string
   branchName: string
+  // True once the owner has picked this machine's store at first-time setup.
+  // Until then the setup dropdown is shown; afterwards it never reappears.
+  branchConfigured: boolean
   quickService: boolean
   cashiersEnabled: boolean
   kitchenPrintingEnabled: boolean
   kitchenPrinterName: string
+}
+
+export interface CanonicalBranch {
+  branchId: string
+  branchName: string
 }
 
 // Shift report (X = live snapshot, Z = at close)

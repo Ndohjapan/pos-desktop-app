@@ -12,6 +12,7 @@ interface SettingsState {
 const DEFAULT_SETTINGS: StoreSettings = {
   branchId: 'main',
   branchName: 'Amala Oluyole',
+  branchConfigured: false,
   quickService: false,
   cashiersEnabled: false,
   kitchenPrintingEnabled: false,

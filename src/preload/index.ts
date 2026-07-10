@@ -58,6 +58,8 @@ const api = {
   searchForService: (): Promise<SearchServiceResult> => ipcRenderer.invoke('search-service'),
   checkHealth: (host: string, port: number): Promise<HealthResult> =>
     ipcRenderer.invoke('check-health', host, port),
+  getAvailableBranches: (): Promise<{ branchId: string; branchName: string }[]> =>
+    ipcRenderer.invoke('get-available-branches'),
   getHardwareAcceleration: (): Promise<{ enabled: boolean }> =>
     ipcRenderer.invoke('get-hardware-acceleration'),
   setHardwareAcceleration: (enabled: boolean): Promise<{ success: boolean; error?: string }> =>

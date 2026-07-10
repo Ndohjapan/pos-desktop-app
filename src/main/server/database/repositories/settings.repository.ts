@@ -6,6 +6,7 @@ import { StoreSettings } from '../../types'
 const DEFAULTS: StoreSettings = {
   branchId: 'main',
   branchName: 'Amala Oluyole',
+  branchConfigured: false,
   quickService: false,
   cashiersEnabled: false,
   kitchenPrintingEnabled: false,
@@ -28,6 +29,7 @@ export class SettingsRepository {
       return {
         branchId: map.get('branchId') ?? DEFAULTS.branchId,
         branchName: map.get('branchName') ?? DEFAULTS.branchName,
+        branchConfigured: parseBool(map.get('branchConfigured'), DEFAULTS.branchConfigured),
         quickService: parseBool(map.get('quickService'), DEFAULTS.quickService),
         cashiersEnabled: parseBool(map.get('cashiersEnabled'), DEFAULTS.cashiersEnabled),
         kitchenPrintingEnabled: parseBool(
@@ -53,6 +55,8 @@ export class SettingsRepository {
 
       if (partial.branchId !== undefined) write('branchId', partial.branchId)
       if (partial.branchName !== undefined) write('branchName', partial.branchName)
+      if (partial.branchConfigured !== undefined)
+        write('branchConfigured', partial.branchConfigured ? '1' : '0')
       if (partial.quickService !== undefined)
         write('quickService', partial.quickService ? '1' : '0')
       if (partial.cashiersEnabled !== undefined)

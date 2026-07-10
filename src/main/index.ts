@@ -12,6 +12,7 @@ import { getErrorMessage } from './server/utils/errors'
 import { SERVICE_APP_ID } from './services/network'
 import { backupNow, listBackups, stageRestore } from './services/db-backup'
 import { initAutoUpdater } from './services/updater'
+import { getAvailableBranches } from './services/branches'
 import axios from 'axios'
 
 let expressServer: ExpressServer | null = null
@@ -456,6 +457,11 @@ ipcMain.handle('restore-database', (_event, name: string) => {
     app.exit(0)
   }
   return result
+})
+
+// Store list for the first-time setup dropdown (cloud, else built-in fallback).
+ipcMain.handle('get-available-branches', async () => {
+  return getAvailableBranches()
 })
 
 ipcMain.handle('get-hardware-acceleration', () => {

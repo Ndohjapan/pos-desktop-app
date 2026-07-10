@@ -49,6 +49,8 @@ export const posApi = {
   getSettings: () => request<Wrapped<StoreSettings>>('GET', '/settings'),
   updateSettings: (partial: Partial<StoreSettings>) =>
     request<Wrapped<StoreSettings>>('PUT', '/settings', partial, { auth: true }),
+  setupBranch: (branchId: string, branchName: string) =>
+    request<Wrapped<StoreSettings>>('POST', '/settings/setup-branch', { branchId, branchName }),
 
   // --- Cashiers ---
   listCashiers: () => request<Wrapped<CashierPublic[]>>('GET', '/cashiers'),
