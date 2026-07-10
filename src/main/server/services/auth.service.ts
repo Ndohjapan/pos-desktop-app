@@ -16,6 +16,20 @@ export class AuthService {
 
   async signup(adminData: SignupInput) {
     try {
+      // Server-side validation (defense in depth — never trust the client).
+      const fullName = adminData.fullName?.trim()
+      const phoneNumber = adminData.phoneNumber?.trim()
+      if (!fullName) {
+        throw new CustomError('Full name is required', 400)
+      }
+      if (!/^0\d{10}$/.test(phoneNumber || '')) {
+        throw new CustomError('Enter a valid 11-digit phone number (e.g. 08012345678)', 400)
+      }
+      if (!adminData.password || adminData.password.length < 6) {
+        throw new CustomError('Password must be at least 6 characters', 400)
+      }
+      adminData = { ...adminData, fullName, phoneNumber }
+
       const existingAdmin = await this.adminRepository.findByFilter({
         phoneNumber: adminData.phoneNumber
       })

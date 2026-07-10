@@ -85,27 +85,34 @@ function StoreSettingsPanel(): JSX.Element {
     <div className="w-full max-w-2xl px-8 md:px-24 mt-7 pb-10">
       <h1 className="text-xl font-bold text-secondary">Store Settings</h1>
 
-      <h2 className="mt-5 text-sm font-bold text-secondary">Branch identity</h2>
-      <p className="text-xs text-gray-500 mb-2">
-        Identifies this store on the cloud dashboard — set it differently per location so each
-        store&apos;s sales report separately.
+      <h2 className="mt-5 text-sm font-bold text-secondary">Which store is this?</h2>
+      <p className="text-xs text-gray-500 mb-1">
+        Name the store <b>this computer</b> belongs to. Every sale made here is tagged with it, so
+        the cloud dashboard can report each store separately. You don&apos;t switch between stores —
+        each computer is one store, set once during setup.
       </p>
+      <div className="mb-2 flex items-start gap-2 rounded-md bg-[#FFF8E7] border border-[#EED9A0] px-3 py-2">
+        <span className="text-xs text-[#8a6d1a]">
+          ⚠️ Only change this if this computer is moved to a different store. Changing it splits this
+          till&apos;s past and future sales into two stores on the dashboard.
+        </span>
+      </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-xs font-bold text-secondary block mb-1">Branch ID</label>
-          <input
-            value={form.branchId}
-            onChange={(e) => setForm({ ...form, branchId: e.target.value })}
-            placeholder="e.g. oluyole-restaurant"
-            className="w-full px-3 py-2 rounded-lg border border-[#DCDCDC] text-sm focus:outline-none focus:border-primary-500"
-          />
-        </div>
-        <div>
-          <label className="text-xs font-bold text-secondary block mb-1">Branch name</label>
+          <label className="text-xs font-bold text-secondary block mb-1">Store name (shown on dashboard)</label>
           <input
             value={form.branchName}
             onChange={(e) => setForm({ ...form, branchName: e.target.value })}
             placeholder="e.g. Oluyole Restaurant"
+            className="w-full px-3 py-2 rounded-lg border border-[#DCDCDC] text-sm focus:outline-none focus:border-primary-500"
+          />
+        </div>
+        <div>
+          <label className="text-xs font-bold text-secondary block mb-1">Store code (short, no spaces)</label>
+          <input
+            value={form.branchId}
+            onChange={(e) => setForm({ ...form, branchId: e.target.value })}
+            placeholder="e.g. restaurant"
             className="w-full px-3 py-2 rounded-lg border border-[#DCDCDC] text-sm focus:outline-none focus:border-primary-500"
           />
         </div>

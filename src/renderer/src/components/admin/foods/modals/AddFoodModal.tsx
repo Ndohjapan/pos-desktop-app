@@ -73,38 +73,57 @@ const AddFoodModal = ({
     let image_url =
       'https://res.cloudinary.com/lcu-feeding/image/upload/v1738939187/amala-oluyole/foods/bpkbfmng2np4nq18tqc7.png'
 
-    if (productName && category && price && quantity) {
-      setIsLoading(true)
-      try {
-        if (image) {
-          const response = (await UploadImage(image)) as { secure_url: string }
-          image_url = response.secure_url
-        }
+    // Tell the user exactly what is missing instead of silently doing nothing.
+    if (!productName.trim()) {
+      toast.error('Enter the food name')
+      return
+    }
+    if (!category) {
+      toast.error('Select a category')
+      return
+    }
+    if (!price || parseInt(price) <= 0) {
+      toast.error('Enter a valid price')
+      return
+    }
+    if (quantity === '' || parseInt(quantity) < 0) {
+      toast.error('Enter a valid quantity')
+      return
+    }
 
-        const foodData = {
-          name: productName,
-          categoryId: category.id,
-          quantity: parseInt(quantity),
-          price: parseInt(price),
-          image: image_url
-        }
-
-        const baseUrl = `http://${host}:${port}/api`
-        const food = await foodsApi.create(baseUrl, foodData, getAdminToken())
-
-        toast.success('Food Item Created')
-        onProductAdded(food.data)
-        setProductName('')
-        setCategory(null)
-        setPrice('')
-        setQuantity('')
-        setImage(null)
-        onClose()
-      } catch (error) {
-        console.error('Error adding food item:', error)
-      } finally {
-        setIsLoading(false)
+    setIsLoading(true)
+    try {
+      if (image) {
+        const response = (await UploadImage(image)) as { secure_url: string }
+        image_url = response.secure_url
       }
+
+      const foodData = {
+        name: productName.trim(),
+        categoryId: category.id,
+        quantity: parseInt(quantity),
+        price: parseInt(price),
+        image: image_url
+      }
+
+      const baseUrl = `http://${host}:${port}/api`
+      const food = await foodsApi.create(baseUrl, foodData, getAdminToken())
+
+      toast.success('Food Item Created')
+      onProductAdded(food.data)
+      setProductName('')
+      setCategory(null)
+      setPrice('')
+      setQuantity('')
+      setImage(null)
+      onClose()
+    } catch (error) {
+      // The api layer already shows the server's message as a toast; this is a
+      // fallback so a failure is never silent.
+      console.error('Error adding food item:', error)
+      toast.error(error instanceof Error ? error.message : 'Could not add food item')
+    } finally {
+      setIsLoading(false)
     }
   }
 

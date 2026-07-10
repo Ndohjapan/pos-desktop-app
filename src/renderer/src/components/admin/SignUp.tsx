@@ -17,11 +17,28 @@ export default function SignUp() {
     setIsLoading(true)
 
     const formData = new FormData(e.currentTarget)
-    const fullName = formData.get('fullname') as string
-    const phoneNumber = formData.get('phoneNumber') as string
+    const fullName = (formData.get('fullname') as string)?.trim()
+    const phoneNumber = (formData.get('phoneNumber') as string)?.trim()
     const password = formData.get('password') as string
     const confirmPassword = formData.get('confirm_password') as string
 
+    // Validate before hitting the server so bad input (e.g. a phone of "stance")
+    // is caught immediately with a clear message.
+    if (!fullName) {
+      setIsLoading(false)
+      toast.error('Enter your full name')
+      return
+    }
+    if (!/^0\d{10}$/.test(phoneNumber)) {
+      setIsLoading(false)
+      toast.error('Enter a valid 11-digit phone number (e.g. 08012345678)')
+      return
+    }
+    if (!password || password.length < 6) {
+      setIsLoading(false)
+      toast.error('Password must be at least 6 characters')
+      return
+    }
     if (password !== confirmPassword) {
       setIsLoading(false)
       toast.error('Password and confirm password do not match')
