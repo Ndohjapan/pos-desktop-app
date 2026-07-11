@@ -75,7 +75,7 @@ function HomePage(): JSX.Element {
               <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-app text-secondary mb-5">
                 <FaNetworkWired className="text-2xl rotate-180" />
               </div>
-              <h3 className="text-lg font-bold text-ink">Extra till</h3>
+              <h3 className="text-lg font-bold text-ink">Others</h3>
               <p className="text-sm text-muted mt-1">
                 Connect this computer to the main one over the network.
               </p>
