@@ -8,18 +8,18 @@ export function ToastProvider() {
         duration: 3000,
         style: {
           background: '#333',
-          color: '#fff',
+          color: '#fff'
         },
         success: {
           style: {
-            background: '#22c55e',
-          },
+            background: '#22c55e'
+          }
         },
         error: {
           style: {
-            background: '#ef4444',
-          },
-        },
+            background: '#ef4444'
+          }
+        }
       }}
     />
   )

@@ -1,64 +1,209 @@
-//@ts-nocheck
 import { OrderRepository } from '../database/repositories/order.repository'
-import { CategoryService } from './category.service'
+import { settingsRepository } from '../database/repositories/settings.repository'
 import { FoodService } from './food.service'
-import { makeApiRequest } from '../utils/apiRequest'
+import { makeApiRequest, retryTransient, NETWORK_ERROR_CODE } from '../utils/apiRequest'
+import { getErrorMessage, toCustomError } from '../utils/errors'
+import { rollbar } from '../utils/logging'
 import CustomError from '../utils/customError'
+import type { OrderWithDetails } from '../types'
+
+// backupStatus values on the Order table:
+//   0 = pending (not yet uploaded)   1 = uploaded OK   2 = errored (rejected)
+const BACKUP_PENDING = 0
+const BACKUP_DONE = 1
+const BACKUP_ERROR = 2
+
+const SYNC_INTERVAL_MS = 300000 // 5 minutes
+
+export interface SyncStatus {
+  isSyncing: boolean
+  lastSyncAt: string | null
+  lastError: string | null
+  pending: number
+  failed: number
+  lastUploadedCount: number
+}
+
+function branchIdentity(): { branchId: string; branchName: string } {
+  const settings = settingsRepository.getAll()
+  return { branchId: settings.branchId, branchName: settings.branchName }
+}
+
+function ingestHeaders(): Record<string, string> {
+  // Sent on every cloud write; the cloud only enforces it if it has a key
+  // configured, so this is safe to roll out incrementally.
+  const key = import.meta.env.MAIN_VITE_INGEST_KEY
+  return key ? { 'x-api-key': key } : {}
+}
 
 export class UtilService {
-  private categoryService: CategoryService
   private foodService: FoodService
   private orderRepository: OrderRepository
-  private backupInterval: NodeJS.Timer
+  private backupInterval: NodeJS.Timeout | null = null
+
+  // Mutex: guarantees only one sync run touches backupStatus at a time, so the
+  // periodic timer and the after-each-order trigger can never overlap and
+  // double-upload the same rows.
+  private isSyncing = false
+  private lastSyncAt: string | null = null
+  private lastError: string | null = null
+  private lastUploadedCount = 0
 
   constructor() {
-    this.categoryService = new CategoryService()
     this.foodService = new FoodService()
     this.orderRepository = new OrderRepository()
-    this.startPeriodicBackup()
   }
 
-  async getAllFoodsAndCategories(): Promise<any> {
-    try {
-      const backedUpOrderCount = await this.orderRepository.count({ backupStatus: 0 })
-
-      if (backedUpOrderCount > 0) {
-        throw new CustomError('Please backup your orders before syncing', 400)
-      }
-
-      const result = await makeApiRequest({
-        url: `${import.meta.env.MAIN_VITE_API_URL}/utils/food-and-categories`,
-        method: 'GET'
-      })
-
-      for (const category of result.data.categories) {
-        await this.categoryService.createCategory({
-          _id: category._id,
-          name: category.name
-        })
-      }
-
-      for (const food of result.data.foods) {
-        await this.foodService.upsertFood(food)
-      }
-
-      return result
-    } catch (error) {
-      console.log(error)
-      console.log(`Failed to sync foods and categories: ${error.message}\n`)
-      throw new CustomError(error.message, error.code || 500)
+  async getStatus(): Promise<SyncStatus> {
+    const pending = await this.orderRepository.count({ backupStatus: BACKUP_PENDING })
+    const failed = await this.orderRepository.count({ backupStatus: BACKUP_ERROR })
+    return {
+      isSyncing: this.isSyncing,
+      lastSyncAt: this.lastSyncAt,
+      lastError: this.lastError,
+      pending,
+      failed,
+      lastUploadedCount: this.lastUploadedCount
     }
   }
-  async uploadOrdersToCloud() {
-    try {
-      const BATCH_SIZE = 500
-      let currentPage = 1
-      let hasMoreOrders = true
-      let uploadedCount = 0
 
+  async backupFoods(): Promise<boolean> {
+    // All branches on this machine, each uploaded under its OWN branch so the
+    // cloud keeps every branch's menu separate (a machine that switched branch
+    // could hold foods for more than one branch).
+    const foods = await this.foodService.getAllFoodsForBackup()
+    const BATCH_SIZE = 15
+
+    const byBranch = new Map<string, typeof foods>()
+    for (const food of foods) {
+      const branchId = food.branchId || branchIdentity().branchId
+      const bucket = byBranch.get(branchId)
+      if (bucket) bucket.push(food)
+      else byBranch.set(branchId, [food])
+    }
+
+    for (const [branchId, branchFoods] of byBranch) {
+      // The cloud scopes foods/categories by branchId only (it ignores the name
+      // for foods), so branchName here is informational.
+      const branch = { branchId, branchName: branchId }
+      for (let i = 0; i < branchFoods.length; i += BATCH_SIZE) {
+        const foodsBatch = branchFoods.slice(i, i + BATCH_SIZE)
+        await retryTransient(
+          () =>
+            makeApiRequest({
+              url: `${import.meta.env.MAIN_VITE_API_URL}/utils/food-and-categories`,
+              method: 'POST',
+              headers: ingestHeaders(),
+              body: { foods: foodsBatch, branch }
+            }),
+          { label: 'backup-foods' }
+        )
+      }
+    }
+    return true
+  }
+
+  /**
+   * Upload one page of pending orders. Tries the whole batch first (fast path);
+   * if the *server rejects* the batch (validation), falls back to per-order
+   * uploads so one poison order can't block everyone else — good orders go up,
+   * bad ones are flagged (backupStatus=2) and left for reconciliation. A pure
+   * network failure is rethrown so the caller aborts and retries next cycle.
+   */
+  private async uploadBatch(
+    orders: OrderWithDetails[],
+    branch: { branchId: string; branchName: string }
+  ): Promise<{ uploaded: number; failed: number }> {
+    try {
+      await retryTransient(
+        () =>
+          makeApiRequest({
+            url: `${import.meta.env.MAIN_VITE_API_URL}/order`,
+            method: 'POST',
+            headers: ingestHeaders(),
+            body: { orders, branch }
+          }),
+        { label: 'backup-orders-batch' }
+      )
+      for (const order of orders) {
+        await this.orderRepository.updateManyByFilter(
+          { id: order.id },
+          { backupStatus: BACKUP_DONE }
+        )
+      }
+      return { uploaded: orders.length, failed: 0 }
+    } catch (error) {
+      // Network failure after retries — bubble up so the run stops cleanly and
+      // these orders stay pending for the next cycle (nothing marked errored).
+      if (error instanceof CustomError && error.code === NETWORK_ERROR_CODE) {
+        throw error
+      }
+
+      // Server rejected the batch — isolate each order individually.
+      let uploaded = 0
+      let failed = 0
+      for (const order of orders) {
+        try {
+          await retryTransient(
+            () =>
+              makeApiRequest({
+                url: `${import.meta.env.MAIN_VITE_API_URL}/order`,
+                method: 'POST',
+                headers: ingestHeaders(),
+                body: { orders: [order], branch }
+              }),
+            { label: `backup-order-${order.id}` }
+          )
+          await this.orderRepository.updateManyByFilter(
+            { id: order.id },
+            { backupStatus: BACKUP_DONE }
+          )
+          uploaded++
+        } catch (orderError) {
+          if (orderError instanceof CustomError && orderError.code === NETWORK_ERROR_CODE) {
+            throw orderError // network dropped mid-isolation — stop the run
+          }
+          await this.orderRepository.updateManyByFilter(
+            { id: order.id },
+            { backupStatus: BACKUP_ERROR }
+          )
+          failed++
+          rollbar.log(
+            getErrorMessage(orderError),
+            { orderId: order.id },
+            { level: 'error' },
+            '(desktop): order rejected by cloud, flagged for reconciliation'
+          )
+        }
+      }
+      return { uploaded, failed }
+    }
+  }
+
+  async uploadOrdersToCloud(): Promise<{
+    success: boolean
+    message: string
+    uploadedCount: number
+  }> {
+    // Mutex — skip if a run is already in progress.
+    if (this.isSyncing) {
+      return { success: true, message: 'Sync already in progress', uploadedCount: 0 }
+    }
+    this.isSyncing = true
+
+    const BATCH_SIZE = 500
+    let uploadedCount = 0
+    let failedCount = 0
+
+    try {
+      // Foods must exist on the cloud before orders reference them.
+      // backupFoods already retries transient failures per batch internally.
+      await this.backupFoods()
+
+      let hasMoreOrders = true
       while (hasMoreOrders) {
-        const orderBatch = await this.orderRepository.findByFilter(currentPage, BATCH_SIZE, {
-          backupStatus: 0
+        const orderBatch = await this.orderRepository.findByFilterAll(1, BATCH_SIZE, {
+          backupStatus: BACKUP_PENDING
         })
 
         if (orderBatch.rows.length === 0) {
@@ -66,54 +211,90 @@ export class UtilService {
           break
         }
 
-        await makeApiRequest({
-          url: `${import.meta.env.MAIN_VITE_API_URL}/order`,
-          method: 'POST',
-          body: {
-            orders: orderBatch.rows
-          }
-        })
-
-        // Update backup status for successfully uploaded orders
+        // Attribute each order to the branch it was recorded under (a machine
+        // that switched branch may have pending orders from more than one), so
+        // uploads are never misfiled. Group and send one batch per branch.
+        const byBranch = new Map<string, OrderWithDetails[]>()
         for (const order of orderBatch.rows) {
-          await this.orderRepository.updateManyByFilter({ id: order.id }, { backupStatus: 1 })
+          const branchId = order.branchId || branchIdentity().branchId
+          const bucket = byBranch.get(branchId)
+          if (bucket) bucket.push(order)
+          else byBranch.set(branchId, [order])
         }
 
-        uploadedCount += orderBatch.rows.length
-        currentPage++
+        let pageUploaded = 0
+        let pageFailed = 0
+        for (const [branchId, branchOrders] of byBranch) {
+          const branchName = branchOrders[0].branchName || branchIdentity().branchName
+          const result = await this.uploadBatch(branchOrders, { branchId, branchName })
+          pageUploaded += result.uploaded
+          pageFailed += result.failed
+        }
+        uploadedCount += pageUploaded
+        failedCount += pageFailed
 
-        // Optional: Add a small delay between batches to prevent overwhelming the server
-        await new Promise((resolve) => setTimeout(resolve, 1000))
+        // If every row in this page ended up errored (not uploaded), stop —
+        // otherwise we'd loop forever on the same poison page.
+        if (pageUploaded === 0 && pageFailed === orderBatch.rows.length) {
+          break
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 500))
       }
+
+      this.lastSyncAt = new Date().toISOString()
+      this.lastError =
+        failedCount > 0 ? `${failedCount} order(s) rejected by cloud — see analytics` : null
+      this.lastUploadedCount = uploadedCount
 
       return {
         success: true,
-        message: `Successfully uploaded ${uploadedCount} orders to cloud`,
+        message: `Uploaded ${uploadedCount} order(s)${failedCount ? `, ${failedCount} failed` : ''}`,
         uploadedCount
       }
     } catch (error) {
-      console.log(error)
-      console.log(`Failed to upload orders to cloud: ${error.message}\n`)
-      throw new CustomError(error.message, error.code || 500)
+      this.lastError = getErrorMessage(error)
+      rollbar.log(
+        getErrorMessage(error),
+        { uploadedCount, failedCount },
+        { level: 'error' },
+        '(desktop): Failed to upload orders to cloud'
+      )
+      console.log(`Failed to upload orders to cloud: ${getErrorMessage(error)}\n`)
+      throw toCustomError(error)
+    } finally {
+      this.isSyncing = false
     }
   }
 
-  private startPeriodicBackup(): void {
-    // Execute backup every 5 minutes (300000 milliseconds)
-    this.backupInterval = setInterval(() => {
-      this.uploadOrdersToCloud()
-        .then(() => {
-          console.log('Scheduled backup: Orders uploaded to cloud successfully')
-        })
-        .catch((error) => {
-          console.error('Scheduled backup: Error uploading orders to cloud:', error.message)
-        })
-    }, 300000)
+  // Re-queue previously-errored orders for another attempt (manual action).
+  async retryFailedOrders(): Promise<{ requeued: number }> {
+    const failed = await this.orderRepository.count({ backupStatus: BACKUP_ERROR })
+    await this.orderRepository.updateManyByFilter(
+      { backupStatus: BACKUP_ERROR },
+      { backupStatus: BACKUP_PENDING }
+    )
+    return { requeued: failed }
   }
 
-  public stopPeriodicBackup(): void {
+  // Idempotent: start the single periodic scheduler (clears any prior timer).
+  start(): void {
+    this.stop()
+    this.backupInterval = setInterval(() => {
+      this.uploadOrdersToCloud()
+        .then(() => console.log('Scheduled backup complete'))
+        .catch((error) => console.error('Scheduled backup error:', getErrorMessage(error)))
+    }, SYNC_INTERVAL_MS)
+  }
+
+  stop(): void {
     if (this.backupInterval) {
       clearInterval(this.backupInterval)
+      this.backupInterval = null
     }
   }
 }
+
+// Single shared instance — every caller (order creation, routes, scheduler)
+// uses this one, so there is exactly one timer and one mutex.
+export const utilService = new UtilService()

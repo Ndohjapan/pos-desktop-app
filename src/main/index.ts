@@ -1,16 +1,44 @@
-//@ts-nocheck
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { ExpressServer } from '../main/services/express-server'
 import { Bonjour } from 'bonjour-service'
-import { categoriesApi, foodsApi, ordersApi, utilsApi } from './client'
-import { generateReceiptHTML } from './receipt-formatting'
+import { authApi, categoriesApi, foodsApi, ordersApi, utilsApi } from './client'
+import { generateReceiptHTML, ReceiptOrder } from './receipt-formatting'
+import { generateKitchenTicketHTML } from './kitchen-ticket'
+import { getErrorMessage } from './server/utils/errors'
+import { SERVICE_APP_ID } from './services/network'
+import { backupNow, listBackups, stageRestore } from './services/db-backup'
+import { initAutoUpdater } from './services/updater'
+import { getAvailableBranches } from './services/branches'
+import axios from 'axios'
 
 let expressServer: ExpressServer | null = null
+let mainWindow: BrowserWindow | null = null
+
+// Hardware-acceleration fallback for low-end / old-GPU POS machines where the
+// GPU process crashes and blanks the screen. Presence of this marker file
+// (toggled from the app, then relaunched) disables acceleration. Must be
+// decided BEFORE app is ready.
+const gpuDisabledMarker = join(app.getPath('userData'), 'gpu-disabled')
+if (existsSync(gpuDisabledMarker)) {
+  app.disableHardwareAcceleration()
+}
 
 const bonjourBrowser = new Bonjour()
+
+// Wrap an IPC handler body so the renderer always gets { success, data | error }
+async function ipcResult<T>(
+  fn: () => Promise<T>
+): Promise<{ success: true; data: T } | { success: false; error: string }> {
+  try {
+    return { success: true, data: await fn() }
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) }
+  }
+}
 
 const options = {
   silent: true,
@@ -30,9 +58,17 @@ const options = {
   preview: true
 }
 
+function loadRenderer(window: BrowserWindow): void {
+  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    window.loadURL(process.env['ELECTRON_RENDERER_URL'])
+  } else {
+    window.loadFile(join(__dirname, '../renderer/index.html'))
+  }
+}
+
 function createWindow(): void {
   // Create the browser window.
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1100,
     height: 700,
     show: false,
@@ -46,7 +82,7 @@ function createWindow(): void {
   })
 
   mainWindow.on('ready-to-show', () => {
-    mainWindow.show()
+    mainWindow?.show()
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -54,13 +90,31 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
-  // HMR for renderer base on electron-vite cli.
-  // Load the remote URL for development or the local html file for production.
-  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
-  } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
-  }
+  // Crash recovery: if the renderer/GPU process dies (a common blank-screen
+  // cause on cheap POS hardware), reload instead of leaving a white window.
+  let reloadAttempts = 0
+  mainWindow.webContents.on('render-process-gone', (_e, details) => {
+    console.error('Renderer process gone:', details.reason)
+    if (details.reason === 'clean-exit') return
+    if (reloadAttempts < 5 && mainWindow && !mainWindow.isDestroyed()) {
+      reloadAttempts += 1
+      loadRenderer(mainWindow)
+    }
+  })
+
+  // Reset the reload counter once a load succeeds so future crashes get their
+  // own fresh set of retry attempts.
+  mainWindow.webContents.on('did-finish-load', () => {
+    reloadAttempts = 0
+  })
+
+  // If the page hangs, force a reload rather than let it sit frozen.
+  mainWindow.on('unresponsive', () => {
+    console.error('Window unresponsive — reloading')
+    if (mainWindow && !mainWindow.isDestroyed()) loadRenderer(mainWindow)
+  })
+
+  loadRenderer(mainWindow)
 }
 
 // This method will be called when Electron has finished
@@ -81,6 +135,9 @@ app.whenReady().then(() => {
   ipcMain.on('ping', () => console.log('pong'))
 
   createWindow()
+
+  // Check for and install app updates automatically (packaged builds only).
+  initAutoUpdater()
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
@@ -111,10 +168,11 @@ ipcMain.handle('start-server', async () => {
     return {
       success: true,
       serviceName: serverDetails.serviceName,
-      port: serverDetails.port
+      port: serverDetails.port,
+      ip: serverDetails.ip
     }
   } catch (error) {
-    return { success: false, error: error.message }
+    return { success: false, error: getErrorMessage(error) }
   }
 })
 
@@ -127,20 +185,39 @@ ipcMain.handle('stop-server', () => {
   return { success: true }
 })
 
+interface DiscoveredService {
+  name: string
+  port: number
+  host: string
+  ip: string
+}
+
 ipcMain.handle('search-service', () => {
   return new Promise((resolve) => {
-    const discoveredServices = new Map()
+    const discoveredServices = new Map<string, DiscoveredService>()
 
     const browser = bonjourBrowser.find({ type: 'http' }, (service) => {
+      // Only keep services advertised by *our* app. Consumer networks are full
+      // of printers/routers/NAS boxes advertising _http._tcp — selecting one of
+      // those was a common cause of "connection error" reports.
+      const txt = (service.txt ?? {}) as Record<string, string>
+      const isOurApp = txt.app === SERVICE_APP_ID || service.name?.startsWith('Amala POS')
+      if (!isOurApp) return
+
+      // Prefer the IP the host advertised in its txt record; fall back to the
+      // resolved address. We connect by IP, never the flaky .local hostname.
+      const ip = txt.ip || service.referer?.address || service.addresses?.[0] || ''
+      if (!ip) return
+
       discoveredServices.set(service.name, {
         name: service.name,
         port: service.port,
         host: service.host,
-        ip: service.referer.address
+        ip
       })
     })
 
-    // After 10 seconds, return all discovered services
+    // After 8 seconds, return all discovered services
     setTimeout(() => {
       browser.stop()
       const services = Array.from(discoveredServices.values())
@@ -148,108 +225,262 @@ ipcMain.handle('search-service', () => {
         found: services.length > 0,
         services: services
       })
-    }, 10000)
+    }, 8000)
   })
 })
 
-ipcMain.handle('get-foods', async (event, baseUrl) => {
+// Lightweight reachability probe used by the tills' heartbeat / auto-reconnect.
+// Hits the host's /health (mounted outside /api) with a short timeout.
+ipcMain.handle('check-health', async (_event, host: string, port: number) => {
   try {
-    const foods = await foodsApi.getAll(baseUrl)
-    return {
-      success: true,
-      data: foods
-    }
-  } catch (error) {
-    return { success: false, error: error.message }
+    const response = await axios.get(`http://${host}:${port}/health`, { timeout: 4000 })
+    return { ok: response.data?.status === 'ok' }
+  } catch {
+    return { ok: false }
   }
 })
 
-ipcMain.handle('get-categories', async (event, baseUrl) => {
-  try {
-    const categories = await categoriesApi.getAll(baseUrl)
-    return {
-      success: true,
-      data: categories
+// Generic bridge to the LAN server for the quick-service endpoints (settings,
+// cashiers, shifts, parked orders, queue…). One handler instead of a dozen
+// copy-paste ones; the typed surface lives in the preload/renderer client.
+ipcMain.handle(
+  'server-request',
+  async (
+    _event,
+    baseUrl: string,
+    method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+    path: string,
+    body?: unknown,
+    token?: string
+  ) => {
+    try {
+      const response = await axios({
+        method,
+        url: `${baseUrl}${path}`,
+        data: body,
+        timeout: 15000,
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined
+      })
+      return { success: true, data: response.data }
+    } catch (error) {
+      const message = axios.isAxiosError(error)
+        ? error.response?.data?.message || getErrorMessage(error)
+        : getErrorMessage(error)
+      return { success: false, error: message }
     }
-  } catch (error) {
-    return { success: false, error: error.message }
   }
-})
+)
 
-ipcMain.handle('create-order', async (event, baseUrl, orderData) => {
-  try {
-    const order = await ordersApi.create(baseUrl, orderData)
-    return {
-      success: true,
-      data: order
-    }
-  } catch (error) {
-    return { success: false, error: error.message }
-  }
-})
+ipcMain.handle('create-food', (_event, baseUrl, foodData, authToken) =>
+  ipcResult(() => foodsApi.create(baseUrl, foodData, authToken))
+)
 
-ipcMain.handle('get-orders-by-date', async (event, baseUrl, page, limit, date) => {
-  try {
-    const orders = await ordersApi.getByDate(baseUrl, page, limit, date)
-    return {
-      success: true,
-      data: orders
-    }
-  } catch (error) {
-    return { success: false, error: error.message }
-  }
-})
+ipcMain.handle('update-food', (_event, baseUrl, foodId, foodData, authToken) =>
+  ipcResult(() => foodsApi.update(baseUrl, foodId, foodData, authToken))
+)
 
-ipcMain.handle('backup-orders', async (event, baseUrl) => {
-  try {
-    const result = await utilsApi.backupOrders(baseUrl)
-    return {
-      success: true,
-      data: result
-    }
-  } catch (error) {
-    return { success: false, error: error.message }
-  }
-})
+ipcMain.handle('delete-food', (_event, baseUrl, foodId, authToken) =>
+  ipcResult(() => foodsApi.delete(baseUrl, foodId, authToken))
+)
 
-ipcMain.handle('sync-data', async (event, baseUrl) => {
-  try {
-    const result = await utilsApi.syncData(baseUrl)
-    return {
-      success: true,
-      data: result
-    }
-  } catch (error) {
-    return { success: false, error: error.message }
-  }
-})
+ipcMain.handle('get-foods', (_event, baseUrl) => ipcResult(() => foodsApi.getAll(baseUrl)))
 
-ipcMain.handle('print-receipt', async (event, orderData) => {
-  const printWindow = BrowserWindow.getFocusedWindow()
-  await printWindow.webContents.getPrintersAsync()
+ipcMain.handle('get-categories', (_event, baseUrl) =>
+  ipcResult(() => categoriesApi.getAll(baseUrl))
+)
 
+ipcMain.handle('create-categories', (_event, baseUrl, categoryData, authToken) =>
+  ipcResult(() => categoriesApi.create(baseUrl, categoryData, authToken))
+)
+
+ipcMain.handle('create-order', (_event, baseUrl, orderData) =>
+  ipcResult(() => ordersApi.create(baseUrl, orderData))
+)
+
+ipcMain.handle('delete-order', (_event, baseUrl, orderId, authToken) =>
+  ipcResult(() => ordersApi.deleteById(baseUrl, orderId, authToken))
+)
+
+ipcMain.handle('get-orders-by-date', (_event, baseUrl, page, limit, date) =>
+  ipcResult(() => ordersApi.getByDate(baseUrl, page, limit, date))
+)
+
+ipcMain.handle('search-orders-by-date', (_event, baseUrl, page, limit, date, searchQuery) =>
+  ipcResult(() => ordersApi.search(baseUrl, page, limit, date, searchQuery))
+)
+
+ipcMain.handle('backup-orders', (_event, baseUrl) =>
+  ipcResult(() => utilsApi.backupOrders(baseUrl))
+)
+
+ipcMain.handle('signup', (_event, baseUrl, adminData) =>
+  ipcResult(() => authApi.signup(baseUrl, adminData))
+)
+
+ipcMain.handle('login', (_event, baseUrl, credentials) =>
+  ipcResult(() => authApi.login(baseUrl, credentials))
+)
+
+ipcMain.handle('logout', (_event, baseUrl, token) =>
+  ipcResult(() => authApi.logout(baseUrl, token))
+)
+
+ipcMain.handle('list-admins', (_event, baseUrl, token) =>
+  ipcResult(() => authApi.listAdmins(baseUrl, token))
+)
+
+ipcMain.handle('verify-admin', (_event, baseUrl, adminId, verified, token) =>
+  ipcResult(() => authApi.verifyAdmin(baseUrl, adminId, verified, token))
+)
+
+ipcMain.handle('sync-data', (_event, baseUrl) => ipcResult(() => utilsApi.syncData(baseUrl)))
+
+ipcMain.handle('get-sync-status', (_event, baseUrl) =>
+  ipcResult(() => utilsApi.syncStatus(baseUrl))
+)
+
+ipcMain.handle('retry-failed-orders', (_event, baseUrl) =>
+  ipcResult(() => utilsApi.retryFailed(baseUrl))
+)
+
+/**
+ * Print arbitrary receipt-style HTML in a hidden window. deviceName targets a
+ * specific printer (kitchen printer); omitted = system default (receipt printer).
+ */
+async function printHtml(
+  htmlContent: string,
+  deviceName?: string
+): Promise<{ success: true; message?: string }> {
   const printContentsWindow = new BrowserWindow({
-    show: true,
+    show: false,
     webPreferences: {
-      nodeIntegration: true
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true
     }
   })
 
-  const htmlContent = generateReceiptHTML(orderData)
-
-  await printContentsWindow.loadURL(
-    `data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`
-  )
+  // Guarantee the window is always torn down, exactly once.
+  let settled = false
+  const cleanup = (): void => {
+    if (!printContentsWindow.isDestroyed()) printContentsWindow.destroy()
+  }
 
   return new Promise((resolve, reject) => {
-    printContentsWindow.webContents.print(options, (success, failureReason) => {
-      if (!success) {
-        console.log(failureReason)
-        reject(new Error(failureReason))
-      } else {
-        resolve({ success: true, message: 'Print completed successfully' })
-      }
-      printContentsWindow.close()
+    // Hard timeout so a stalled printer driver can never hang the promise (and
+    // the renderer's "Printing…" spinner) forever.
+    const timeout = setTimeout(() => {
+      if (settled) return
+      settled = true
+      cleanup()
+      reject(new Error('Printing timed out'))
+    }, 30000)
+
+    const finish = (err: Error | null, message?: string): void => {
+      if (settled) return
+      settled = true
+      clearTimeout(timeout)
+      cleanup()
+      if (err) reject(err)
+      else resolve({ success: true, message })
+    }
+
+    const printOptions = deviceName ? { ...options, deviceName } : options
+
+    printContentsWindow.webContents.once('did-finish-load', () => {
+      printContentsWindow.webContents.print(printOptions, (success, failureReason) => {
+        if (!success) finish(new Error(failureReason || 'Print failed'))
+        else finish(null, 'Print completed successfully')
+      })
     })
+
+    printContentsWindow.webContents.once('did-fail-load', (_e, _code, desc) => {
+      finish(new Error(desc || 'Failed to render document'))
+    })
+
+    printContentsWindow
+      .loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`)
+      .catch((err) => finish(err instanceof Error ? err : new Error('Failed to load document')))
   })
+}
+
+ipcMain.handle('print-receipt', (_event, orderData: ReceiptOrder) =>
+  printHtml(generateReceiptHTML(orderData))
+)
+
+// Kitchen slip to a specific printer (falls back to default when unset).
+ipcMain.handle('print-kitchen-ticket', (_event, orderData: ReceiptOrder, printerName?: string) =>
+  printHtml(generateKitchenTicketHTML(orderData), printerName || undefined)
+)
+
+// Available system printers — for the kitchen-printer picker in Settings.
+ipcMain.handle('get-printers', async () => {
+  try {
+    const window = mainWindow ?? BrowserWindow.getAllWindows()[0]
+    if (!window) return { success: false, error: 'No window available' }
+    const printers = await window.webContents.getPrintersAsync()
+    return {
+      success: true,
+      data: printers.map((p) => ({ name: p.name, isDefault: p.isDefault ?? false }))
+    }
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) }
+  }
+})
+
+// Hardware-acceleration toggle for troublesome machines. Writing/removing the
+// marker takes effect after a relaunch (the flag must be set before app-ready).
+// --- Local database backup / restore (Main machine only) ---
+
+ipcMain.handle('backup-database', async () => {
+  try {
+    const path = await backupNow()
+    return { success: true, path }
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) }
+  }
+})
+
+ipcMain.handle('list-database-backups', () => {
+  try {
+    return { success: true, data: listBackups() }
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) }
+  }
+})
+
+ipcMain.handle('restore-database', (_event, name: string) => {
+  const result = stageRestore(name)
+  if (result.success) {
+    // Apply the restore cleanly on a fresh start.
+    app.relaunch()
+    app.exit(0)
+  }
+  return result
+})
+
+// Store list for the first-time setup dropdown (cloud, else built-in fallback).
+ipcMain.handle('get-available-branches', async () => {
+  return getAvailableBranches()
+})
+
+ipcMain.handle('get-hardware-acceleration', () => {
+  return { enabled: !existsSync(gpuDisabledMarker) }
+})
+
+ipcMain.handle('set-hardware-acceleration', (_event, enabled: boolean) => {
+  try {
+    if (enabled) {
+      if (existsSync(gpuDisabledMarker)) rmSync(gpuDisabledMarker)
+    } else {
+      mkdirSync(app.getPath('userData'), { recursive: true })
+      writeFileSync(gpuDisabledMarker, 'gpu-disabled')
+    }
+    // Relaunch so the change takes effect immediately.
+    app.relaunch()
+    app.exit(0)
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) }
+  }
 })

@@ -1,14 +1,14 @@
-//@ts-nocheck
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import OrderTable from './OrderTable'
 import OrderDetails from './OrderDetails'
 import { ordersApi, utilsApi } from '@renderer/api/client'
 import { useConnectionStore } from '@renderer/store/connection'
 import toast from 'react-hot-toast'
+import type { Order, PaginatedOrders } from '@renderer/types'
 
-const ITEM_PER_PAGE = 10
+const ITEM_PER_PAGE = 50
 
 const OrderTableSkeleton = () => (
   <div className="w-full mt-5">
@@ -20,10 +20,9 @@ const OrderTableSkeleton = () => (
 )
 
 function OrderListPage() {
-  const [orders, setOrders] = useState(null)
-  const [order, setOrder] = useState(null)
+  const [orders, setOrders] = useState<PaginatedOrders | null>(null)
+  const [order, setOrder] = useState<Order | null>(null)
   const [ordersLoading, setOrdersLoading] = useState(true)
-  const [isSyncLoading, setIsSyncLoading] = useState(false)
   const [isBackupLoading, setIsBackupLoading] = useState(false)
   const [currentDate, setCurrentDate] = useState(new Date().toISOString().split('T')[0])
   const host = useConnectionStore((state) => state.host)
@@ -61,19 +60,6 @@ function OrderListPage() {
     }
   }
 
-  const handleSyncData = async () => {
-    try {
-      setIsSyncLoading(true)
-      const baseUrl = `http://${host}:${port}/api`
-      await utilsApi.syncData(baseUrl)
-      toast.success('Inventory synced successfully!')
-    } catch (error) {
-      console.error('Error fetching orders:', error)
-    } finally {
-      setIsSyncLoading(false)
-    }
-  }
-
   const fetchMoreOrders = async (page: number) => {
     try {
       const baseUrl = `http://${host}:${port}/api`
@@ -97,7 +83,7 @@ function OrderListPage() {
               id="date"
               defaultValue={currentDate}
               onChange={(e) => setCurrentDate(e.target.value)}
-              className="ml-3 px-7 py-2 rounded-sm border border-[#DCDCDC] bg-[#F0F1F2] text-[#6B7280] text-xs"
+              className="ml-3 px-7 py-2 rounded-sm border border-line bg-app text-[#6B7280] text-xs"
             />
           </div>
           <div className="flex items-center justify-between space-x-3">
@@ -113,18 +99,6 @@ function OrderListPage() {
             >
               {isBackupLoading ? 'Backing up...' : 'Backup Orders'}
             </button>
-            <button
-              onClick={handleSyncData}
-              disabled={isSyncLoading}
-              className={`min-w-[150px] flex justify-center p-2 border text-sm font-medium rounded-lg text-white
-      ${
-        isSyncLoading
-          ? 'bg-primary-400 cursor-not-allowed'
-          : 'bg-primary-700 hover:bg-primary-900 cursor-pointer'
-      }`}
-            >
-              {isSyncLoading ? 'Updating...' : 'Update Inventory'}
-            </button>
           </div>
         </div>
 
@@ -134,21 +108,27 @@ function OrderListPage() {
             <OrderTableSkeleton />
           </>
         ) : (
-          <>
+          orders && (
             <OrderTable
               onSelectOrder={setOrder}
               orders={orders}
               fetchMoreOrders={fetchMoreOrders}
             />
-          </>
+          )
         )}
       </div>
 
       {/* Order Details Section (30%) */}
-      <div className="col-span-4 bg-white border-l border-[#DCDCDC]  pl-4">
+      <div className="col-span-4 bg-white border-l border-line  pl-4">
         {order ? (
           <>
-            <OrderDetails order={order} />
+            <OrderDetails
+              order={order}
+              onVoided={() => {
+                setOrder(null)
+                fetchMoreOrders(1)
+              }}
+            />
           </>
         ) : (
           <>
@@ -156,7 +136,7 @@ function OrderListPage() {
               Order Details
             </h2>
             <div className="h-full flex flex-col items-center justify-center">
-              <p className="text-sm text-gray-600">Select an order to see the details here</p>
+              <p className="text-sm text-muted">Select an order to see the details here</p>
             </div>
           </>
         )}

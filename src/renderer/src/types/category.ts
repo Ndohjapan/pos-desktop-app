@@ -1,7 +1,1 @@
-export interface Category {
-  id: string
-  cloudId: string
-  name: string
-  createdAt: string
-  updatedAt: string
-}
+export type { Category } from './index'

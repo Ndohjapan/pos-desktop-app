@@ -1,6 +1,7 @@
-//@ts-nocheck
 import { CategoryRepository } from '../database/repositories/category.repository'
 import CustomError from '../utils/customError'
+import { getErrorMessage, toCustomError } from '../utils/errors'
+import { rollbar } from '../utils/logging'
 
 export class CategoryService {
   private categoryRepository: CategoryRepository
@@ -13,20 +14,26 @@ export class CategoryService {
     return this.categoryRepository.findAll()
   }
 
-  async createCategory(categoryData: { _id: string; name: string }) {
+  async createCategory(categoryData: { name: string }) {
     try {
-      const formattedData = {
-        cloudId: categoryData._id,
+      const categoryExists = await this.categoryRepository.findByFilter({
         name: categoryData.name
+      })
+
+      if (categoryExists.length > 0) {
+        throw new CustomError('Category already exists', 409)
       }
 
-      const result = await this.categoryRepository.create(formattedData)
+      const result = await this.categoryRepository.create(categoryData)
       return result
     } catch (error) {
-      console.log(error)
-      throw new CustomError(error.message, error.code || 409)
+      rollbar.error(
+        getErrorMessage(error),
+        { categoryData },
+        { level: 'error' },
+        `(desktop): ${getErrorMessage(error)}`
+      )
+      throw toCustomError(error, 409)
     }
   }
-
-
 }

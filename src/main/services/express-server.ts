@@ -1,9 +1,12 @@
-//@ts-nocheck
 import express from 'express'
 import { Server } from 'http'
 import { Bonjour } from 'bonjour-service'
 import routes from '../server/routes'
 import { initializeDatabase } from '../server/database/client'
+import { getErrorMessage } from '../server/utils/errors'
+import { getLanIp, SERVICE_APP_ID, SERVICE_NAME } from './network'
+import { utilService } from '../server/services/util.service'
+import { startScheduledBackups, stopScheduledBackups } from './db-backup'
 
 export class ExpressServer {
   private app: express.Application
@@ -20,7 +23,7 @@ export class ExpressServer {
   private setupMiddleware(): void {
     this.app.use(express.json())
 
-    this.app.use((req, res, next) => {
+    this.app.use((_req, res, next) => {
       res.setHeader(
         'Content-Security-Policy',
         "default-src 'self'; connect-src 'self' http://localhost:3001; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com"
@@ -44,7 +47,7 @@ export class ExpressServer {
   }
 
   private setupRoutes(): void {
-    this.app.get('/health', (req, res) => {
+    this.app.get('/health', (_req, res) => {
       res.json({ status: 'ok' })
     })
     this.app.use('/api', routes)
@@ -60,7 +63,7 @@ export class ExpressServer {
             .listen(attemptPort, () => {
               testServer.close(() => resolve()) // Cleanup server before resolving
             })
-            .on('error', (err: any) => {
+            .on('error', (err: NodeJS.ErrnoException) => {
               if (err.code === 'EADDRINUSE') {
                 console.log(`⚠️ Port ${attemptPort} is in use. Trying port ${attemptPort + 1}...`)
                 attemptPort++ // Increment to next port
@@ -83,32 +86,48 @@ export class ExpressServer {
     throw new Error(' Unexpected error while finding a port')
   }
 
-  public async start(port: number = 3000): Promise<{ serviceName: string; port: number }> {
+  public async start(
+    port: number = 3000
+  ): Promise<{ serviceName: string; port: number; ip: string }> {
     try {
       const availablePort = await this.findAvailablePort(port)
-      const bonjourServiceName = `pos-main-service-${Math.floor(Math.random() * 1000)}`
+      // Stable, identifiable service name (no more random suffix that left
+      // stale entries in mDNS caches). A txt record lets tills filter to us.
+      const bonjourServiceName = SERVICE_NAME
+      const ip = getLanIp()
 
       this.server = await this.app.listen(availablePort, () => {
         this.bonjourInstance.publish({
           name: bonjourServiceName,
           type: 'http',
-          port: availablePort
+          port: availablePort,
+          txt: { app: SERVICE_APP_ID, ip }
         })
 
-        console.log(`Server is running on port ${availablePort}`)
+        console.log(`Server is running on ${ip}:${availablePort}`)
       })
+
+      // Start the single cloud-sync scheduler now that we are acting as Main.
+      utilService.start()
+      // Nightly local DB file backups (this machine holds the real data).
+      startScheduledBackups()
 
       return {
         serviceName: bonjourServiceName,
-        port: availablePort
+        port: availablePort,
+        ip
       }
     } catch (error) {
-      console.error('Error starting server:', error.message)
+      console.error('Error starting server:', getErrorMessage(error))
       throw error
     }
   }
 
   public stop(): void {
+    // Always stop the sync + backup schedulers so logging out (or restarting as
+    // Main) never leaks another timer.
+    utilService.stop()
+    stopScheduledBackups()
     if (this.server) {
       this.server.close()
       this.bonjourInstance.unpublishAll()

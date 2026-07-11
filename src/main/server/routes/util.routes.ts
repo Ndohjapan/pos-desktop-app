@@ -1,25 +1,44 @@
-//@ts-nocheck
 import { Router } from 'express'
-import { UtilService } from '../services/util.service'
+import { utilService } from '../services/util.service'
+import { sendError } from '../utils/errors'
 
 const router = Router()
-const utilService = new UtilService()
 
-router.get('/food-and-categoories', async (req, res) => {
+router.get('/food-and-categoories', async (_req, res) => {
   try {
-    const result = await utilService.getAllFoodsAndCategories()
+    const result = await utilService.backupFoods()
     res.json(result)
   } catch (error) {
-    res.status(error.code).json({ message: error.message })
+    sendError(res, error)
   }
 })
 
-router.get('/backup-orders', async (req, res) => {
+router.get('/backup-orders', async (_req, res) => {
   try {
     const result = await utilService.uploadOrdersToCloud()
     res.json(result)
   } catch (error) {
-    res.status(error.code).json({ message: error.message })
+    sendError(res, error)
+  }
+})
+
+// Live sync status for the dashboard indicator.
+router.get('/sync-status', async (_req, res) => {
+  try {
+    const status = await utilService.getStatus()
+    res.json(status)
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
+// Re-queue previously-rejected orders for another upload attempt.
+router.post('/retry-failed', async (_req, res) => {
+  try {
+    const result = await utilService.retryFailedOrders()
+    res.json(result)
+  } catch (error) {
+    sendError(res, error)
   }
 })
 

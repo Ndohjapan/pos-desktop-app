@@ -1,7 +1,9 @@
-//@ts-nocheck
 import { CategoryRepository } from '../database/repositories/category.repository'
 import { FoodRepository } from '../database/repositories/food.repository'
 import CustomError from '../utils/customError'
+import { getErrorMessage, toCustomError } from '../utils/errors'
+import { rollbar } from '../utils/logging'
+import { CreateFoodInput, UpdateFoodInput } from '../types'
 
 export class FoodService {
   private foodRepository: FoodRepository
@@ -13,30 +15,35 @@ export class FoodService {
   }
 
   async getAllFoods() {
-    return this.foodRepository.findAll()
+    const foods = this.foodRepository.findAll()
+    return foods
   }
 
-  async createFood(foodData: any) {
+  // All branches' foods (with branchId) — for the cloud backup only.
+  async getAllFoodsForBackup() {
+    return this.foodRepository.findAllForBackup()
+  }
+
+  async createFood(foodData: CreateFoodInput) {
     try {
       const formattedData = {
         name: foodData.name,
-        cloudId: foodData._id,
         price: foodData.price,
         quantity: foodData.quantity,
         categoryId: foodData.categoryId,
         image: foodData.image
       }
 
-      let foodExists = await this.foodRepository.findByFilter({
-        name: foodData.name
+      const category = await this.categoryRepository.findByFilter({
+        id: foodData.categoryId
       })
 
-      if (foodExists.length > 0) {
-        throw new CustomError('Food already exists', 409)
+      if (category.length === 0) {
+        throw new CustomError('Category not found', 404)
       }
 
-      foodExists = await this.foodRepository.findByFilter({
-        cloudId: foodData._id
+      const foodExists = await this.foodRepository.findByFilter({
+        foodName: foodData.name
       })
 
       if (foodExists.length > 0) {
@@ -46,41 +53,50 @@ export class FoodService {
       const result = await this.foodRepository.create(formattedData)
       return result
     } catch (error) {
-      throw new CustomError(error.message, error.code || 500)
+      console.log(error)
+      rollbar.log(
+        getErrorMessage(error),
+        {},
+        { level: 'error' },
+        '(desktop): Failed to create food'
+      )
+      throw toCustomError(error)
     }
   }
 
-  async upsertFood(foodData: any) {
+  async updateFood(foodId: number, foodData: UpdateFoodInput) {
     try {
-      // Find the category by cloudId
-      const category = await this.categoryRepository.findByFilter({
-        cloudId: foodData.category._id
-      })
-
-      if (category.length === 0) {
-        throw new CustomError('Category not found', 404)
-      }
-
-      const formattedData = {
-        name: foodData.name,
-        cloudId: foodData._id,
+      const newFoodData = {
         price: foodData.price,
         quantity: foodData.quantity,
-        category: {
-          cloudId: foodData.category._id,
-          id: category[0].id
-        },
-        image: foodData.image,
         inStock: foodData.inStock ? 1 : 0
       }
 
-      // Update if exists, create if doesn't
-      const food = await this.foodRepository.upsert(formattedData)
-
-      return food
+      const result = await this.foodRepository.updateById(foodId, newFoodData)
+      return result
     } catch (error) {
-      console.log(error)
-      throw new CustomError(error.message, error.code || 409)
+      rollbar.log(
+        getErrorMessage(error),
+        {},
+        { level: 'error' },
+        '(desktop): Failed to update food'
+      )
+      throw toCustomError(error)
+    }
+  }
+
+  async deleteFood(foodId: number) {
+    try {
+      const result = await this.foodRepository.deleteById(foodId)
+      return result
+    } catch (error) {
+      rollbar.log(
+        getErrorMessage(error),
+        {},
+        { level: 'error' },
+        '(desktop): Failed to delete food'
+      )
+      throw toCustomError(error)
     }
   }
 }
