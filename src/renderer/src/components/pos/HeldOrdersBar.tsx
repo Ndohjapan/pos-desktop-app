@@ -74,30 +74,32 @@ function HeldOrdersBar({
 
   return (
     <div className="w-full px-6 md:px-10 pt-4">
-      <div className="flex items-center gap-2 overflow-x-auto pb-1">
-        <span className="flex items-center gap-1.5 text-xs font-bold text-warning-700 whitespace-nowrap">
-          <FaPause className="text-[10px]" /> On hold ({parked.length})
+      <div className="flex items-center gap-3 overflow-x-auto pb-1">
+        <span className="flex items-center gap-1.5 text-sm font-bold text-warning-700 whitespace-nowrap">
+          <FaPause className="text-xs" /> On hold ({parked.length})
         </span>
         {parked.map((order) => (
           <div
             key={order.id}
-            className="flex items-center gap-2 bg-warning-50 border border-warning-100 rounded-full pl-3 pr-1 py-1 whitespace-nowrap"
+            className="flex items-center gap-2.5 bg-warning-50 border border-warning-100 rounded-2xl pl-4 pr-2 py-2 whitespace-nowrap"
           >
-            <span className="text-sm text-ink font-semibold">{order.label}</span>
-            <span className="text-xs text-muted">{ageLabel(order.createdAt)}</span>
+            <div className="flex flex-col leading-tight mr-1">
+              <span className="text-base text-ink font-bold">{order.label}</span>
+              <span className="text-xs text-muted">{ageLabel(order.createdAt)}</span>
+            </div>
             <button
               onClick={() => resume(order)}
               title="Resume this order"
-              className="w-7 h-7 flex items-center justify-center rounded-full bg-primary-700 text-white hover:bg-primary-800 transition-colors"
+              className="w-12 h-12 flex items-center justify-center rounded-xl bg-primary-700 text-white hover:bg-primary-800 active:scale-95 transition-all"
             >
-              <FaPlay className="text-[10px]" />
+              <FaPlay className="text-base" />
             </button>
             <button
               onClick={() => discard(order)}
               title="Discard"
-              className="w-7 h-7 flex items-center justify-center rounded-full text-muted hover:text-danger-600 hover:bg-white transition-colors"
+              className="w-12 h-12 flex items-center justify-center rounded-xl text-muted hover:text-danger-600 hover:bg-white active:scale-95 transition-all"
             >
-              <FaTrash className="text-[10px]" />
+              <FaTrash className="text-base" />
             </button>
           </div>
         ))}

@@ -229,11 +229,11 @@ function Product() {
                       key={food.id}
                       className="card p-3 flex flex-col transition-shadow hover:shadow-elevated"
                     >
-                      <div className="relative w-full aspect-video rounded-xl bg-app overflow-hidden flex items-center justify-center mb-2.5">
+                      <div className="relative w-full aspect-video overflow-hidden flex items-center justify-center mb-2.5">
                         <img
                           src={imageError[food.id] || !food.image ? Logo : food.image}
                           alt={food.name}
-                          className="w-full h-full object-cover"
+                          className="max-w-full max-h-full object-contain"
                           onError={() => setImageError((prev) => ({ ...prev, [food.id]: true }))}
                         />
                         {!food.inStock && (

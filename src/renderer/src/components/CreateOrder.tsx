@@ -53,8 +53,6 @@ const CreateOrder = forwardRef<CreateOrderHandle, CreateOrderProps>(
 
     // Hold / resume
     const [resumedParkedId, setResumedParkedId] = useState<number | null>(null)
-    const [holdPromptOpen, setHoldPromptOpen] = useState(false)
-    const [holdLabel, setHoldLabel] = useState('')
     const [isHolding, setIsHolding] = useState(false)
 
     // Discount (supervisor-approved)
@@ -212,10 +210,12 @@ const CreateOrder = forwardRef<CreateOrderHandle, CreateOrderProps>(
       setIsPaid(false)
     }
 
-    // Park the current draft under a label and clear the register for the
-    // next customer. The draft is stored server-side so it survives restarts
-    // and can be resumed from any till.
+    // Park the current draft and clear the register for the next customer.
+    // One tap — no name prompt (touchscreen-friendly). The order is auto-labelled
+    // with the time it was held, so it can be picked out from the Held bar. The
+    // draft is stored server-side so it survives restarts and resumes from any till.
     const handleHold = async (): Promise<void> => {
+      if (isHolding) return
       try {
         setIsHolding(true)
         // Re-parking a resumed order: replace the old parked copy.
@@ -223,14 +223,12 @@ const CreateOrder = forwardRef<CreateOrderHandle, CreateOrderProps>(
           await posApi.deleteParked(resumedParkedId).catch(() => undefined)
         }
         await posApi.parkOrder({
-          label: holdLabel.trim() || `Order ${new Date().toLocaleTimeString()}`,
+          label: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
           cashierId: cashier?.id ?? null,
           cashierName: cashier?.fullName ?? null,
           payload: { groups }
         })
         toast.success('Order held — resume it anytime from the Held bar')
-        setHoldPromptOpen(false)
-        setHoldLabel('')
         clearOrder()
         window.dispatchEvent(new Event('parked-orders-changed'))
       } catch {
@@ -334,11 +332,12 @@ const CreateOrder = forwardRef<CreateOrderHandle, CreateOrderProps>(
                 </button>
                 {hasItems && !isPaid && (
                   <button
-                    onClick={() => setHoldPromptOpen(true)}
-                    className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-muted hover:bg-app hover:text-ink transition-colors"
+                    onClick={handleHold}
+                    disabled={isHolding}
+                    className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-muted hover:bg-app hover:text-ink transition-colors disabled:opacity-50"
                     title="Hold this order and serve the next customer"
                   >
-                    <FaPause className="text-[10px]" /> Hold
+                    <FaPause className="text-[10px]" /> {isHolding ? 'Holding…' : 'Hold'}
                   </button>
                 )}
                 <button
@@ -572,36 +571,6 @@ const CreateOrder = forwardRef<CreateOrderHandle, CreateOrderProps>(
                   </div>
                 )}
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* Hold prompt */}
-        {holdPromptOpen && (
-          <div className="overlay">
-            <div className="card w-full max-w-sm p-6 shadow-elevated">
-              <div className="flex justify-between items-center mb-1">
-                <h2 className="text-lg font-bold text-ink">Hold order</h2>
-                <button
-                  onClick={() => setHoldPromptOpen(false)}
-                  className="flex items-center justify-center w-8 h-8 rounded-lg text-muted hover:bg-app hover:text-ink text-xl"
-                >
-                  &times;
-                </button>
-              </div>
-              <p className="text-xs text-muted mb-4">
-                Give it a name so you can find it again (e.g. the customer&apos;s name)
-              </p>
-              <input
-                value={holdLabel}
-                onChange={(e) => setHoldLabel(e.target.value)}
-                placeholder="e.g. Mama Tosin"
-                autoFocus
-                className="input"
-              />
-              <button onClick={handleHold} disabled={isHolding} className="btn-primary w-full mt-4">
-                {isHolding ? 'Holding…' : 'Hold Order'}
-              </button>
             </div>
           </div>
         )}
