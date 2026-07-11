@@ -39,6 +39,10 @@ linux:
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false
+# Updates are served from GitHub Releases. GitHub Actions builds a tagged
+# release (see .github/workflows/release.yml) and publishes latest.yml + the
+# installer; the public repo lets tills download updates without any token.
 publish:
-  provider: generic
-  url: https://springbokco.com/auto-updates
+  provider: github
+  owner: Ndohjapan
+  repo: pos-desktop-app

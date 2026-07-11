@@ -1,0 +1,60 @@
+name: Release desktop app
+
+# Build + publish a Windows release to GitHub Releases whenever a version tag is
+# pushed (e.g. v1.0.1). electron-updater on the installed tills reads these
+# Releases and auto-updates. Can also be run manually from the Actions tab.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write # needed for GITHUB_TOKEN to create the Release + upload assets
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # No committed lockfile (they're gitignored), so use `npm install`.
+      - name: Install dependencies
+        run: npm install
+
+      # electron-builder is configured with npmRebuild:false, so build the native
+      # module (better-sqlite3) against Electron's ABI ourselves.
+      - name: Rebuild native modules for Electron
+        run: npx electron-rebuild -f -w better-sqlite3
+
+      # These are baked into the build (import.meta.env.MAIN_VITE_* and the
+      # renderer's process.env.CLOUDINARY_*). Add them as repo Secrets.
+      - name: Write production .env
+        shell: bash
+        run: |
+          cat > .env <<EOF
+          MAIN_VITE_API_URL=${{ secrets.MAIN_VITE_API_URL }}
+          MAIN_VITE_INGEST_KEY=${{ secrets.MAIN_VITE_INGEST_KEY }}
+          MAIN_VITE_ROLLBAR_TOKEN=${{ secrets.MAIN_VITE_ROLLBAR_TOKEN }}
+          RENDERER_VITE_ROLLBAR_TOKEN=${{ secrets.RENDERER_VITE_ROLLBAR_TOKEN }}
+          CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_UPLOAD_PRESET=${{ secrets.CLOUDINARY_UPLOAD_PRESET }}
+          EOF
+
+      - name: Build (electron-vite)
+        run: npm run build
+
+      # Packages the Windows installer and publishes it + latest.yml to a GitHub
+      # Release for this tag (created as a DRAFT — review it, then hit "Publish"
+      # to roll the update out to the tills).
+      - name: Package + publish to GitHub Releases
+        run: npx electron-builder --win --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
