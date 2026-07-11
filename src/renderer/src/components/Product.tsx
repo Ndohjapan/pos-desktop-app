@@ -229,7 +229,7 @@ function Product() {
                       key={food.id}
                       className="card p-3 flex flex-col transition-shadow hover:shadow-elevated"
                     >
-                      <div className="relative w-full aspect-[4/3] rounded-xl bg-app overflow-hidden flex items-center justify-center mb-2">
+                      <div className="relative w-full aspect-video rounded-xl bg-app overflow-hidden flex items-center justify-center mb-2.5">
                         <img
                           src={imageError[food.id] || !food.image ? Logo : food.image}
                           alt={food.name}
@@ -242,11 +242,11 @@ function Product() {
                           </span>
                         )}
                       </div>
-                      <h2 className="text-sm text-ink font-semibold text-center line-clamp-1">
+                      <h2 className="text-base text-ink font-semibold text-center leading-snug line-clamp-2">
                         {food.name}
                       </h2>
                       <p
-                        className={`text-base font-bold mt-0.5 text-center ${food.inStock ? 'text-primary-700' : 'text-muted line-through'}`}
+                        className={`text-xl font-bold mt-1 text-center ${food.inStock ? 'text-primary-700' : 'text-muted line-through'}`}
                       >
                         ₦{food.price.toLocaleString()}
                       </p>
