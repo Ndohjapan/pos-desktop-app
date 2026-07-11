@@ -104,10 +104,14 @@ for (const path of dbFiles) {
     setSetting(db, 'cashiersEnabled', CASHIERS[raw])
     console.log(`✓ cashiers ${raw === 'cashiers-on' ? 'ON' : 'OFF'}  ${path}`)
   } else {
+    // Walk-in Store runs in quick-service mode; Restaurant does not. Keep the
+    // mode tied to the branch so the Queue can't show in Restaurant mode.
+    const quickService = targetId === 'walk-in-store'
     setSetting(db, 'branchId', targetId)
     setSetting(db, 'branchName', CANONICAL[targetId])
     setSetting(db, 'branchConfigured', '1')
-    console.log(`✓ ${CANONICAL[targetId]}  ${path}`)
+    setSetting(db, 'quickService', quickService ? '1' : '0')
+    console.log(`✓ ${CANONICAL[targetId]} (quick-service ${quickService ? 'on' : 'off'})  ${path}`)
   }
   db.close()
 }

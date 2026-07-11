@@ -6,6 +6,12 @@ import protect from '../middleware/protect'
 
 const router = Router()
 
+// Walk-in-type stores run in quick-service mode (kitchen queue, big ticket
+// numbers, daily summary); the sit-down restaurant does not. Deriving the mode
+// from the branch keeps them in sync, so the Queue can never show in Restaurant
+// mode. Add future quick-service branch ids here.
+const QUICK_SERVICE_BRANCHES = new Set(['walk-in-store'])
+
 // Every till reads store settings on connect (branch, mode, printers).
 router.get('/', (_req, res) => {
   try {
@@ -44,7 +50,14 @@ router.post('/setup-branch', (req, res) => {
     if (!branchId || !branchName) {
       throw new CustomError('Please select a store', 400)
     }
-    const updated = settingsRepository.update({ branchId, branchName, branchConfigured: true })
+    // Set the operating mode from the branch so they can't drift out of sync.
+    const quickService = QUICK_SERVICE_BRANCHES.has(branchId)
+    const updated = settingsRepository.update({
+      branchId,
+      branchName,
+      branchConfigured: true,
+      quickService
+    })
     res.json({ data: updated })
   } catch (error) {
     sendError(res, error)
