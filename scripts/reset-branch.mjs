@@ -24,7 +24,12 @@ const CANONICAL = {
   restaurant: 'Restaurant',
   'walk-in-store': 'Walk-in Store'
 }
-const ALIASES = { walkin: 'walk-in-store', 'walk-in': 'walk-in-store', walk: 'walk-in-store', rest: 'restaurant' }
+const ALIASES = {
+  walkin: 'walk-in-store',
+  'walk-in': 'walk-in-store',
+  walk: 'walk-in-store',
+  rest: 'restaurant'
+}
 
 const APP_NAME = 'amala-oluyole-pos'
 
