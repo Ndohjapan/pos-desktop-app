@@ -1,6 +1,6 @@
 {
   "name": "amala-oluyole-pos",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A robust and custom POS system for Amala Oluyole",
   "main": "./out/main/index.js",
   "author": "springbokco.com",
