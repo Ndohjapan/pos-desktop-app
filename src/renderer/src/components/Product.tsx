@@ -154,6 +154,12 @@ function Product() {
       // Search filter
       food.name.toLowerCase().includes(searchTerm.toLowerCase())
   )
+
+  // Foods are already scoped to this branch, so only show category pills that
+  // actually have foods here (a category with none in this branch is hidden).
+  const visibleCategories = categories.filter((category) =>
+    foods.some((food) => food.categoryId === category.id)
+  )
   return (
     <>
       <HeldOrdersBar onResume={handleResume} />
@@ -199,7 +205,7 @@ function Product() {
               >
                 All
               </button>
-              {categories.map((category) => (
+              {visibleCategories.map((category) => (
                 <button
                   key={category.id}
                   className={`px-4 py-1.5 text-xs font-semibold rounded-full border transition-colors ${

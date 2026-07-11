@@ -17,6 +17,7 @@ export interface FoodRow {
   image: string | null
   isDeleted: 0 | 1
   categoryId: number
+  branchId: string
   createdAt: string
   updatedAt: string | null
 }
@@ -48,6 +49,8 @@ export interface OrderRow {
   changeDue: number
   voidReason: string | null
   voidedBy: string | null
+  branchId: string
+  branchName: string
   createdAt: string
   updatedAt: string | null
 }

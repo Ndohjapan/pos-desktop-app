@@ -7,6 +7,7 @@ import { cashierService } from './cashier.service'
 import CustomError from '../utils/customError'
 import { getErrorMessage, toCustomError } from '../utils/errors'
 import { rollbar } from '../utils/logging'
+import { currentBranch } from '../utils/branch'
 import { utilService } from './util.service'
 import { CreateOrderInput, DailySummary, DateRangeFilter, OrderFilter } from '../types'
 
@@ -58,7 +59,10 @@ export class OrderService {
 
   async getOrdersByDate(page: number, limit: number, date: string) {
     try {
-      const filter: OrderFilter = { createdAt: dayRangeFilter(date) }
+      const filter: OrderFilter = {
+        createdAt: dayRangeFilter(date),
+        branchId: currentBranch().branchId
+      }
       const orders = await this.orderRepository.findByFilter(page, limit, filter)
 
       return orders
@@ -71,7 +75,10 @@ export class OrderService {
 
   async searchOrders(page: number, limit: number, date: string, searchQuery: string) {
     try {
-      const filter: OrderFilter = { createdAt: dayRangeFilter(date) }
+      const filter: OrderFilter = {
+        createdAt: dayRangeFilter(date),
+        branchId: currentBranch().branchId
+      }
 
       // Add LIKE query for ID search
       if (searchQuery) {
@@ -206,6 +213,8 @@ export class OrderService {
   // On-device daily summary: totals, payment split, voids/discounts, top items.
   getDailySummary(date: string): DailySummary {
     const range = dayRangeFilter(date)
+    // Every figure is scoped to this machine's current branch.
+    const branchId = currentBranch().branchId
 
     const salesAgg = db
       .prepare(
@@ -214,9 +223,10 @@ export class OrderService {
                 COALESCE(SUM(discount), 0) as totalDiscount,
                 COALESCE(SUM(serviceFee), 0) as serviceFees
          FROM "Order"
-         WHERE createdAt >= ? AND createdAt <= ? AND status = 'completed' AND isDeleted = 0`
+         WHERE createdAt >= ? AND createdAt <= ? AND status = 'completed' AND isDeleted = 0
+           AND branchId = ?`
       )
-      .get(range.gte, range.lte) as {
+      .get(range.gte, range.lte, branchId) as {
       orderCount: number
       grossSales: number
       totalDiscount: number
@@ -227,9 +237,10 @@ export class OrderService {
       .prepare(
         `SELECT COUNT(*) as voidCount, COALESCE(SUM(total), 0) as voidedAmount
          FROM "Order"
-         WHERE createdAt >= ? AND createdAt <= ? AND status = 'voided'`
+         WHERE createdAt >= ? AND createdAt <= ? AND status = 'voided'
+           AND branchId = ?`
       )
-      .get(range.gte, range.lte) as { voidCount: number; voidedAmount: number }
+      .get(range.gte, range.lte, branchId) as { voidCount: number; voidedAmount: number }
 
     const byPaymentMethod = db
       .prepare(
@@ -239,10 +250,15 @@ export class OrderService {
          FROM OrderPayment p
          JOIN "Order" o ON o.id = p.orderId
          WHERE o.createdAt >= ? AND o.createdAt <= ? AND o.status = 'completed' AND o.isDeleted = 0
+           AND o.branchId = ?
          GROUP BY p.paymentMethod
          ORDER BY amount DESC`
       )
-      .all(range.gte, range.lte) as { paymentMethod: string; amount: number; count: number }[]
+      .all(range.gte, range.lte, branchId) as {
+      paymentMethod: string
+      amount: number
+      count: number
+    }[]
 
     const topItems = db
       .prepare(
@@ -253,11 +269,16 @@ export class OrderService {
          JOIN OrderGroup g ON g.id = i.groupId
          JOIN "Order" o ON o.id = g.orderId
          WHERE o.createdAt >= ? AND o.createdAt <= ? AND o.status = 'completed' AND o.isDeleted = 0
+           AND o.branchId = ?
          GROUP BY i.foodName
          ORDER BY quantity DESC
          LIMIT 10`
       )
-      .all(range.gte, range.lte) as { foodName: string; quantity: number; amount: number }[]
+      .all(range.gte, range.lte, branchId) as {
+      foodName: string
+      quantity: number
+      amount: number
+    }[]
 
     return {
       date,

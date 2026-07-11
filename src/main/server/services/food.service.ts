@@ -19,6 +19,11 @@ export class FoodService {
     return foods
   }
 
+  // All branches' foods (with branchId) — for the cloud backup only.
+  async getAllFoodsForBackup() {
+    return this.foodRepository.findAllForBackup()
+  }
+
   async createFood(foodData: CreateFoodInput) {
     try {
       const formattedData = {

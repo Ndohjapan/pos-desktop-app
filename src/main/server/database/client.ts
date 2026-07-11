@@ -29,6 +29,9 @@ const currentSchema = {
     image: 'TEXT',
     isDeleted: 'BOOLEAN DEFAULT false',
     categoryId: 'INTEGER',
+    // Which store this food belongs to (so a machine that switches branch keeps
+    // each branch's menu separate). Empty on legacy rows → backfilled at startup.
+    branchId: "TEXT DEFAULT ''",
     createdAt: 'DATETIME DEFAULT CURRENT_TIMESTAMP',
     updatedAt: 'DATETIME',
     foreignKeys: ['FOREIGN KEY (categoryId) REFERENCES Category(id)']
@@ -57,6 +60,11 @@ const currentSchema = {
     changeDue: 'REAL DEFAULT 0',
     voidReason: 'TEXT',
     voidedBy: 'TEXT',
+    // Which store recorded this sale. Every read (analytics, summary, queue) is
+    // scoped to the machine's current branch; backup attributes each order by
+    // its own branch. Empty on legacy rows → backfilled at startup.
+    branchId: "TEXT DEFAULT ''",
+    branchName: "TEXT DEFAULT ''",
     createdAt: 'DATETIME DEFAULT CURRENT_TIMESTAMP',
     updatedAt: 'DATETIME'
   },
@@ -238,6 +246,37 @@ export const initializeDatabase = () => {
   // to exist, whether or not the schema changed this launch.
   for (const indexSql of indexes) {
     db.exec(indexSql)
+  }
+
+  backfillBranchOnLegacyRows()
+}
+
+/**
+ * Tag any order/food that predates the branchId column (branchId = '') with this
+ * machine's configured branch. Idempotent — only touches untagged rows — and a
+ * no-op until the store is set up. Raw SQL (not settingsRepository) to avoid a
+ * circular import with this module.
+ */
+export function backfillBranchOnLegacyRows(): void {
+  try {
+    const read = (key: string): string =>
+      (
+        db.prepare('SELECT value FROM Settings WHERE key = ?').get(key) as
+          | { value: string }
+          | undefined
+      )?.value ?? ''
+
+    if (read('branchConfigured') !== '1') return
+    const branchId = read('branchId')
+    const branchName = read('branchName')
+    if (!branchId) return
+
+    db.prepare(
+      `UPDATE "Order" SET branchId = ?, branchName = ? WHERE branchId = '' OR branchId IS NULL`
+    ).run(branchId, branchName)
+    db.prepare(`UPDATE Food SET branchId = ? WHERE branchId = '' OR branchId IS NULL`).run(branchId)
+  } catch (error) {
+    console.error('branch backfill failed:', error)
   }
 }
 

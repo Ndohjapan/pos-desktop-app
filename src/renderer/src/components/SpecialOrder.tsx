@@ -148,6 +148,11 @@ function SpecialOrder() {
       // Search filter
       food.name.toLowerCase().includes(searchTerm.toLowerCase())
   )
+
+  // Only show category pills that have foods in this branch.
+  const visibleCategories = categories.filter((category) =>
+    foods.some((food) => food.categoryId === category.id)
+  )
   return (
     <>
       <div className="grid grid-cols-1 lg:grid-cols-12 w-full gap-6 px-6 md:px-10 pt-5 pb-8">
@@ -194,7 +199,7 @@ function SpecialOrder() {
               >
                 All
               </button>
-              {categories.map((category) => (
+              {visibleCategories.map((category) => (
                 <button
                   key={category.id}
                   className={`px-4 py-1.5 text-xs font-semibold rounded-full border transition-colors ${

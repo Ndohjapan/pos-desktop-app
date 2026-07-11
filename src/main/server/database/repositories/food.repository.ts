@@ -2,6 +2,7 @@ import CustomError from '../../utils/customError'
 import { getErrorMessage } from '../../utils/errors'
 import db from '../client'
 import { FoodRow, FoodWithCategoryRow } from '../../types'
+import { currentBranch } from '../../utils/branch'
 
 export interface CreateFoodData {
   id?: number
@@ -13,7 +14,28 @@ export interface CreateFoodData {
 }
 
 export class FoodRepository {
+  // The machine's menu — only this branch's foods.
   async findAll(): Promise<FoodWithCategoryRow[]> {
+    try {
+      const foods = db
+        .prepare(
+          `
+        SELECT Food.*, Category.name as category
+        FROM Food
+        LEFT JOIN Category ON Food.categoryId = Category.id
+        WHERE Food.isDeleted = 0 AND Food.branchId = ?
+      `
+        )
+        .all(currentBranch().branchId) as FoodWithCategoryRow[]
+      return foods
+    } catch (error) {
+      throw new CustomError(getErrorMessage(error), 500)
+    }
+  }
+
+  // Every food across ALL branches on this machine (with its branchId), used by
+  // the cloud backup so each branch's menu is uploaded under its own branch.
+  async findAllForBackup(): Promise<FoodWithCategoryRow[]> {
     try {
       const foods = db
         .prepare(
@@ -34,8 +56,8 @@ export class FoodRepository {
   async create(data: CreateFoodData): Promise<CreateFoodData & { createdAt: string }> {
     try {
       const statement = db.prepare(`
-        INSERT INTO Food (id, name, price, quantity, inStock, image, categoryId)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO Food (id, name, price, quantity, inStock, image, categoryId, branchId)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `)
       statement.run(
         data.id ?? null,
@@ -44,7 +66,8 @@ export class FoodRepository {
         data.quantity,
         1,
         data.image,
-        data.categoryId
+        data.categoryId,
+        currentBranch().branchId
       )
 
       return { ...data, createdAt: new Date().toISOString() }
@@ -108,9 +131,10 @@ export class FoodRepository {
   }
 
   async insertMany(data: FoodRow[]) {
+    const branchId = currentBranch().branchId
     const insertStatement = db.prepare(`
-      INSERT INTO Food (id, name, price, quantity, inStock, image, categoryId)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO Food (id, name, price, quantity, inStock, image, categoryId, branchId)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `)
     const transaction = db.transaction((foods: FoodRow[]) => {
       for (const food of foods) {
@@ -121,7 +145,8 @@ export class FoodRepository {
           food.quantity,
           food.inStock,
           food.image,
-          food.categoryId
+          food.categoryId,
+          food.branchId || branchId
         )
       }
     })

@@ -68,21 +68,37 @@ export class UtilService {
   }
 
   async backupFoods(): Promise<boolean> {
-    const foods = await this.foodService.getAllFoods()
+    // All branches on this machine, each uploaded under its OWN branch so the
+    // cloud keeps every branch's menu separate (a machine that switched branch
+    // could hold foods for more than one branch).
+    const foods = await this.foodService.getAllFoodsForBackup()
     const BATCH_SIZE = 15
 
-    for (let i = 0; i < foods.length; i += BATCH_SIZE) {
-      const foodsBatch = foods.slice(i, i + BATCH_SIZE)
-      await retryTransient(
-        () =>
-          makeApiRequest({
-            url: `${import.meta.env.MAIN_VITE_API_URL}/utils/food-and-categories`,
-            method: 'POST',
-            headers: ingestHeaders(),
-            body: { foods: foodsBatch, branch: branchIdentity() }
-          }),
-        { label: 'backup-foods' }
-      )
+    const byBranch = new Map<string, typeof foods>()
+    for (const food of foods) {
+      const branchId = food.branchId || branchIdentity().branchId
+      const bucket = byBranch.get(branchId)
+      if (bucket) bucket.push(food)
+      else byBranch.set(branchId, [food])
+    }
+
+    for (const [branchId, branchFoods] of byBranch) {
+      // The cloud scopes foods/categories by branchId only (it ignores the name
+      // for foods), so branchName here is informational.
+      const branch = { branchId, branchName: branchId }
+      for (let i = 0; i < branchFoods.length; i += BATCH_SIZE) {
+        const foodsBatch = branchFoods.slice(i, i + BATCH_SIZE)
+        await retryTransient(
+          () =>
+            makeApiRequest({
+              url: `${import.meta.env.MAIN_VITE_API_URL}/utils/food-and-categories`,
+              method: 'POST',
+              headers: ingestHeaders(),
+              body: { foods: foodsBatch, branch }
+            }),
+          { label: 'backup-foods' }
+        )
+      }
     }
     return true
   }
@@ -95,7 +111,8 @@ export class UtilService {
    * network failure is rethrown so the caller aborts and retries next cycle.
    */
   private async uploadBatch(
-    orders: OrderWithDetails[]
+    orders: OrderWithDetails[],
+    branch: { branchId: string; branchName: string }
   ): Promise<{ uploaded: number; failed: number }> {
     try {
       await retryTransient(
@@ -104,7 +121,7 @@ export class UtilService {
             url: `${import.meta.env.MAIN_VITE_API_URL}/order`,
             method: 'POST',
             headers: ingestHeaders(),
-            body: { orders, branch: branchIdentity() }
+            body: { orders, branch }
           }),
         { label: 'backup-orders-batch' }
       )
@@ -133,7 +150,7 @@ export class UtilService {
                 url: `${import.meta.env.MAIN_VITE_API_URL}/order`,
                 method: 'POST',
                 headers: ingestHeaders(),
-                body: { orders: [order], branch: branchIdentity() }
+                body: { orders: [order], branch }
               }),
             { label: `backup-order-${order.id}` }
           )
@@ -194,13 +211,31 @@ export class UtilService {
           break
         }
 
-        const result = await this.uploadBatch(orderBatch.rows)
-        uploadedCount += result.uploaded
-        failedCount += result.failed
+        // Attribute each order to the branch it was recorded under (a machine
+        // that switched branch may have pending orders from more than one), so
+        // uploads are never misfiled. Group and send one batch per branch.
+        const byBranch = new Map<string, OrderWithDetails[]>()
+        for (const order of orderBatch.rows) {
+          const branchId = order.branchId || branchIdentity().branchId
+          const bucket = byBranch.get(branchId)
+          if (bucket) bucket.push(order)
+          else byBranch.set(branchId, [order])
+        }
+
+        let pageUploaded = 0
+        let pageFailed = 0
+        for (const [branchId, branchOrders] of byBranch) {
+          const branchName = branchOrders[0].branchName || branchIdentity().branchName
+          const result = await this.uploadBatch(branchOrders, { branchId, branchName })
+          pageUploaded += result.uploaded
+          pageFailed += result.failed
+        }
+        uploadedCount += pageUploaded
+        failedCount += pageFailed
 
         // If every row in this page ended up errored (not uploaded), stop —
         // otherwise we'd loop forever on the same poison page.
-        if (result.uploaded === 0 && result.failed === orderBatch.rows.length) {
+        if (pageUploaded === 0 && pageFailed === orderBatch.rows.length) {
           break
         }
 

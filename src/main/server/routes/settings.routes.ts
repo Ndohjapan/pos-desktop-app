@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import bcrypt from 'bcryptjs'
 import { settingsRepository } from '../database/repositories/settings.repository'
+import { backfillBranchOnLegacyRows } from '../database/client'
 import { sendError } from '../utils/errors'
 import CustomError from '../utils/customError'
 import protect from '../middleware/protect'
@@ -59,6 +60,10 @@ router.post('/setup-branch', (req, res) => {
       branchConfigured: true,
       quickService
     })
+    // Immediately tag all pre-existing (untagged) orders/foods with this branch,
+    // so an existing store that just upgraded doesn't see empty analytics/menu
+    // until a restart. Runs once — only untagged rows are affected.
+    backfillBranchOnLegacyRows()
     res.json({ data: updated })
   } catch (error) {
     sendError(res, error)

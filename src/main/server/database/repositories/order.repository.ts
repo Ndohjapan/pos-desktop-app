@@ -1,6 +1,7 @@
 import db from '../client'
 import CustomError from '../../utils/customError'
 import { getErrorMessage, toCustomError } from '../../utils/errors'
+import { currentBranch } from '../../utils/branch'
 import {
   CreateOrderInput,
   OrderFilter,
@@ -70,6 +71,7 @@ export class OrderRepository {
   async findAll(page = 1, limit = 10) {
     try {
       const offset = (page - 1) * limit
+      const branchId = currentBranch().branchId
 
       const orders = db
         .prepare(
@@ -81,19 +83,25 @@ export class OrderRepository {
             serviceFee,
             specialOrder,
             backupStatus,
+            branchId,
+            branchName,
             datetime(createdAt) || 'Z' as createdAt,
             datetime(updatedAt) || 'Z' as updatedAt
           FROM "Order"
-          WHERE isDeleted = 0
+          WHERE isDeleted = 0 AND branchId = ?
           ORDER BY createdAt DESC
           LIMIT ? OFFSET ?
       `
         )
-        .all(limit, offset) as OrderRow[]
+        .all(branchId, limit, offset) as OrderRow[]
 
       const hydrated = orders.map((order) => this.hydrateOrder(order))
 
-      const total = (db.prepare(`SELECT COUNT(*) as count FROM "Order"`).get() as CountRow).count
+      const total = (
+        db
+          .prepare(`SELECT COUNT(*) as count FROM "Order" WHERE isDeleted = 0 AND branchId = ?`)
+          .get(branchId) as CountRow
+      ).count
 
       return {
         orders: hydrated,
@@ -182,6 +190,8 @@ export class OrderRepository {
             serviceFee,
             specialOrder,
             backupStatus,
+            branchId,
+            branchName,
             datetime(createdAt) || 'Z' as createdAt,
             datetime(updatedAt) || 'Z' as updatedAt
           FROM "Order"
@@ -235,14 +245,15 @@ export class OrderRepository {
           )
           .get() as { nextNumber: number }
 
+        const branch = currentBranch()
         const orderResult = db
           .prepare(
             `INSERT INTO "Order"
                (total, subTotal, specialOrder, serviceFee, backupStatus,
                 orderNumber, status, fulfillment, cashierId, cashierName, shiftId,
-                discount, discountReason, tendered, changeDue,
+                discount, discountReason, tendered, changeDue, branchId, branchName,
                 createdAt, updatedAt, isDeleted)
-             VALUES (?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'), 0)`
+             VALUES (?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'), 0)`
           )
           .run(
             orderData.total,
@@ -258,7 +269,9 @@ export class OrderRepository {
             orderData.discount ?? 0,
             orderData.discountReason ?? null,
             orderData.tendered ?? 0,
-            orderData.changeDue ?? 0
+            orderData.changeDue ?? 0,
+            branch.branchId,
+            branch.branchName
           )
         const newOrderId = orderResult.lastInsertRowid as number
 
@@ -322,7 +335,8 @@ export class OrderRepository {
     )
   }
 
-  // Today's active queue: paid orders not yet served, oldest first.
+  // Today's active queue: paid orders not yet served, oldest first. Scoped to
+  // this machine's current branch.
   findQueue(): OrderWithDetails[] {
     const rows = db
       .prepare(
@@ -330,9 +344,10 @@ export class OrderRepository {
          WHERE date(createdAt, 'localtime') = date('now', 'localtime')
            AND status = 'completed' AND isDeleted = 0
            AND fulfillment IN ('preparing', 'ready')
+           AND branchId = ?
          ORDER BY createdAt ASC`
       )
-      .all() as OrderRow[]
+      .all(currentBranch().branchId) as OrderRow[]
     return rows.map((row) => this.hydrateOrder(row))
   }
 
