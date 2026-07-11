@@ -300,6 +300,9 @@ const CreateOrder = forwardRef<CreateOrderHandle, CreateOrderProps>(
         await utilsApi.printReceipt(createdOrder)
       } catch (error) {
         console.error('Error Printing Receipt', error)
+        toast.error(
+          error instanceof Error ? `Printing failed: ${error.message}` : 'Printing failed'
+        )
       } finally {
         setIsPrintingReceipt(false)
       }

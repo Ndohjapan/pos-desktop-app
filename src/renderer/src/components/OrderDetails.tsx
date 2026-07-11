@@ -38,7 +38,8 @@ const OrderDetails = ({ order, onVoided }: { order: Order; onVoided?: () => void
     try {
       await utilsApi.printReceipt(order)
     } catch (error) {
-      console.error('Error Creating Order', error)
+      console.error('Error Printing Receipt', error)
+      toast.error(error instanceof Error ? `Printing failed: ${error.message}` : 'Printing failed')
     } finally {
       setIsPrintingReceipt(false)
     }

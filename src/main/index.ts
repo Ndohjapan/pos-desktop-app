@@ -9,6 +9,7 @@ import { authApi, categoriesApi, foodsApi, ordersApi, utilsApi } from './client'
 import { generateReceiptHTML, ReceiptOrder } from './receipt-formatting'
 import { generateKitchenTicketHTML } from './kitchen-ticket'
 import { getErrorMessage } from './server/utils/errors'
+import log from 'electron-log'
 import { SERVICE_APP_ID } from './services/network'
 import { backupNow, listBackups, stageRestore } from './services/db-backup'
 import { initAutoUpdater } from './services/updater'
@@ -40,6 +41,8 @@ async function ipcResult<T>(
   }
 }
 
+// NOTE: no `preview` option here — preview + silent printing conflict and can
+// make jobs disappear (no dialog, no print, no error) on Windows.
 const options = {
   silent: true,
   printBackground: true,
@@ -54,8 +57,7 @@ const options = {
   landscape: false,
   pagesPerSheet: 1,
   collate: false,
-  copies: 1,
-  preview: true
+  copies: 1
 }
 
 function loadRenderer(window: BrowserWindow): void {
@@ -346,6 +348,15 @@ ipcMain.handle('retry-failed-orders', (_event, baseUrl) =>
 /**
  * Print arbitrary receipt-style HTML in a hidden window. deviceName targets a
  * specific printer (kitchen printer); omitted = system default (receipt printer).
+ *
+ * Real-world hardening: silent printing on Windows fails quietly on many
+ * driver/printer combos — especially without an explicit deviceName. So:
+ *   1. resolve the target printer by name (requested → default → first),
+ *   2. try a silent print to it,
+ *   3. if that fails, FALL BACK to the system print dialog so the cashier can
+ *      always pick a printer and something visibly happens,
+ * and log every step to electron-log (userData/logs/main.log) so a failure on a
+ * till is diagnosable instead of invisible.
  */
 async function printHtml(
   htmlContent: string,
@@ -360,48 +371,112 @@ async function printHtml(
     }
   })
 
-  // Guarantee the window is always torn down, exactly once.
-  let settled = false
   const cleanup = (): void => {
     if (!printContentsWindow.isDestroyed()) printContentsWindow.destroy()
   }
 
-  return new Promise((resolve, reject) => {
-    // Hard timeout so a stalled printer driver can never hang the promise (and
-    // the renderer's "Printing…" spinner) forever.
-    const timeout = setTimeout(() => {
-      if (settled) return
-      settled = true
-      cleanup()
-      reject(new Error('Printing timed out'))
-    }, 30000)
+  // Render the receipt HTML first (bounded, so a bad load can't hang).
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const loadTimeout = setTimeout(
+        () => reject(new Error('Rendering the receipt timed out')),
+        15000
+      )
+      printContentsWindow.webContents.once('did-finish-load', () => {
+        clearTimeout(loadTimeout)
+        resolve()
+      })
+      printContentsWindow.webContents.once('did-fail-load', (_e, _code, desc) => {
+        clearTimeout(loadTimeout)
+        reject(new Error(desc || 'Failed to render document'))
+      })
+      printContentsWindow
+        .loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`)
+        .catch((err) => {
+          clearTimeout(loadTimeout)
+          reject(err instanceof Error ? err : new Error('Failed to load document'))
+        })
+    })
+  } catch (err) {
+    cleanup()
+    throw err
+  }
 
-    const finish = (err: Error | null, message?: string): void => {
-      if (settled) return
-      settled = true
-      clearTimeout(timeout)
-      cleanup()
-      if (err) reject(err)
-      else resolve({ success: true, message })
+  // One bounded print attempt; resolves instead of rejecting so we can chain a
+  // fallback. A stalled driver can never hang the renderer's spinner forever.
+  const attempt = (
+    printOptions: Record<string, unknown>,
+    timeoutMs: number
+  ): Promise<{ ok: boolean; reason?: string }> =>
+    new Promise((resolve) => {
+      let settled = false
+      const timer = setTimeout(() => {
+        if (!settled) {
+          settled = true
+          resolve({ ok: false, reason: 'Printing timed out' })
+        }
+      }, timeoutMs)
+      try {
+        printContentsWindow.webContents.print(
+          printOptions as Electron.WebContentsPrintOptions,
+          (success, failureReason) => {
+            if (settled) return
+            settled = true
+            clearTimeout(timer)
+            resolve(success ? { ok: true } : { ok: false, reason: failureReason || 'Print failed' })
+          }
+        )
+      } catch (err) {
+        if (!settled) {
+          settled = true
+          clearTimeout(timer)
+          resolve({ ok: false, reason: getErrorMessage(err) })
+        }
+      }
+    })
+
+  try {
+    // Resolve the printer explicitly — silent printing with no deviceName is
+    // the classic "nothing happens" failure on Windows.
+    let target = deviceName
+    let printers: Electron.PrinterInfo[] = []
+    try {
+      printers = await printContentsWindow.webContents.getPrintersAsync()
+    } catch (err) {
+      log.warn('[print] could not list printers:', getErrorMessage(err))
+    }
+    log.info(`[print] printers found: ${printers.map((p) => p.name).join(', ') || '(none)'}`)
+    if (target && !printers.some((p) => p.name === target)) {
+      log.warn(`[print] requested printer "${target}" not found — using default instead`)
+      target = undefined
+    }
+    if (!target) {
+      target = (printers.find((p) => p.isDefault) ?? printers[0])?.name
     }
 
-    const printOptions = deviceName ? { ...options, deviceName } : options
+    log.info(`[print] silent attempt on ${target ?? 'system default'}`)
+    const silentResult = await attempt(target ? { ...options, deviceName: target } : options, 25000)
+    if (silentResult.ok) {
+      log.info('[print] silent print succeeded')
+      cleanup()
+      return { success: true, message: 'Print completed successfully' }
+    }
 
-    printContentsWindow.webContents.once('did-finish-load', () => {
-      printContentsWindow.webContents.print(printOptions, (success, failureReason) => {
-        if (!success) finish(new Error(failureReason || 'Print failed'))
-        else finish(null, 'Print completed successfully')
-      })
-    })
-
-    printContentsWindow.webContents.once('did-fail-load', (_e, _code, desc) => {
-      finish(new Error(desc || 'Failed to render document'))
-    })
-
-    printContentsWindow
-      .loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`)
-      .catch((err) => finish(err instanceof Error ? err : new Error('Failed to load document')))
-  })
+    // Silent path failed — fall back to the system print dialog so the cashier
+    // can pick a printer and something always visibly happens.
+    log.warn(`[print] silent print failed (${silentResult.reason}) — opening the print dialog`)
+    const dialogResult = await attempt({ ...options, silent: false, deviceName: undefined }, 180000)
+    cleanup()
+    if (dialogResult.ok) {
+      log.info('[print] dialog print succeeded')
+      return { success: true, message: 'Print completed' }
+    }
+    log.error(`[print] failed: ${dialogResult.reason}`)
+    throw new Error(dialogResult.reason || 'Print failed')
+  } catch (err) {
+    cleanup()
+    throw err instanceof Error ? err : new Error('Print failed')
+  }
 }
 
 ipcMain.handle('print-receipt', (_event, orderData: ReceiptOrder) =>

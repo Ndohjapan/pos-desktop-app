@@ -2,6 +2,7 @@ import { TbWorld } from 'react-icons/tb'
 import { IoIosSend } from 'react-icons/io'
 import { HiOutlineCash } from 'react-icons/hi'
 import { useState } from 'react'
+import toast from 'react-hot-toast'
 import { FaCreditCard, FaChevronDown, FaChevronUp } from 'react-icons/fa'
 import { Order } from '@renderer/types'
 import { getAdminToken } from '@renderer/utils/auth'
@@ -35,6 +36,7 @@ const OrderDetails = ({ order, onDeleteOrder }: { order: Order; onDeleteOrder: (
       await utilsApi.printReceipt(order)
     } catch (error) {
       console.error('Error Printing Order', error)
+      toast.error(error instanceof Error ? `Printing failed: ${error.message}` : 'Printing failed')
     } finally {
       setIsPrintingReceipt(false)
     }
