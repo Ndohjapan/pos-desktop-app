@@ -16,6 +16,8 @@
     "reset": "node --experimental-sqlite --no-warnings scripts/reset-branch.mjs",
     "reset:restaurant": "node --experimental-sqlite --no-warnings scripts/reset-branch.mjs restaurant",
     "reset:walkin": "node --experimental-sqlite --no-warnings scripts/reset-branch.mjs walk-in-store",
+    "cashiers:off": "node --experimental-sqlite --no-warnings scripts/reset-branch.mjs cashiers-off",
+    "cashiers:on": "node --experimental-sqlite --no-warnings scripts/reset-branch.mjs cashiers-on",
     "build": "electron-vite build",
     "build:unpack": "npm run build && electron-builder --dir",
     "build:win": "npm run build && electron-builder --win",

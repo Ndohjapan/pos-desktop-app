@@ -45,6 +45,8 @@ function usage() {
   console.log(`Usage:
   npm run reset                  reset — app asks for branch setup next launch
   npm run reset -- <branch>      switch directly to a branch (no setup)
+  npm run cashiers:off           disable cashier sign-in (unstick the register screen)
+  npm run cashiers:on            enable cashier sign-in
 
 Branches: ${Object.keys(CANONICAL).join(', ')}  (aliases: ${Object.keys(ALIASES).join(', ')})`)
 }
@@ -55,11 +57,21 @@ if (raw === '-h' || raw === '--help') {
   process.exit(0)
 }
 
+// Turning cashiers on with zero cashier accounts soft-locks the till (the
+// sign-in screen covers the Admin switch), so this is the quick way out.
+const CASHIERS = { 'cashiers-off': '0', 'cashiers-on': '1' }
+
 const targetId = ALIASES[raw] || raw
-const mode = !raw ? 'reset' : CANONICAL[targetId] ? 'switch' : 'invalid'
+const mode = !raw
+  ? 'reset'
+  : raw in CASHIERS
+    ? 'cashiers'
+    : CANONICAL[targetId]
+      ? 'switch'
+      : 'invalid'
 
 if (mode === 'invalid') {
-  console.error(`✗ Unknown branch "${raw}".\n`)
+  console.error(`✗ Unknown argument "${raw}".\n`)
   usage()
   process.exit(1)
 }
@@ -88,6 +100,9 @@ for (const path of dbFiles) {
     setSetting(db, 'branchId', 'main')
     setSetting(db, 'branchName', 'Amala Oluyole')
     console.log(`✓ Reset  ${path}`)
+  } else if (mode === 'cashiers') {
+    setSetting(db, 'cashiersEnabled', CASHIERS[raw])
+    console.log(`✓ cashiers ${raw === 'cashiers-on' ? 'ON' : 'OFF'}  ${path}`)
   } else {
     setSetting(db, 'branchId', targetId)
     setSetting(db, 'branchName', CANONICAL[targetId])
@@ -97,8 +112,4 @@ for (const path of dbFiles) {
   db.close()
 }
 
-console.log(
-  mode === 'reset'
-    ? '\nDone — restart the desktop app; it will ask you to pick a branch.'
-    : `\nDone — restart the desktop app; it is now the ${CANONICAL[targetId]}.`
-)
+console.log('\nDone — fully restart the desktop app for the change to take effect.')
