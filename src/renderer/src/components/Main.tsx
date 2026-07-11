@@ -14,6 +14,8 @@ import { useConnectionStore } from '@renderer/store/connection'
 export default function Main(): JSX.Element {
   const [activeTab, setActiveTab] = useState('Menu')
   const [settingsLoaded, setSettingsLoaded] = useState(false)
+  // null = not yet checked; a number once we know how many cashier accounts exist.
+  const [cashierAccountCount, setCashierAccountCount] = useState<number | null>(null)
   const settings = useSettingsStore((state) => state.settings)
   const setSettings = useSettingsStore((state) => state.setSettings)
   const cashier = useCashierStore((state) => state.cashier)
@@ -27,6 +29,20 @@ export default function Main(): JSX.Element {
       .catch(() => undefined)
       .finally(() => setSettingsLoaded(true))
   }, [setSettings])
+
+  // How many cashier accounts exist? We only force the sign-in screen when there
+  // is actually someone to sign in as — enabling cashiers with zero accounts
+  // would otherwise soft-lock the till (the sign-in overlay covers every way out).
+  useEffect(() => {
+    if (!settings.cashiersEnabled) {
+      setCashierAccountCount(null)
+      return
+    }
+    posApi
+      .listCashiers()
+      .then((response) => setCashierAccountCount(response.data.length))
+      .catch(() => setCashierAccountCount(0))
+  }, [settings.cashiersEnabled])
 
   const renderContent = (): JSX.Element => {
     switch (activeTab) {
@@ -47,8 +63,9 @@ export default function Main(): JSX.Element {
 
   // First-time setup: on the Main machine, pick this store before anything else.
   const needsBranchSetup = connectionType === 'Main' && settingsLoaded && !settings.branchConfigured
-  // When cashier accounts are enabled, nobody sells until someone signs in.
-  const needsCashier = settings.cashiersEnabled && !cashier
+  // Require sign-in only when cashiers are enabled AND at least one account
+  // exists (cashierAccountCount === 0 means none yet → don't block, no lock-out).
+  const needsCashier = settings.cashiersEnabled && !cashier && cashierAccountCount !== 0
 
   return (
     <>
