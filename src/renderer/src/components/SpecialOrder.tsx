@@ -236,11 +236,11 @@ function SpecialOrder() {
                           </span>
                         )}
                       </div>
-                      <h2 className="text-lg text-ink font-bold text-center leading-snug line-clamp-2">
+                      <h2 className="text-base text-ink font-semibold text-center leading-snug line-clamp-2">
                         {food.name}
                       </h2>
                       <p
-                        className={`text-xl font-bold mt-1 text-center ${food.inStock ? 'text-primary-700' : 'text-muted line-through'}`}
+                        className={`text-base font-bold mt-1 text-center ${food.inStock ? 'text-primary-700' : 'text-muted line-through'}`}
                       >
                         ₦{food.price.toLocaleString()}
                       </p>
