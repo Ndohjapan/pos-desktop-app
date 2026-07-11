@@ -236,7 +236,7 @@ function SpecialOrder() {
                           </span>
                         )}
                       </div>
-                      <h2 className="text-base text-ink font-semibold text-center leading-snug line-clamp-2">
+                      <h2 className="text-lg text-ink font-bold text-center leading-snug line-clamp-2">
                         {food.name}
                       </h2>
                       <p
