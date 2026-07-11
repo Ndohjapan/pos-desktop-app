@@ -6,3 +6,9 @@ out
 electron-binary
 *.env*
 order.json
+
+# Dependency lock files — not tracked in this repo
+package-lock.json
+pnpm-lock.yaml
+pnpm-lock.json
+yarn.lock
