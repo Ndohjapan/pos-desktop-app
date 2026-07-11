@@ -229,7 +229,7 @@ function Product() {
                       key={food.id}
                       className="card p-3 flex flex-col transition-shadow hover:shadow-elevated"
                     >
-                      <div className="relative w-full aspect-square rounded-xl bg-app overflow-hidden flex items-center justify-center mb-2">
+                      <div className="relative w-full aspect-[4/3] rounded-xl bg-app overflow-hidden flex items-center justify-center mb-2">
                         <img
                           src={imageError[food.id] || !food.image ? Logo : food.image}
                           alt={food.name}
