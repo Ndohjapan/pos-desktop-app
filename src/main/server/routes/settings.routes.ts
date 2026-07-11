@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import bcrypt from 'bcryptjs'
 import { settingsRepository } from '../database/repositories/settings.repository'
 import { sendError } from '../utils/errors'
 import CustomError from '../utils/customError'
@@ -51,6 +52,46 @@ router.post('/setup-branch', (req, res) => {
       throw new CustomError('Please select a store', 400)
     }
     // Set the operating mode from the branch so they can't drift out of sync.
+    const quickService = QUICK_SERVICE_BRANCHES.has(branchId)
+    const updated = settingsRepository.update({
+      branchId,
+      branchName,
+      branchConfigured: true,
+      quickService
+    })
+    res.json({ data: updated })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
+// Change the branch AFTER setup. Guarded twice: super-admin session (protect)
+// AND a re-entry of that admin's own password — because switching the branch
+// changes where every sale from this machine is recorded, so it must be
+// deliberate. The operating mode follows the new branch, same as setup.
+router.post('/change-branch', protect, async (req, res) => {
+  try {
+    const branchId = String(req.body?.branchId ?? '').trim()
+    const branchName = String(req.body?.branchName ?? '').trim()
+    const password = String(req.body?.password ?? '')
+
+    if (!branchId || !branchName) {
+      throw new CustomError('Please select a store', 400)
+    }
+    if (!password) {
+      throw new CustomError('Enter your password to confirm', 400)
+    }
+
+    // req.admin is guaranteed by protect; re-verify the password.
+    const admin = req.admin
+    if (!admin) {
+      throw new CustomError('Not authorized', 401)
+    }
+    const passwordValid = await bcrypt.compare(password, admin.password)
+    if (!passwordValid) {
+      throw new CustomError('Incorrect password', 401)
+    }
+
     const quickService = QUICK_SERVICE_BRANCHES.has(branchId)
     const updated = settingsRepository.update({
       branchId,
