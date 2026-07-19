@@ -34,6 +34,16 @@ router.post('/logout', async (req, res) => {
   }
 })
 
+// Public: lets the login screen decide whether to offer first-time owner
+// creation (only when the machine has no admin accounts at all).
+router.get('/bootstrap-status', async (_req, res) => {
+  try {
+    res.status(200).json({ data: await authService.bootstrapStatus() })
+  } catch (error) {
+    sendError(res, error)
+  }
+})
+
 // --- Admin management (owner/super-admin only) ---
 
 router.get('/admins', protect, async (_req, res) => {

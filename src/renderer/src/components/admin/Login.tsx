@@ -1,18 +1,28 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Logo from '@renderer/assets/images/logo.svg'
 import Background from '@renderer/assets/images/background.png'
-// `Link` removed — the "Create an account" link is disabled (see below).
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { authApi } from '@renderer/api/client'
+import { posApi } from '@renderer/api/pos'
 import { useConnectionStore } from '@renderer/store/connection'
 
 export default function Login() {
   const [isLoading, setIsLoading] = useState(false)
+  // First-run only: offer owner-account creation when the machine has no
+  // admin accounts at all (staff can never self-provision once one exists).
+  const [needsOwner, setNeedsOwner] = useState(false)
   const host = useConnectionStore((state) => state.host)
   const port = useConnectionStore((state) => state.port)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    posApi
+      .bootstrapStatus()
+      .then(({ data }) => setNeedsOwner(!data.hasAdmins))
+      .catch(() => undefined)
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -79,14 +89,16 @@ export default function Login() {
               <button type="submit" disabled={isLoading} className="btn-primary w-full py-3">
                 {isLoading ? 'Logging in…' : 'Login'}
               </button>
-              {/* Account creation disabled — admins are provisioned centrally.
-              <Link
-                to="/admin/signup"
-                className="text-primary-700 text-center text-sm font-medium hover:text-primary-800"
-              >
-                Create an account
-              </Link>
-              */}
+              {/* Shown only on a brand-new machine with zero admin accounts —
+                  the one case where an account MUST be creatable (the owner). */}
+              {needsOwner && (
+                <Link
+                  to="/admin/signup"
+                  className="text-primary-700 text-center text-sm font-medium hover:text-primary-800"
+                >
+                  First time on this computer? Create the owner account
+                </Link>
+              )}
             </div>
           </form>
         </div>

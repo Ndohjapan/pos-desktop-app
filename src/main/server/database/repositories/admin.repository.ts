@@ -71,4 +71,16 @@ export class AdminRepository {
       throw new CustomError(getErrorMessage(error), 500)
     }
   }
+
+  // Make this account a fully usable owner (verified super admin). Used by the
+  // lockout self-heal when a machine has no owner account at all.
+  async promoteToOwner(id: number): Promise<void> {
+    try {
+      db.prepare(
+        `UPDATE Admin SET verified = 1, isSuperAdmin = 1, updatedAt = datetime('now') WHERE id = ?`
+      ).run(id)
+    } catch (error) {
+      throw new CustomError(getErrorMessage(error), 500)
+    }
+  }
 }

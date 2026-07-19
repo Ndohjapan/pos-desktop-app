@@ -4,9 +4,10 @@ import Nav from '@renderer/components/Nav'
 import Main from './components/Main'
 import AdminMain from './components/admin/Main'
 import Login from './components/admin/Login'
-// Account creation is disabled in the desktop app — admins are provisioned
-// centrally, so staff can't create their own admin accounts.
-// import SignUp from './components/admin/SignUp'
+// Signup is first-run-only: the page refuses to create an account once any
+// admin exists on the machine (staff can't self-provision admin access), but a
+// brand-new till must be able to create its owner account.
+import SignUp from './components/admin/SignUp'
 
 const AppRouter = (): JSX.Element => {
   return (
@@ -30,7 +31,6 @@ const AppRouter = (): JSX.Element => {
           </>
         }
       />{' '}
-      {/* Signup route disabled — admins are provisioned centrally, not self-service.
       <Route
         path="/admin/signup"
         element={
@@ -39,8 +39,7 @@ const AppRouter = (): JSX.Element => {
             <SignUp />
           </>
         }
-      />
-      */}
+      />{' '}
       <Route
         path="/admin/main"
         element={

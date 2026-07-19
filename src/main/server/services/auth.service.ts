@@ -87,16 +87,36 @@ export class AuthService {
       // Enforce the verified flag — unverified staff accounts cannot log in
       // until the owner approves them.
       if (!admin.verified) {
-        throw new CustomError('Account is awaiting approval by the owner', 403)
+        // Lockout self-heal: if this machine has NO usable owner at all (no
+        // account that is both verified AND super admin), then nobody can log
+        // in to approve anyone — a hard deadlock. Happens when admin rows
+        // predate the verified column (upgrades / restored old backups), since
+        // the signup bootstrap only runs on signup. Same trust model as that
+        // bootstrap: the first person to present a correct password becomes
+        // the owner. Once a usable owner exists this can never fire again.
+        const usableOwner = await this.adminRepository.findByFilter({
+          verified: 1,
+          isSuperAdmin: 1
+        })
+        if (usableOwner) {
+          throw new CustomError('Account is awaiting approval by the owner', 403)
+        }
+        console.log(
+          `No usable owner on this machine — promoting "${admin.fullName}" (${admin.phoneNumber}) to owner`
+        )
+        await this.adminRepository.promoteToOwner(admin.id)
       }
+
+      // Re-read so the returned row reflects any self-heal promotion.
+      const freshAdmin = (await this.adminRepository.findById(admin.id)) ?? admin
 
       // Issue a real, unguessable, expiring session token (replaces the old
       // "token = admin row id" scheme).
       this.sessionRepository.purgeExpired()
-      const token = this.sessionRepository.create(admin.id)
+      const token = this.sessionRepository.create(freshAdmin.id)
 
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { password, ...adminWithoutPassword } = admin
+      const { password, ...adminWithoutPassword } = freshAdmin
       return { ...adminWithoutPassword, token }
     } catch (error) {
       throw toCustomError(error, 401)
@@ -105,6 +125,16 @@ export class AuthService {
 
   async logout(token: string): Promise<void> {
     this.sessionRepository.delete(token)
+  }
+
+  // Public status for the login screen: a brand-new machine (zero admin
+  // accounts) offers "create the owner account"; anything else hides it.
+  async bootstrapStatus() {
+    const admins = await this.adminRepository.findAll()
+    return {
+      hasAdmins: admins.length > 0,
+      hasOwner: admins.some((admin) => admin.verified && admin.isSuperAdmin)
+    }
   }
 
   // --- Admin management (super-admin only, enforced at the route) ---

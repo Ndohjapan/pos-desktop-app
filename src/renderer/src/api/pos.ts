@@ -51,6 +51,13 @@ export const posApi = {
     request<Wrapped<StoreSettings>>('PUT', '/settings', partial, { auth: true }),
   setupBranch: (branchId: string, branchName: string) =>
     request<Wrapped<StoreSettings>>('POST', '/settings/setup-branch', { branchId, branchName }),
+  bootstrapStatus: () =>
+    request<Wrapped<{ hasAdmins: boolean; hasOwner: boolean }>>(
+      'GET',
+      '/auth/bootstrap-status',
+      undefined,
+      { silent: true }
+    ),
   changeBranch: (branchId: string, branchName: string, password: string) =>
     request<Wrapped<StoreSettings>>(
       'POST',

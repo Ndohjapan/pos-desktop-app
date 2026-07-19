@@ -1,16 +1,27 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Logo from '@renderer/assets/images/logo.svg'
 import Background from '@renderer/assets/images/background.png'
 import { Link, useNavigate } from 'react-router-dom'
 import { authApi } from '@renderer/api/client'
+import { posApi } from '@renderer/api/pos'
 import { useConnectionStore } from '@renderer/store/connection'
 import toast from 'react-hot-toast'
 
 export default function SignUp() {
   const [isLoading, setIsLoading] = useState(false)
+  // First-run only: once ANY admin exists on this machine, account creation is
+  // closed (staff can't self-provision; the owner manages accounts).
+  const [allowed, setAllowed] = useState<boolean | null>(null)
   const host = useConnectionStore((state) => state.host)
   const port = useConnectionStore((state) => state.port)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    posApi
+      .bootstrapStatus()
+      .then(({ data }) => setAllowed(!data.hasAdmins))
+      .catch(() => setAllowed(false))
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -63,78 +74,98 @@ export default function SignUp() {
       >
         <div className="w-full max-w-[460px] card shadow-elevated p-8">
           <img src={Logo} alt="Amala Oluyole" className="w-20 mb-5" />
-          <h2 className="font-bold text-xl text-ink">Create an admin account</h2>
-          <p className="text-sm text-muted mt-1">The first account becomes the owner</p>
-          <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label htmlFor="fullname" className="label">
-                    Full Name
-                  </label>
-                  <input
-                    id="fullname"
-                    name="fullname"
-                    type="text"
-                    placeholder="Full name"
-                    required
-                    className="input"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="phoneNumber" className="label">
-                    Phone Number
-                  </label>
-                  <input
-                    id="phoneNumber"
-                    name="phoneNumber"
-                    type="text"
-                    placeholder="08012345678"
-                    required
-                    className="input"
-                  />
-                </div>
-              </div>
-              <div>
-                <label htmlFor="password" className="label">
-                  Password
-                </label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  placeholder="At least 6 characters"
-                  required
-                  className="input"
-                />
-              </div>
-              <div>
-                <label htmlFor="confirm_password" className="label">
-                  Confirm Password
-                </label>
-                <input
-                  id="confirm_password"
-                  name="confirm_password"
-                  type="password"
-                  placeholder="Re-enter password"
-                  required
-                  className="input"
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-3 pt-1">
-              <button type="submit" disabled={isLoading} className="btn-primary w-full py-3">
-                {isLoading ? 'Creating account…' : 'Create Account'}
-              </button>
+          {allowed === false ? (
+            <>
+              <h2 className="font-bold text-xl text-ink">Account creation is closed</h2>
+              <p className="text-sm text-muted mt-2">
+                This computer already has an admin account. Ask the owner to log in and manage
+                accounts under Staff.
+              </p>
               <Link
                 to="/admin/login"
-                className="text-primary-700 text-center text-sm font-medium hover:text-primary-800"
+                className="btn-primary w-full mt-6 py-3 text-center inline-flex justify-center"
               >
                 Back to login
               </Link>
-            </div>
-          </form>
+            </>
+          ) : (
+            <>
+              <h2 className="font-bold text-xl text-ink">Create the owner account</h2>
+              <p className="text-sm text-muted mt-1">
+                First-time setup — this account becomes the owner of this computer
+              </p>
+              <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label htmlFor="fullname" className="label">
+                        Full Name
+                      </label>
+                      <input
+                        id="fullname"
+                        name="fullname"
+                        type="text"
+                        placeholder="Full name"
+                        required
+                        className="input"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="phoneNumber" className="label">
+                        Phone Number
+                      </label>
+                      <input
+                        id="phoneNumber"
+                        name="phoneNumber"
+                        type="text"
+                        placeholder="08012345678"
+                        required
+                        className="input"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label htmlFor="password" className="label">
+                      Password
+                    </label>
+                    <input
+                      id="password"
+                      name="password"
+                      type="password"
+                      placeholder="At least 6 characters"
+                      required
+                      className="input"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="confirm_password" className="label">
+                      Confirm Password
+                    </label>
+                    <input
+                      id="confirm_password"
+                      name="confirm_password"
+                      type="password"
+                      placeholder="Re-enter password"
+                      required
+                      className="input"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-3 pt-1">
+                  <button type="submit" disabled={isLoading} className="btn-primary w-full py-3">
+                    {isLoading ? 'Creating account…' : 'Create Account'}
+                  </button>
+                  <Link
+                    to="/admin/login"
+                    className="text-primary-700 text-center text-sm font-medium hover:text-primary-800"
+                  >
+                    Back to login
+                  </Link>
+                </div>
+              </form>
+            </>
+          )}
         </div>
       </div>
     </div>
