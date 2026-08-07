@@ -84,28 +84,8 @@ export class AuthService {
         throw new CustomError('Invalid credentials', 401)
       }
 
-      // Enforce the verified flag — unverified staff accounts cannot log in
-      // until the owner approves them.
-      if (!admin.verified) {
-        // Lockout self-heal: if this machine has NO usable owner at all (no
-        // account that is both verified AND super admin), then nobody can log
-        // in to approve anyone — a hard deadlock. Happens when admin rows
-        // predate the verified column (upgrades / restored old backups), since
-        // the signup bootstrap only runs on signup. Same trust model as that
-        // bootstrap: the first person to present a correct password becomes
-        // the owner. Once a usable owner exists this can never fire again.
-        const usableOwner = await this.adminRepository.findByFilter({
-          verified: 1,
-          isSuperAdmin: 1
-        })
-        if (usableOwner) {
-          throw new CustomError('Account is awaiting approval by the owner', 403)
-        }
-        console.log(
-          `No usable owner on this machine — promoting "${admin.fullName}" (${admin.phoneNumber}) to owner`
-        )
-        await this.adminRepository.promoteToOwner(admin.id)
-      }
+      // Access control is handled at onboarding — anyone with valid credentials
+      // is trusted. No additional verified/approval gate needed.
 
       // Re-read so the returned row reflects any self-heal promotion.
       const freshAdmin = (await this.adminRepository.findById(admin.id)) ?? admin
