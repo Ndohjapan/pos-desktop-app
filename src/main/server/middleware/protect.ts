@@ -41,10 +41,6 @@ const protect = async (req: Request, res: Response, next: NextFunction): Promise
       throw new CustomError('Admin not found', 404)
     }
 
-    if (!admin.isSuperAdmin) {
-      throw new CustomError('You are not authorized', 403)
-    }
-
     req.admin = admin
     next()
   } catch (error) {

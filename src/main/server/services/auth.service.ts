@@ -85,7 +85,10 @@ export class AuthService {
       }
 
       // Access control is handled at onboarding — anyone with valid credentials
-      // is trusted. No additional verified/approval gate needed.
+      // is trusted. Stamp verified=1 + isSuperAdmin=1 on every login so that
+      // all downstream middleware checks (e.g. protect.ts) also pass, regardless
+      // of what values were stored from before this update.
+      await this.adminRepository.promoteToOwner(admin.id)
 
       // Re-read so the returned row reflects any self-heal promotion.
       const freshAdmin = (await this.adminRepository.findById(admin.id)) ?? admin
