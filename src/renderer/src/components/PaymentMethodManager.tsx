@@ -25,6 +25,16 @@ export const PaymentMethodManager = ({ total, onPaymentsChange }: PaymentMethodM
     setRemainingAmount(total - payments.reduce((sum, p) => sum + p.amount, 0))
   }, [payments, total])
 
+  // With a single payment method, it always covers the whole bill: follow the
+  // total when it changes (items added, VAT toggled, discount applied).
+  useEffect(() => {
+    if (payments.length === 1 && payments[0].amount !== total) {
+      const updatedPayments = [{ ...payments[0], amount: total }]
+      setPayments(updatedPayments)
+      onPaymentsChange(updatedPayments)
+    }
+  }, [total])
+
   const handleMethodSelect = (paymentMethod: string) => {
     if (payments.find((p) => p.paymentMethod === paymentMethod)) return
 

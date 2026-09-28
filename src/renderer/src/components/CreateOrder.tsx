@@ -12,7 +12,26 @@ import { PaymentMethodManager } from './PaymentMethodManager'
 import PinPad from './pos/PinPad'
 import toast from 'react-hot-toast'
 import type { CreateOrderInput, Food, Order, Payment } from '../types'
-import { round2, sumMoney } from '@renderer/utils/money'
+import { computeVat, round2, sumMoney, VAT_RATE } from '@renderer/utils/money'
+
+// The VAT switch remembers its last position on this till (off the very first time).
+const VAT_PREF_KEY = 'pos-vat-enabled'
+
+function loadVatPref(): boolean {
+  try {
+    return localStorage.getItem(VAT_PREF_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+function saveVatPref(enabled: boolean): void {
+  try {
+    localStorage.setItem(VAT_PREF_KEY, enabled ? '1' : '0')
+  } catch {
+    // storage unavailable — the switch still works for this session
+  }
+}
 
 export interface DraftOrderItem {
   id: number
@@ -66,6 +85,9 @@ const CreateOrder = forwardRef<CreateOrderHandle, CreateOrderProps>(
 
     // Cash handling
     const [tendered, setTendered] = useState('')
+
+    // Optional VAT
+    const [vatEnabled, setVatEnabled] = useState(loadVatPref)
 
     const host = useConnectionStore((state) => state.host)
     const port = useConnectionStore((state) => state.port)
@@ -167,10 +189,21 @@ const CreateOrder = forwardRef<CreateOrderHandle, CreateOrderProps>(
       return sumMoney(groups.map((group) => group.total))
     }
 
-    const getTotalOrderAmount = (): number => {
+    // Items + service fee − discount: the value VAT is charged on
+    const getNetAmount = (): number => {
       const subtotal = getSubtotalAmount()
       const withFee = showServiceFee ? round2(subtotal + serviceFee) : subtotal
       return round2(Math.max(0, withFee - discount))
+    }
+
+    const getVatAmount = (): number => (vatEnabled ? computeVat(getNetAmount()) : 0)
+
+    const getTotalOrderAmount = (): number => round2(getNetAmount() + getVatAmount())
+
+    const toggleVat = (): void => {
+      const next = !vatEnabled
+      setVatEnabled(next)
+      saveVatPref(next)
     }
 
     const handleServiceFeeChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
@@ -255,6 +288,8 @@ const CreateOrder = forwardRef<CreateOrderHandle, CreateOrderProps>(
           supervisorPin: discount > 0 ? supervisorPin : undefined,
           tendered: tenderedAmount > 0 ? tenderedAmount : undefined,
           changeDue: changeDue > 0 ? changeDue : undefined,
+          vat: vatEnabled ? getVatAmount() : 0,
+          vatRate: vatEnabled ? VAT_RATE : 0,
           parkedOrderId: resumedParkedId ?? undefined
         }
         setIsCreatingOrder(true)
@@ -535,9 +570,43 @@ const CreateOrder = forwardRef<CreateOrderHandle, CreateOrderProps>(
                   </div>
                 )}
 
+                <div className="flex justify-between items-center">
+                  <label
+                    className={`flex items-center gap-2 select-none ${isPaid ? 'cursor-default' : 'cursor-pointer'}`}
+                  >
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={vatEnabled}
+                      aria-label={`Add VAT (${VAT_RATE}%)`}
+                      data-testid="vat-toggle"
+                      onClick={toggleVat}
+                      disabled={isPaid}
+                      className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors disabled:opacity-60 ${
+                        vatEnabled ? 'bg-primary-700' : 'bg-line'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                          vatEnabled ? 'translate-x-[18px]' : 'translate-x-0.5'
+                        }`}
+                      />
+                    </button>
+                    <span className={vatEnabled ? 'font-medium text-ink' : 'text-muted'}>
+                      VAT ({VAT_RATE}%)
+                    </span>
+                  </label>
+                  <span
+                    data-testid="vat-amount"
+                    className={vatEnabled ? 'font-medium text-ink' : 'text-muted'}
+                  >
+                    {vatEnabled ? `₦${getVatAmount().toLocaleString()}` : 'Off'}
+                  </span>
+                </div>
+
                 <div className="flex justify-between items-center border-t border-line pt-2.5">
                   <span className="font-bold text-ink">Total</span>
-                  <span className="text-lg font-extrabold text-primary-700">
+                  <span data-testid="order-total" className="text-lg font-extrabold text-primary-700">
                     ₦{getTotalOrderAmount().toLocaleString()}
                   </span>
                 </div>

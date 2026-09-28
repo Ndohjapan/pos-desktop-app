@@ -223,6 +223,22 @@ const OrderDetails = ({ order, onVoided }: { order: Order; onVoided?: () => void
               </div>
             )}
 
+            {order.discount > 0 && (
+              <div className="flex justify-between">
+                <span className="text-muted">Discount</span>
+                <span className="font-medium text-danger-600">
+                  -₦{order.discount.toLocaleString()}
+                </span>
+              </div>
+            )}
+
+            {order.vat > 0 && (
+              <div className="flex justify-between">
+                <span className="text-muted">VAT ({order.vatRate || 7.5}%)</span>
+                <span className="font-medium">₦{order.vat.toLocaleString()}</span>
+              </div>
+            )}
+
             {/* Total - always show */}
             <div className="flex justify-between border-t pt-2">
               <span className="font-bold">Total</span>

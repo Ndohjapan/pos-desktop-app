@@ -47,6 +47,8 @@ export interface OrderRow {
   discountReason: string | null
   tendered: number
   changeDue: number
+  vat: number
+  vatRate: number
   voidReason: string | null
   voidedBy: string | null
   branchId: string
@@ -185,6 +187,7 @@ export interface DailySummary {
   grossSales: number
   totalDiscount: number
   serviceFees: number
+  totalVat: number
   voidCount: number
   voidedAmount: number
   byPaymentMethod: { paymentMethod: string; amount: number; count: number }[]
@@ -249,6 +252,9 @@ export interface CreateOrderInput {
   supervisorPin?: string
   tendered?: number
   changeDue?: number
+  // optional VAT (amount + rate in percent); omitted/0 = no VAT on this order
+  vat?: number
+  vatRate?: number
   // resume flow: the parked draft this order came from (deleted on success)
   parkedOrderId?: number
 }

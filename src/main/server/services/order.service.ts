@@ -9,6 +9,7 @@ import { getErrorMessage, toCustomError } from '../utils/errors'
 import { rollbar } from '../utils/logging'
 import { currentBranch } from '../utils/branch'
 import { utilService } from './util.service'
+import { VAT_RATE, computeVat } from '../utils/vat'
 import { CreateOrderInput, DailySummary, DateRangeFilter, OrderFilter } from '../types'
 
 // Orders are stored by SQLite as UTC 'YYYY-MM-DD HH:MM:SS'. The old code compared
@@ -112,6 +113,22 @@ export class OrderService {
           `discount ₦${orderData.discount}`
         )
         approvedBy = supervisor.fullName
+      }
+
+      // VAT is optional. When present it must be at the one supported rate and
+      // match the net order value (items + service fee − discount), so a
+      // tampered client can't record an arbitrary tax figure.
+      if (orderData.vat && orderData.vat > 0) {
+        if (orderData.vatRate !== VAT_RATE) {
+          throw new CustomError(`VAT rate must be ${VAT_RATE}%`, 400)
+        }
+        const net = (orderData.subTotal || 0) + (orderData.serviceFee || 0) - (orderData.discount || 0)
+        const expected = computeVat(net)
+        if (Math.abs(expected - orderData.vat) > 0.01) {
+          throw new CustomError('VAT amount does not match the order value', 400)
+        }
+      } else {
+        orderData = { ...orderData, vat: 0, vatRate: 0 }
       }
 
       // In quick-service mode new orders enter the kitchen queue; the classic
@@ -221,7 +238,8 @@ export class OrderService {
         `SELECT COUNT(*) as orderCount,
                 COALESCE(SUM(total), 0) as grossSales,
                 COALESCE(SUM(discount), 0) as totalDiscount,
-                COALESCE(SUM(serviceFee), 0) as serviceFees
+                COALESCE(SUM(serviceFee), 0) as serviceFees,
+                COALESCE(SUM(vat), 0) as totalVat
          FROM "Order"
          WHERE createdAt >= ? AND createdAt <= ? AND status = 'completed' AND isDeleted = 0
            AND branchId = ?`
@@ -231,6 +249,7 @@ export class OrderService {
       grossSales: number
       totalDiscount: number
       serviceFees: number
+      totalVat: number
     }
 
     const voidAgg = db
@@ -286,6 +305,7 @@ export class OrderService {
       grossSales: salesAgg.grossSales,
       totalDiscount: salesAgg.totalDiscount,
       serviceFees: salesAgg.serviceFees,
+      totalVat: salesAgg.totalVat,
       voidCount: voidAgg.voidCount,
       voidedAmount: voidAgg.voidedAmount,
       byPaymentMethod,

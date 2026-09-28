@@ -58,6 +58,10 @@ const currentSchema = {
     discountReason: 'TEXT',
     tendered: 'REAL DEFAULT 0',
     changeDue: 'REAL DEFAULT 0',
+    // Optional VAT charged at checkout (amount in ₦ + the rate used, e.g. 7.5).
+    // 0 when the cashier left VAT off for the order.
+    vat: 'REAL DEFAULT 0',
+    vatRate: 'REAL DEFAULT 0',
     voidReason: 'TEXT',
     voidedBy: 'TEXT',
     // Which store recorded this sale. Every read (analytics, summary, queue) is

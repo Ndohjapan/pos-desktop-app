@@ -83,6 +83,15 @@ export class OrderRepository {
             serviceFee,
             specialOrder,
             backupStatus,
+            orderNumber,
+            status,
+            voidReason,
+            cashierName,
+            discount,
+            tendered,
+            changeDue,
+            vat,
+            vatRate,
             branchId,
             branchName,
             datetime(createdAt) || 'Z' as createdAt,
@@ -190,6 +199,15 @@ export class OrderRepository {
             serviceFee,
             specialOrder,
             backupStatus,
+            orderNumber,
+            status,
+            voidReason,
+            cashierName,
+            discount,
+            tendered,
+            changeDue,
+            vat,
+            vatRate,
             branchId,
             branchName,
             datetime(createdAt) || 'Z' as createdAt,
@@ -251,9 +269,9 @@ export class OrderRepository {
             `INSERT INTO "Order"
                (total, subTotal, specialOrder, serviceFee, backupStatus,
                 orderNumber, status, fulfillment, cashierId, cashierName, shiftId,
-                discount, discountReason, tendered, changeDue, branchId, branchName,
+                discount, discountReason, tendered, changeDue, vat, vatRate, branchId, branchName,
                 createdAt, updatedAt, isDeleted)
-             VALUES (?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'), 0)`
+             VALUES (?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'), 0)`
           )
           .run(
             orderData.total,
@@ -270,6 +288,8 @@ export class OrderRepository {
             orderData.discountReason ?? null,
             orderData.tendered ?? 0,
             orderData.changeDue ?? 0,
+            orderData.vat ?? 0,
+            orderData.vatRate ?? 0,
             branch.branchId,
             branch.branchName
           )

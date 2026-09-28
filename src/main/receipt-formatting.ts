@@ -8,7 +8,14 @@ export type ReceiptOrder = Pick<
   Partial<
     Pick<
       OrderWithDetails,
-      'orderNumber' | 'discount' | 'tendered' | 'changeDue' | 'cashierName' | 'status'
+      | 'orderNumber'
+      | 'discount'
+      | 'tendered'
+      | 'changeDue'
+      | 'cashierName'
+      | 'status'
+      | 'vat'
+      | 'vatRate'
     >
   >
 
@@ -59,6 +66,16 @@ export function generateReceiptHTML(order: ReceiptOrder): string {
     <div class="item">
       <span class="item-name">Discount</span>
       <span class="item-amount">-₦${order.discount.toLocaleString()}</span>
+    </div>
+    `
+        : ''
+    }
+    ${
+      order.vat && order.vat > 0
+        ? `
+    <div class="item">
+      <span class="item-name">VAT (${order.vatRate || 7.5}%)</span>
+      <span class="item-amount">₦${order.vat.toLocaleString()}</span>
     </div>
     `
         : ''
